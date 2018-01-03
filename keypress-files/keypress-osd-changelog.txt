@@ -2,6 +2,7 @@
 // keypress-osd-changelog.txt
 
 Download AHK file from or use the Update now option:
+https://github.com/marius-sucan/KeyPress-OSD
 http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd.ahk
 Please use AHK_H v1.1.27 [unicode] to execute this script.
 
@@ -9,6 +10,7 @@ by Marius Sucan (robodesign.ro)
   v3.93 (2018-01-03)
   - substantially changed how Shift and AltGr are detected when typing; it should be much more reliable; it buffers the events more orderly;
   - simplified the error handling of script file missing; I do not want the user to pick the new file :-)
+  - published on GitHub: https://github.com/marius-sucan/KeyPress-OSD
 
 by drugwash [from the AHK forums]
   v3.92 (2018-01-02)

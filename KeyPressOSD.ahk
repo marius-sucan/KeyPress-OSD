@@ -1,5 +1,6 @@
 ; KeypressOSD.ahk - main file
 ; Latest version at:
+; https://github.com/marius-sucan/KeyPress-OSD
 ; http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd.ahk
 ;
 ; Charset for this file must be UTF 8 with BOM.
@@ -2311,21 +2312,21 @@ GetTextExtentPoint(sString, sFaceName, nHeight, initialStart := 0) {
   nHeight := -DllCall("MulDiv", "int", nHeight, "int", DllCall("GetDeviceCaps", "ptr", hDC, "int", 90), "int", 72)
 
   hFont := DllCall("CreateFont"
-		, "int", nHeight
-		, "int", 0    ; nWidth
-		, "int", 0    ; nEscapement
-		, "int", 0    ; nOrientation
-		, "int", 700  ; fnWeight
-		, "Uint", 0   ; fdwItalic
-		, "Uint", 0   ; fdwUnderline
-		, "Uint", 0   ; fdwStrikeOut
-		, "Uint", 0   ; fdwCharSet
-		, "Uint", 0   ; fdwOutputPrecision
-		, "Uint", 0   ; fdwClipPrecision
-		, "Uint", 0   ; fdwQuality
-		, "Uint", 0   ; fdwPitchAndFamily
-		, "str", sFaceName
-		, "Ptr")
+    , "int", nHeight
+    , "int", 0    ; nWidth
+    , "int", 0    ; nEscapement
+    , "int", 0    ; nOrientation
+    , "int", 700  ; fnWeight
+    , "Uint", 0   ; fdwItalic
+    , "Uint", 0   ; fdwUnderline
+    , "Uint", 0   ; fdwStrikeOut
+    , "Uint", 0   ; fdwCharSet
+    , "Uint", 0   ; fdwOutputPrecision
+    , "Uint", 0   ; fdwClipPrecision
+    , "Uint", 0   ; fdwQuality
+    , "Uint", 0   ; fdwPitchAndFamily
+    , "str", sFaceName
+    , "Ptr")
   hFold := DllCall("SelectObject", "ptr", hDC, "ptr", hFont, "Ptr")
 
   DllCall("GetTextExtentPoint32", "ptr", hDC, "str", sString, "int", StrLen(sString), "int64P", nSize)
@@ -4162,10 +4163,10 @@ Color := hexRGB("0x" Color)
      exit
 
 ;  Loop,16
-;	{
+;  {
 ;    NumGet(custom,(A_Index-1)*4,"UInt")
 ; save custom colors to ini file, to be loaded on a subsequent session
-;	}
+;  }
   setformat, IntegerFast, H
   Color := NumGet(CHOOSECOLOR,3*A_PtrSize,"UInt")
   SetFormat, IntegerFast, D
