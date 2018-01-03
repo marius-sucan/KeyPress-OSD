@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>KeyPress OSD: Help - FAQ</title>
+    <link rel="author" href="http://marius.sucan.ro" title="Marius Șucan"  hreflang="en">
+    <style type="text/css"><!--
+@media screen, projection {
+  body {
+    width: 170mm;
+    margin: 10mm;
+    padding: 0
+  }
+}
+
+body { font: 1em "DejaVu Sans Condensed", "DejaVu Sans", "Nimbus Sans L", "Trebuchet MS", Arial, Verdana, Helvetica, sans-serif
+}
+
+a:hover { text-decoration: none }
+
+p { text-align: normal }
+
+#general-info dt { font-weight: bold }
+
+dl {
+  margin: 0 0 1em 0;
+}
+
+dd {
+  text-align: normal;
+  margin-bottom: 1em;
+  line-height: 1.5em;
+}
+
+ul, p {
+  margin-top: 0.5em;
+  line-height: 1.5em;
+}
+
+li {
+  text-align: normal;
+  line-height: 1.5em;
+  margin: 0.5em 0 1em 0
+}
+
+h1,h2 {
+  font-family: "Trebuchet MS";
+  margin-bottom: 1em;
+}
+
+#menu {
+  margin: 0;
+  padding: 0;
+  padding-bottom: 2em;
+}
+
+#menu li {
+  margin: 0;
+  padding: 0;
+  display: inline;
+}
+
+#menu a {
+  margin: 0;
+  padding: 0.4em 0.7em;
+  display: inline-block;
+  text-decoration: none;
+  background: rgb(225,225,255);
+}
+
+#menu a:hover {
+  background: rgb(240,250,255);
+}
+.question {
+  font-weight: bold;
+}
+--></style>
+  </head>
+  <body>
+
+<ul id="menu">
+  <li><a href="presentation.html">Presentation</a></li>
+  <li><a href="features.html">Features</a></li>
+  <li><a href="settings.html">Settings</a></li>
+  <li><a href="faq.html">FAQ</a></li>
+  <li><a href="shortcuts.html">Keyboard shortcuts</a></li>
+  <li><a href="http://marius.sucan.ro">Home page</a></li>
+</ul>
+
+<h1>KeyPress OSD: FAQ</h1>
+
+<ul>
+<li>
+  <p class="question"><a href="#qa1">How does this application work?</a></p>
+</li>
+<li>
+  <p class="question"><a href="#qa2">The text cursor does not move in synch with the host app.</a></p>
+</li>
+<li>
+  <p class="question"><a href="#qa3">How to synchronize the text content from the OSD with the host app?</a></p>
+</li>
+<li>
+  <p class="question"><a href="#qa4">How to retrieve the text from the host app and have it displayied in the OSD?</a></p>
+</li>
+<li>
+  <p class="question"><a href="#qa5">The text cursor [caret] does not jump between words as the host app.</a></p>
+</li>
+<li>
+  <p class="question"><a href="#qa6">I can't type letters with accents. Dead keys don't work.</a></p>
+</li>
+<li>
+  <p class="question"><a href="#qa7">Can I paste content from the OSD?</a></p>
+</li>
+<li>
+  <p class="question"><a href="#qa8">How to avoid exposing my passwords, if I am in public?</a></p>
+</li>
+<li>
+  <p class="question"><a href="#qa9">What's typed text history?</a></p>
+</li>
+<li>
+  <p class="question"><a href="#qa15">Can I use Ctrl+Z or Ctrl+V to undo or paste?</a></p>
+</li>
+<li>
+  <p class="question"><a href="#qa10">When I play games, it is plain annoying. How to deactivate it temporarly?</a></p>
+</li>
+<li>
+  <p class="question"><a href="#qa11">I only want to use this application for its keyboard beepers. How to deactivate the OSD?</a></p>
+</li>
+<li>
+  <p class="question"><a href="#qa12">The OSD is aligned to the right on the secondary monitor. How to prevent this?</a></p>
+</li>
+<li>
+  <p class="question"><a href="#qa13">How does it make beeps on key presses?</a></p>
+</li>
+<li>
+  <p class="question"><a href="#qa14">What is Capture2Text?</a></p>
+</li>
+</ul>
+
+<h2>Typing mode related</h2>
+<p class="question" id="qa1">Q: How does this application work?</p>
+<p>A: KeyPress attaches [using keyboard hooks] to each key on your keyboard and listens/waits for these to be pressed. When a key is pressed, it is displayied on the OSD. When typing, it uses Windows APIs to get the key names, based on the current keyboard layout. This applies as well when using Shift, AltGr or Caps lock.</p>
+<p>The application does not use the caret specific Windows APIs to detect where the actual text cursor [caret] is in the text field of the currently active application, because most applications do not make use of these APIs - to report the caret position. It also does not detect whether a text field is active.</p>
+<p class="question" id="qa2">Q: The text cursor does not move in synch with the host app.</p>
+<p>A: On slow computers, the host app and KeyPress are more likely to get out of synch, because each application tries to capture key presses simultaneously. If the user types *very* fast, KeyPress is likely to skip the detection of some key presses, especially when using Shift or AltGr. In other cases, on long presses of cursor navigation keys, some applications do not record every key fire.</p>
+<p>In such cases, I advise synchronizing often with the host app and typing slower.</p>
+<p class="question" id="qa3">Q: How to synchronize the text content from the OSD with the host app?</p>
+<p class="question" id="qa4">Q: How to retrieve the text from the host app and have it displayied in the OSD?</p>
+<p>A: Use Winkey + Insert. By default, with this keyboard shortcut, KeyPress tries to capture the entire text from the currently active window and text field (through the clipboard) - maximum characters is 950. It sends the following keystrokes rapidly: Ctrl+A [select all], Ctrl+C [copy], Right, End. The two last keystrokes are meant to ensure that the caret is placed at the end of the text.</p>
+<p>At "Typing mode" settings window, you can choose a different set of keystrokes by enabling "Synchronize with host app using Shift+Up, Home". When this option is enabled the keystrokes sent are: Shift + Up, +Home [both twice], and then Ctrl+C, and Right - to deselect and place the cursor at the end of the selection. In other words, KeyPress attempts to capture a few lines of text from the current position of the caret.</p>
+<p>WinKey + Alt + Insert is the third method provided. The keystrokes KeyPress is sending to the currently active app are meant to capture only the current line while it places the caret at the end of it: End [2x], Shift + Home [2x], Ctrl + C, Left, Right and End [2x].</p>
+<p class="question" id="qa5">Q: The text cursor [caret] does not jump between words as the host app.</p>
+<p>A: Applications implement inconsistent rules for jumping between words, symbols and numbers with the caret when the user presses Ctrl + Left / Right.</p>
+<p>You can try activating from the "Typing mode" settings window the option "Alternative rules to jump between words". With this option enabled, it will mimmick the behavior of Microsoft Word 2016. When the option is deactivated [by default], it mimmicks the rules of Google Chrome.</p>
+<p class="question" id="qa6">Q: I can't type letters with accents. Dead keys don't work.</p>
+<p>A: Please activate in Preferences > "Typing mode" window the option "Do not bind (ignore) known dead keys". KeyPress will no longer detect when such a key is pressed, thus it is completely ignored.</p>
+<p>If this does not work, at Preferences > "Keyboard" settings window, activate "Ignore specific keys" and insert the symbols of the dead keys that do not work and Apply settings.</p>
+<p>If this still does not suffice, you can add the Virtual Key code of these keys. Go to Preferences > "Key History" and press the dead key a few times and after, press F5 [to refresh the list of pressed keys]. Copy the code from the first column into the text field of "Ignore specific keys". Put "vk" before each code, for example: vkC0.</p>
+<p>And at last, if nothing helps, before typing with dead keys, deactivate KeyPress with Shift + Pause/Break.</p>
+<p class="question" id="qa7">Q: Can I paste content from the OSD?</p>
+<p>A: Yes, using Ctrl + Shift + Insert. Alternatively, Ctrl + Alt + Insert. This replaces the entire text from the currently active text field.</p>
+<p>You must first enable in "Typing mode" settings window the option: "Ctrl+Shift+Insert to paste the OSD content into active text field". This is not enabled by default.</p>
+<p class="question" id="qa8">Q: How to avoid exposing my passwords, if I am in public?</p>
+<p>A: Before typing passwords, deactivate "Show single keys" with Ctrl + Alt + Shift + F8. This will maintain other features active, such as beepers. Another option is to deactivate KeyPress with Shift + Pause / Break.</p>
+<p class="question" id="qa9">Q: What's typed text history?</p>
+<p>A: If this feature is enabled at "Typing mode" settings window, on Enter and Escape, the currently written line of text in the OSD is preserved. The two previously recorded lines can be accessed with Page Up / Page Down. This feature is useful to review what you previously wrote.</p>
+<p class="question" id="qa15">Q: Can I use Ctrl+Z or Ctrl+V to undo or paste?</p>
+<p>A: Yes. Paste works in the OSD even if you deactivate "Monitor clipboard" option from Keyboard settings. Undo is limited to only one level.</p>
+
+<h2>Others</h2>
+<p class="question" id="qa10">Q: When I play games, it is plain annoying. How to deactivate it temporarly?</p>
+<p>A: Before starting the game, deactivate KeyPress with Shift + Pause / Break.</p>
+<p class="question" id="qa11">Q: I only want to use this application for its keyboard beepers. How to deactivate the OSD?</p>
+<p>A: At Main menu > Preferences, select "Never show the OSD".</p>
+<p class="question" id="qa12">Q: The OSD is aligned to the right on the secondary monitor. How to prevent this?</p>
+<p>A: Activate the option "Never align to the right" at "OSD appearances" settings window from Main menu > Preferences.</p>
+<p class="question" id="qa13">Q: How does it make beeps on key presses?</p>
+<p>A: It uses sound files for different types of keys. If these are missing, it generates a sound beep that mimmick these sound files. However, the souund volume of generated beeps cannot be changed by KeyPress.</p>
+<p class="question" id="qa14">Q: What is Capture2Text?</p>
+<p>A: It is the name of another application that specializes in Optical Character Recognition (OCR) on screen. It can capture texts from the screen at the push of a button. It can be customized in many ways.</p>
+<p>The KeyPress feature is meant to facilitate the use of Capture2Text. Capture2Text must be configured such that it captures a line of text underneath the mouse cursor when pressing Pause/Break. Please make sure as well that what it captures is stored in the clipboard. When the KeyPress feature is activated, it sends {Pause} every second and it monitors the clipboard. When the clipboard content changes, it displays the content.</p>
+<p><a href="#menu">Back to top</a>.</p>
+</body>
+  <!-- vim:set spell spl=en fo=tcroqwan tw=80 ts=2 sw=2 sts=2 sta et ai cin fenc=utf-8 ff=unix: -->
+</html>
+
