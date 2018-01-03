@@ -4,211 +4,222 @@
 ;--------------------------------------------------------------------------------------------------------------------------
 ;
 ; AVAILABLE SHORTCUTS:
-; Ctrl+Alt+Shift+F8  - Toggles "Show single key" option. Useful when you must reliably use dead keys.
-; Ctrl+Alt+Shift+F9  - Toggles between two OSD offsets: GuiYa and GuiYb.
-; Ctrl+Alt+Shift+F10 - Toggles personal/regional keys support.
-; Ctrl+Alt+Shift+F11 - Detect keyboard language.
-; Ctrl+Alt+Shift+F12 - Reinitialize OSD. Useful when it no longer appears on top. To have it appear on top of elevated apps, run it in administrator mode.
+ ; Ctrl+Alt+Shift+F8  - Toggles "Show single key" option. Useful when you must reliably use dead keys.
+ ; Ctrl+Alt+Shift+F9  - Toggles between two OSD offsets: GuiYa and GuiYb.
+ ; Ctrl+Alt+Shift+F10 - Toggles personal/regional keys support.
+ ; Ctrl+Alt+Shift+F11 - Detect keyboard language.
+ ; Ctrl+Alt+Shift+F12 - Reinitialize OSD. Useful when it no longer appears on top. To have it appear on top of elevated apps, run it in administrator mode.
 ;
 ; NOTES:
-; This script was made for, and on Windows 10.
-; The keyboard layouts have changed since Win XP or Win 98.
-; Windows 10 also no longer switches keyboard layouts based
-; on the currently active app. As such, automatic keyboard
-; layout detection may not work for you.
-; 
-; I do not intend to offer support for older Windows versions.
-; 
-; This script has support only for Latin-based keyboards.
-; Thus, it has no support for Chinese, Japanese, chirilic, 
-; It is too complex for me to implement support for other alphabets or writing systems.
-; If other programmers willing to invest the time in this script,
-; are welcomed to do so, and even to transform it into anything they wish. 
-;
-; I offer numerous options/settings in the script such that
-; everyone can find a way to adapt it to personal needs.
-; - you can edit, in the code, what are the dead keys
-;   - see Loop, 95, char2skip from CreateHotkey() function
-; - you can also define personal regional keys, while autodetect is disabled
-; - disable dead keys if you do not have such keys
-; 
-; Read the messages you get:
-; - it indicates when your keyboard layout is unsupported or Unrecognized
-; - it also indicates if it made a partial match;
-;   - in such cases, you will likely not have all the keys
-;   - or simply AHK will give errors trying to bind to inexistent keys
-; - if the external file is missing, languages.ini, it will always report
-; that it did not detect your keyboard.
-;
-; Default/built in language support is for English International.
-;
-; For the layouts I added support, I avoided binding to dead keys
-; such that you no longer have to add them manually, as indicated previously.
-; 
-; If you rely only on the "vanilla" version, you will likely 
-; not be able to use it.
-;
-; I am no programmer and the script is still quite quirky, but I am trying to
-; make it better and better with each version.
+ ; This script was made for, and on Windows 10.
+ ; The keyboard layouts have changed since Win XP or Win 98.
+ ; Windows 10 also no longer switches keyboard layouts based
+ ; on the currently active app. As such, automatic keyboard
+ ; layout detection may not work for you.
+ ; 
+ ; I do not intend to offer support for older Windows versions.
+ ; 
+ ; This script has support only for Latin-based keyboards.
+ ; Thus, it has no support for Chinese, Japanese, chirilic, 
+ ; It is too complex for me to implement support for other alphabets or writing systems.
+ ; If other programmers willing to invest the time in this script,
+ ; are welcomed to do so, and even to transform it into anything they wish. 
+ ;
+ ; I offer numerous options/settings in the script such that
+ ; everyone can find a way to adapt it to personal needs.
+ ; - you can edit, in the code, what are the dead keys
+ ;   - see Loop, 95, char2skip from CreateHotkey() function
+ ; - you can also define personal regional keys, while autodetect is disabled
+ ; - disable dead keys if you do not have such keys
+ ; 
+ ; Read the messages you get:
+ ; - it indicates when your keyboard layout is unsupported or Unrecognized
+ ; - it also indicates if it made a partial match;
+ ;   - in such cases, you will likely not have all the keys
+ ;   - or simply AHK will give errors trying to bind to inexistent keys
+ ; - if the external file is missing, languages.ini, it will always report
+ ; that it did not detect your keyboard.
+ ;
+ ; Default/built in language support is for English International.
+ ;
+ ; For the layouts I added support, I avoided binding to dead keys
+ ; such that you no longer have to add them manually, as indicated previously.
+ ; 
+ ; If you rely only on the "vanilla" version, you will likely 
+ ; not be able to use it.
+ ;
+ ; I am no programmer and the script is still quite quirky, but I am trying to
+ ; make it better and better with each version.
 ;
 ; FEATURES:
-; - Show previously pressed key if fired quickly.
-; - Count key presses or key fires and mouse clicks.
-; - Automatic resizing of OSD/HUD or fixed size.
-; - Hides automatically when mouse runs over it.
-; - Generate beeps for key presses, modifiers, mouse clicks or just when typing with Capslock.
-; - Indicators for CapsLock, NumLock and ScrollLock states.
-; - Typing mode; shows what you are typing in an expanding text area.
-; - Partial dead keys support, option to turn it off; The work-around is only for the English International keyboard layout.
-; - Partial support for many non-English keyboards. 40 keyboard layouts defined.
-;   - limited automatic detection of keyboard layouts.
-;   - the user also has the option to define his regional keys.
-; - Easy to configure with many options:
-;   - to toggle features: key beepers, key counting or previous key;
-;   - to hide modifiers, mouse clicks or single key presses (which disables typing mode);
-;   - or hide keys that usually get in the way: Left Click and Print Screen [HideAnnoyingKeys];
-;   - differ between left and right modifiers;
-;   - OSD/HUD position, size and display time;
-;   - beep key presses even if keys are not displayed;
-;   - some settings toggled by shortcuts are stored permanently in an INI file;
+ ; - Show previously pressed key if fired quickly.
+ ; - Count key presses or key fires and mouse clicks.
+ ; - Automatic resizing of OSD/HUD or fixed size.
+ ; - Hides automatically when mouse runs over it.
+ ; - Generate beeps for key presses, modifiers, mouse clicks or just when typing with Capslock.
+ ; - Indicators for CapsLock, NumLock and ScrollLock states.
+ ; - Typing mode; shows what you are typing in an expanding text area.
+ ; - Partial dead keys support, option to turn it off; The work-around is only for the English International keyboard layout.
+ ; - Partial support for many non-English keyboards. 40 keyboard layouts defined.
+ ;   - limited automatic detection of keyboard layouts.
+ ;   - the user also has the option to define his regional keys.
+ ; - Easy to configure with many options:
+ ;   - to toggle features: key beepers, key counting or previous key;
+ ;   - to hide modifiers, mouse clicks or single key presses (which disables typing mode);
+ ;   - or hide keys that usually get in the way: Left Click and Print Screen [HideAnnoyingKeys];
+ ;   - differ between left and right modifiers;
+ ;   - OSD/HUD position, size and display time;
+ ;   - beep key presses even if keys are not displayed;
+ ;   - some settings toggled by shortcuts are stored permanently in an INI file;
 ;
 ; CHANGELOG:
-; by Marius Sucan (robodesign.ro)
-;   v2.87 (2017-10-09)
-;   - improvements for assigning keys;
-;     - errors are now managed, it will beep when key bindings fail
-;   - [new] option to disable audio alerts :)
-;   - languages are now in an external file
-;   - new keyboard layouts for Polish, Azerbaijian, Turkmen
-;   v2.85 (2017-10-08)
-;   - minor improvements for the dead keys work-around
-;   - added support for 40 foreign keyboard layouts
-;   - automatic detection of keyboard layouts, at start or continously
-;   - user also can define personal/regional keys in the settings section
-;   - new keyboard shortcut, to toggle regional keys
-;   - new setting: to enable or disable system-wide keyboard shortcuts
-;   - settings toggled by shortcuts are stored permanently in an INI file
-;     - except for the option of regional keys support
-;   v2.73 (2017-10-05)
-;   - improvements for automatic resize calculation
-;   v2.72 (2017-10-04)
-;   - new option: make beeps on mouse clicks
-;   - new option: dstinct beeper for modifier keys: Shift, Ctrl, Alt, WinKey.
-;   - new option: beep hidden keys; if you want it to beep even if the keys are not displayed
-;   - fix: now it always counts mouse clicks
-;   v2.70 (2017-10-03)
-;   - added option to toggle dead keys support / work-around.
-;   - added option to hide annoying keys that usually get in the way: Left Click and Print Screen.
-;   - redraw improvements, reduced flickering
-;   - disabled OSD transparency to reduce flickering
-;   v2.69 (2017-09-30)
-;   - OSD / GUI hides when mouse is over it. Many thanks to phaleth!
-;   v2.68 (2017-09-29)
-;   - numpad keys now work in typing mode as expected; they appear as symbols or numbers
-;
-; by phaleth from irc.freenode.net #ahk
-;   v2.67 (2017-09-28)
-;   - dead keys improvements
-;
-; by Marius Sucan (robodesign.ro)
-;   v2.66 (2017-09-28)
-;   - key combinations with Shift work better.
-;   v2.65 (2017-09-27)
-;   - Fixed a bug with counting modifier keys;
-;   - improved the dead keys work-around
-;   - friendly names for mouse clicks
-;   - when pressed, volume keys  always generate beeps
-;   - added option to differentiate between left and right modifiers
-;   - now it detects AltGr key
-;   - the key beeper now also makes a beep for modifiers.
-;   - capslock no longer erases text you are typing displayed by the OSD
-;   - now you can toggle between two different OSD positions with Ctrl + Alt + Shift + F9
-;   v2.60 (2017-09-26)
-;   - Fixed many bugs with counting keys;
-;   - reimplemented the feature to see the previous key combination, if quickly a new one is pressed;
-;   - added options/settings to toggle previous keys, counting keys and delay;
-;   - added shortcuts to toggle ShowSingleKey option and to reinitialize the OSD;
-;   - added option for automatic resizing of the OSD; it can be turned off in the settings section; it is a fishy implementation, but if one adjusts it, can make it to suit personal needs;
-;   - new option: beep when key is released or when writing with capslock
-;   v2.58 (2017-09-23)
-;   - Numpad keys have friendly naming, based on the numlock state.
-;   - Combinations with space and backspace work again.
-;   v2.56 (2017-09-22)
-;   - more fixes for space usage and key combinations;
-;   - now it indicates when ScrollLock, NumLock and Capslock are activated.
-;   v2.55 (2017-09-21)
-;   - minor fixes for space usage and key combinations.
-;
-; by Saiapatsu from irc.freenode.net #ahk
-;   v2.54 (2017-09-21)
-;   - Scrolls through n recently typed characters instead of just the latest word
-;   v2.53 (2017-09-21)
-;   - Case change effect limited to the loop 95 letters only.
-;   v2.52 (2017-09-21)
-;   - Now supports backspace. Commented out CapsLock beeper.
-;   v2.51 (2017-09-21)
-;   - Changed labels to functions, added ToolWindow style to window, changed DisplayTime
-;   calculation, made it show last word typed, hid spacebar presses
-;   todo: make Shift look less ugly
-;
-; by Marius Sucan (robodesign.ro)
-;   v2.50 (2017-09-20)
-;   - Changed the OSD positioning and sizing. It was based on the current window. Now it is always fixed in a specific place. Added a Capslock beeper.
-;
-; by tmplinshi from https://autohotkey.com/boards/viewtopic.php?f=6&t=225
-;   v2.22 (2017-02-25)
-;   - Now pressing same combination keys continuously more than 2 times,
-;   for example press Ctrl+V 3 times, will displayed as "Ctrl + v (3)"
-;   v2.21 (2017-02-24)
-;   - Fixed LWin/RWin not poping up start menu
-;   v2.20 (2017-02-24)
-;   - Added displaying continuous-pressed combination keys.
-;   e.g.: With CTRL key held down, pressing K and U continuously will shown as "Ctrl + k, u"
-;   v2.10 (2017-01-22)
-;   - Added ShowStickyModKeyCount option
-;   v2.09 (2017-01-22)
-;   - Added ShowModifierKeyCount option
-;   v2.08 (2017-01-19)
-;   - Fixed a bug
-;   v2.07 (2017-01-19)
-;   - Added ShowSingleModifierKey option (default is True)
-;   v2.06 (2016-11-23)
-;   - Added more keys. Thanks to SashaChernykh.
-;   v2.05 (2016-10-01)
-;   - Fixed not detecting "Ctrl + ScrollLock/NumLock/Pause". Thanks to lexikos.
-;   v2.04 (2016-10-01)
-;   - Added NumpadDot and AppsKey
-;   v2.03 (2016-09-17)
-;   - Added displaying "Double-Click" of the left mouse button.
-;   v2.02 (2016-09-16)
-;   - Added displaying mouse button, and 3 settings (ShowMouseButton, FontSize, GuiHeight)
-;   v2.01 (2016-09-11)
-;   - Display non english keyboard layout characters when combine with modifer keys.
-;   v2.00 (2016-09-01)
-;   - Removed the "Fade out" effect because of its buggy.
-;   - Added support for non english keyboard layout.
-;   - Added GuiPosition setting.
-;   v1.00 (2013-10-11)
-;   - First release by tmplinshi based on RaptorX. Function keys, numpad keys and mouse clicks support. Popups at mouse position.
-;   v0.50 (2010-03-18)
-;   - Released by RaptorX.
+ ; by Marius Sucan (robodesign.ro)
+ ;   v2.90 (2017-10-10)
+ ;   - from now, numpad keys always initiate typing mode
+ ;   - modifiers (Ctrl, Shift, Alt, WinKey) and Tab, Insert no longer clear typed input in the OSD, if pressed once, without a combo
+ ;   - unified the behaviour of modifiers
+ ;   - fixed some counting bugs :)
+ ;   - added option to disable PermanentSettings
+ ;   v2.87 (2017-10-09)
+ ;   - improvements for assigning keys;
+ ;     - errors are now managed, it will beep when key bindings fail
+ ;   - [new] option to disable audio alerts :)
+ ;   - languages are now in an external file
+ ;   - new keyboard layouts for Polish, Azerbaijian, Turkmen
+ ;   v2.85 (2017-10-08)
+ ;   - minor improvements for the dead keys work-around
+ ;   - added support for 40 foreign keyboard layouts
+ ;   - automatic detection of keyboard layouts, at start or continously
+ ;   - user also can define personal/regional keys in the settings section
+ ;   - new keyboard shortcut, to toggle regional keys
+ ;   - new setting: to enable or disable system-wide keyboard shortcuts
+ ;   - settings toggled by shortcuts are stored permanently in an INI file
+ ;     - except for the option of regional keys support
+ ;   v2.73 (2017-10-05)
+ ;   - improvements for automatic resize calculation
+ ;   v2.72 (2017-10-04)
+ ;   - new option: make beeps on mouse clicks
+ ;   - new option: dstinct beeper for modifier keys: Shift, Ctrl, Alt, WinKey.
+ ;   - new option: beep hidden keys; if you want it to beep even if the keys are not displayed
+ ;   - fix: now it always counts mouse clicks
+ ;   v2.70 (2017-10-03)
+ ;   - added option to toggle dead keys support / work-around.
+ ;   - added option to hide annoying keys that usually get in the way: Left Click and Print Screen.
+ ;   - redraw improvements, reduced flickering
+ ;   - disabled OSD transparency to reduce flickering
+ ;   v2.69 (2017-09-30)
+ ;   - OSD / GUI hides when mouse is over it. Many thanks to phaleth!
+ ;   v2.68 (2017-09-29)
+ ;   - numpad keys now work in typing mode as expected; they appear as symbols or numbers
+ ;
+ ; by phaleth from irc.freenode.net #ahk
+ ;   v2.67 (2017-09-28)
+ ;   - dead keys improvements
+ ;
+ ; by Marius Sucan (robodesign.ro)
+ ;   v2.66 (2017-09-28)
+ ;   - key combinations with Shift work better.
+ ;   v2.65 (2017-09-27)
+ ;   - Fixed a bug with counting modifier keys;
+ ;   - improved the dead keys work-around
+ ;   - friendly names for mouse clicks
+ ;   - when pressed, volume keys  always generate beeps
+ ;   - added option to differentiate between left and right modifiers
+ ;   - now it detects AltGr key
+ ;   - the key beeper now also makes a beep for modifiers.
+ ;   - capslock no longer erases text you are typing displayed by the OSD
+ ;   - now you can toggle between two different OSD positions with Ctrl + Alt + Shift + F9
+ ;   v2.60 (2017-09-26)
+ ;   - Fixed many bugs with counting keys;
+ ;   - reimplemented the feature to see the previous key combination, if quickly a new one is pressed;
+ ;   - added options/settings to toggle previous keys, counting keys and delay;
+ ;   - added shortcuts to toggle ShowSingleKey option and to reinitialize the OSD;
+ ;   - added option for automatic resizing of the OSD; it can be turned off in the settings section; it is a fishy implementation, but if one adjusts it, can make it to suit personal needs;
+ ;   - new option: beep when key is released or when writing with capslock
+ ;   v2.58 (2017-09-23)
+ ;   - Numpad keys have friendly naming, based on the numlock state.
+ ;   - Combinations with space and backspace work again.
+ ;   v2.56 (2017-09-22)
+ ;   - more fixes for space usage and key combinations;
+ ;   - now it indicates when ScrollLock, NumLock and Capslock are activated.
+ ;   v2.55 (2017-09-21)
+ ;   - minor fixes for space usage and key combinations.
+ ;
+ ; by Saiapatsu from irc.freenode.net #ahk
+ ;   v2.54 (2017-09-21)
+ ;   - Scrolls through n recently typed characters instead of just the latest word
+ ;   v2.53 (2017-09-21)
+ ;   - Case change effect limited to the loop 95 letters only.
+ ;   v2.52 (2017-09-21)
+ ;   - Now supports backspace. Commented out CapsLock beeper.
+ ;   v2.51 (2017-09-21)
+ ;   - Changed labels to functions, added ToolWindow style to window, changed DisplayTime
+ ;   calculation, made it show last word typed, hid spacebar presses
+ ;   todo: make Shift look less ugly
+ ;
+ ; by Marius Sucan (robodesign.ro)
+ ;   v2.50 (2017-09-20)
+ ;   - Changed the OSD positioning and sizing. It was based on the current window. Now it is always fixed in a specific place. Added a Capslock beeper.
+ ;
+ ; by tmplinshi from https://autohotkey.com/boards/viewtopic.php?f=6&t=225
+ ;   v2.22 (2017-02-25)
+ ;   - Now pressing same combination keys continuously more than 2 times,
+ ;   for example press Ctrl+V 3 times, will displayed as "Ctrl + v (3)"
+ ;   v2.21 (2017-02-24)
+ ;   - Fixed LWin/RWin not poping up start menu
+ ;   v2.20 (2017-02-24)
+ ;   - Added displaying continuous-pressed combination keys.
+ ;   e.g.: With CTRL key held down, pressing K and U continuously will shown as "Ctrl + k, u"
+ ;   v2.10 (2017-01-22)
+ ;   - Added ShowStickyModKeyCount option
+ ;   v2.09 (2017-01-22)
+ ;   - Added ShowModifierKeyCount option
+ ;   v2.08 (2017-01-19)
+ ;   - Fixed a bug
+ ;   v2.07 (2017-01-19)
+ ;   - Added ShowSingleModifierKey option (default is True)
+ ;   v2.06 (2016-11-23)
+ ;   - Added more keys. Thanks to SashaChernykh.
+ ;   v2.05 (2016-10-01)
+ ;   - Fixed not detecting "Ctrl + ScrollLock/NumLock/Pause". Thanks to lexikos.
+ ;   v2.04 (2016-10-01)
+ ;   - Added NumpadDot and AppsKey
+ ;   v2.03 (2016-09-17)
+ ;   - Added displaying "Double-Click" of the left mouse button.
+ ;   v2.02 (2016-09-16)
+ ;   - Added displaying mouse button, and 3 settings (ShowMouseButton, FontSize, GuiHeight)
+ ;   v2.01 (2016-09-11)
+ ;   - Display non english keyboard layout characters when combine with modifer keys.
+ ;   v2.00 (2016-09-01)
+ ;   - Removed the "Fade out" effect because of its buggy.
+ ;   - Added support for non english keyboard layout.
+ ;   - Added GuiPosition setting.
+ ;   v1.00 (2013-10-11)
+ ;   - First release by tmplinshi based on RaptorX. Function keys, numpad keys and mouse clicks support. Popups at mouse position.
+ ;   v0.50 (2010-03-18)
+ ;   - Released by RaptorX.
 ;--------------------------------------------------------------------------------------------------------------------------
 ;
-; TO-DO:::::::::::::::::::::::::::::::::::
-; features to implement:
-; - visual mouse clicks
-; - when user types single letters, display Shift + (sign or numeric keys) as signs/symbols, eg. Shift + 0, should be displayed as );
-; - after pressing Shift + [letter] if the following key is a single letter, remember the first Shift + [letter];
-; - after a Numpad key is pressed, typing mode should begin if the second one is another numpad key;
-; - show a generic symbol for ignored dead keys; helps to clarify one was pressed;
-;
-; glitches to fix [by priority]:
-; - [regression since v2.52] show Shift as a modifier, as Ctrl and Alt; Shift should behave as the other two; it is never displayed alone and countable;
-; - once a key is pressed, counting of key fires is not initiated after the OSD was hidden for a little awhile;
-; - make dead keys work better
-; - automatic resizing of the OSD/GUI is just a silly hack based on the default font size and the number of typed chars; it often fails to resize properly;
-; - redraw issues; it still flickers;
-; - make it work reliably with sticky keys; if user presses once Ctrl and another key afterwards, it rarely detects the combination on Winndows 7;
+; TO-DO:
+ ; features to implement:
+ ; - after pressing Shift + [letter] if the following key is a single letter, remember the first Shift + [letter];
+ ; - when user types single letters, display Shift + (sign or numeric keys) as signs/symbols, eg. Shift + 0, should be displayed as );
+ ; - visual mouse clicks
+ ; - clipboard monitoring
+ ; - tray menu, with options
+ ; - show a generic symbol for ignored dead keys; helps to clarify one was pressed;
+ ;
+ ; glitches to fix [by priority]:
+ ; - display previous key for keys pertaining to loop, 95
+ ; - after pressing a letter and another key, [blah] Up
+ ; - ctrl/alt/WinKey press alone and then a letter, R
+ ; - [regression since v2.52] show Shift as a modifier, as Ctrl and Alt; Shift should behave as the other two; it is never displayed alone and countable;
+ ; - [bug, since v1.00] Shift + [numpad] does not work; no idea why
+ ; - [bug] once a key is pressed, counting of key fires is not initiated after the OSD was hidden for a little awhile;
+ ; - make dead keys work better, even detect them ;)
+ ; - automatic resizing of the OSD/GUI is just a silly hack based on the default font size and the number of typed chars; it often fails to resize properly;
+ ; - redraw issues; it still flickers;
+ ; - make it work reliably with sticky keys; if user presses once Ctrl and another key afterwards, it rarely detects the combination on Winndows 7;
 ;----------------------------------------------------------------------------
 
 ; Initialization
@@ -256,6 +267,7 @@ ListLines, Off
     global BeepHiddenKeys        := 0     ; [when any beeper enabled] to beep or not when keys are not displayed by OSD/HUD
 
     global KeyboardShortcuts     := 1     ; system-wide shortcuts
+    global PermanentSettings     := 1     ; settings stored in keypress-osd.ini override the settings from here
 
 
 ; Initialization variables. Altering these may lead to undesired results.
@@ -271,9 +283,13 @@ ListLines, Off
     global text_width := 60
     global InputLocaleID := DllCall("GetKeyboardLayout", "UInt", ThreadID, "UInt")
 
-    IniRead, GuiY, keypress-osd.ini, PermanentSettings, GuiY
-    GuiY := (GuiY=GuiYb || GuiY=GuiYa) ? GuiY : GuiYb
-    IniRead, ShowSingleKey, keypress-osd.ini, PermanentSettings, ShowSingleKey
+    if PermanentSettings=1
+    {
+        IniRead, ShowSingleKey, keypress-osd.ini, PermanentSettings, ShowSingleKey
+        IniRead, GuiY, keypress-osd.ini, PermanentSettings, GuiY
+        GuiY := (GuiY=GuiYb || GuiY=GuiYa) ? GuiY : GuiYb
+    }
+
     IniRead, CustomMultiLangToggled, keypress-osd.ini, PermanentSettings, CustomMultiLangToggled
     if (CustomMultiLangToggled=1) {
         IniRead, CustomRegionalKeys, keypress-osd.ini, PermanentSettings, CustomRegionalKeys
@@ -308,6 +324,8 @@ GetSpecialKeysStates() {
 }
 
 TypedLetter(key) {
+  ;  StringLeft, key, key, 1
+ ;   Stringlower, key, key
     return typed := SubStr(typed key, -NumLetters)
 }
 
@@ -329,7 +347,9 @@ OnMousePressed() {
 OnKeyPressed() {
     try {
         key := GetKeyStr()
-        typed := "" ; concerning TypedLetter(" ") - it resets the content of the OSD
+        if (!(key ~= "i)^(Insert|Tab)$")) {
+           typed := ""
+        }
         ShowHotkey(key)
         SetTimer, HideGUI, % -DisplayTime
     }
@@ -348,16 +368,14 @@ OnLetterPressed() {
 
         if prefixed
         {
+            typed := ""
             ShowHotkey(key)
-        } else
+        } else if !prefixed
         {
-            StringLeft, key, key, 1
-            Stringlower, key, key
-
             GetKeyState, CapsState, CapsLock, T
             If CapsState != D
             {
-                 if GetKeyState("Shift", "P")
+                 if GetKeyState("Shift")
                 {
                   StringUpper, key, key
                 }
@@ -373,39 +391,42 @@ OnLetterPressed() {
 
 OnSpacePressed() {
     try {
-        if typed {
-            if (visible)
-            {
-                TypedLetter("_")
-                ShowHotkey(typed)
-            } else
-            {
-                TypedLetter("_")
-                ShowHotkey(typed)
-                SetTimer, HideGUI, % -DisplayTime
-            }
+        key := GetKeyStr()
+        if prefixed
+        {
+            typed := ""
+            ShowHotkey(key)
+        } else if typed
+        {
+            TypedLetter("_")
+            ShowHotkey(typed)
         } else if (!typed)
         {
-          key := GetKeyStr()
-          ShowHotkey(key)
-          SetTimer, HideGUI, % -DisplayTime
+            ShowHotkey(key)
+            typed := ""
         }
+        SetTimer, HideGUI, % -DisplayTime
     }
 }
 
 OnBspPressed() {
     try
     {
-        if typed
+        key := GetKeyStr()
+        if prefixed
+        {
+            typed := ""
+            ShowHotkey(key)
+        } else if typed
         {
             typed := SubStr(typed, 1, StrLen(typed) - 1)
             ShowHotkey(typed)
-        } else if (!typed)
+        } else if !typed
         {
-            key := GetKeyStr()
+            typed := ""
             ShowHotkey(key)
-            SetTimer, HideGUI, % -DisplayTime
         }
+        SetTimer, HideGUI, % -DisplayTime
     }
     if (BeepHiddenKeys = 1) && (KeyBeeper = 1) && (ShowSingleKey = 0)
        soundbeep, 1900, 45
@@ -444,23 +465,41 @@ OnNumpadPressed()
 {
     GetKeyState, NumState, NumLock, T
     try {
+        key := GetKeyStr()
         if NumState != D
         {
-            key := GetKeyStr()
+            typed := "" ; reset typed content
             ShowHotkey(key)
-            SetTimer, HideGUI, % -DisplayTime
-        } else if !typed
+        } else if prefixed
         {
-            key := GetKeyStr()
+            typed := ""
             ShowHotkey(key)
         } else if NumState = D
         {
-            key := GetKeyStr(1) ; consider it a letter
-            StringLeft, key, key, 3
-            StringRight, key, key, 1
-            TypedLetter(key)
-            ShowHotkey(typed)
+            key2 := GetKeyStr(1)
+            if InStr(key2, "Shift + ")
+            {
+              key := GetKeyStr()
+              LTrim(key, "Shift + ")
+              typed := ""
+              ShowHotkey("Shift + "key)
+            } else if (StrLen(key2)=5)
+            {
+              StringLeft, key2, key2, 3
+              StringRight, key2, key2, 1
+              TypedLetter(key2)
+              ShowHotkey(typed)
+            }
         }
+        SetTimer, HideGUI, % -DisplayTime
+    }
+}
+
+OnModPressed() {
+    try {
+        keyCount := keyCount+1
+        key := GetKeyStr()
+        ShowHotkey(key)
         SetTimer, HideGUI, % -DisplayTime
     }
 }
@@ -579,15 +618,7 @@ CreateHotkey() {
            soundbeep, 1900, 50
     }
 
-    Loop, 10 ; Numpad0 - Numpad9
-    {
-        Hotkey, % "~*Numpad" A_Index - 1, OnNumpadPressed, useErrorLevel
-        Hotkey, % "~*Numpad" A_Index - 1 " Up", OnKeyUp, useErrorLevel
-        if (errorlevel!=0) && (audioAlerts=1)
-           soundbeep, 1900, 50
-    }
-
-    NumpadKeysList := "NumpadDot|NumpadDiv|NumpadMult|NumpadAdd|NumpadSub|sc04E|sc04A|sc052|sc04F|sc050|sc051|sc04B|sc04C|sc04D|sc047|sc048|sc049|sc053|sc037|sc135"
+    NumpadKeysList := "sc04E|sc04A|sc052|sc04F|sc050|sc051|sc04B|sc04C|sc04D|sc047|sc048|sc049|sc053|sc037|sc135"
 
     Loop, parse, NumpadKeysList, |
     {
@@ -636,6 +667,14 @@ CreateHotkey() {
         if (errorlevel!=0) && (audioAlerts=1)
            soundbeep, 1900, 50
     }
+
+    If (ShowSingleModifierKey=1)
+    {
+      for i, mod in ["LShift", "RShift"]   ; , "LCtrl", "RCtrl", "LAlt", "RAlt", "LWin", "RWin"]
+        Hotkey, % "~*" mod, OnModPressed, useErrorLevel
+        if (errorlevel!=0) && (audioAlerts=1)
+           soundbeep, 1900, 50
+    }
 }
 
 ShowHotkey(HotkeyStr) {
@@ -675,7 +714,8 @@ GetKeyStr(letter := 0) {
     for i, mod in modifiers
     {
         if (mod = "LShift" && typed || mod = "RShift" && typed ? (!letter && GetKeyState(mod)) : GetKeyState(mod))
-            prefix .= mod " + "
+;        if GetKeyState(mod)
+           prefix .= mod " + "
     }
 
     if (!prefix && !ShowSingleKey)
@@ -738,15 +778,19 @@ GetKeyStr(letter := 0) {
         prefix := CompactModifiers(prefix)
 
         static pre_prefix, pre_key, keyCount := 1
-        keyCount := (key=pre_key) && (prefix = pre_prefix) ? keyCount : 1
+        keyCount := (key=pre_key) && (prefix = pre_prefix) && (repeatCount<1.5)? keyCount : 1
         global ShowKeyCountDelay := (ShowKeyCountFired = 0) ? 700 : 6000
         ShowKeyCountDelay := (ShowKeyCountFired=1) ? (ShowKeyCountDelay+keyCount*100) : ShowKeyCountDelay
 
         if (InStr(prefix, "+")) && (A_TickCount-tickcount_start < ShowKeyCountDelay) || (!letter) && (A_TickCount-tickcount_start < ShowKeyCountDelay)
         {
-            if (ShowPrevKey=1) && (A_TickCount-tickcount_start < ShowPrevKeyDelay) && !typed && !letter
+            if (ShowPrevKey=1) && (A_TickCount-tickcount_start < ShowPrevKeyDelay)
             {
                 ShowPrevKeyValid := 1
+                if InStr(pre_key, " up") && typed
+                {
+                    StringLeft, pre_key, pre_key, 1
+                }
             } else
             {
                 ShowPrevKeyValid := 0
