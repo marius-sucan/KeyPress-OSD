@@ -12,7 +12,7 @@
 ;   http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-languages.ini
 ;   File required for AutoDetectKBD = 1, to detect keyboard layouts.
 ;   File must be placed in the same folder with the script.
-;   It adds support for around 105 keyboard layouts covering about 55 languages.;
+;   It adds support for around 110 keyboard layouts covering about 55 languages.;
 ;
 ; Change log file:
 ;   keypress-osd-changelog.txt
@@ -98,7 +98,6 @@ FEATURES:
 
  #SingleInstance force
  #NoEnv
-; #Warn, , OutputDebug
  #MaxHotkeysPerInterval 500
  #MaxThreads 250
  #MaxThreadsPerHotkey 250
@@ -129,7 +128,6 @@ FEATURES:
  , enterErasesLine       := 1
  , ShowDeadKeys          := 0
  , autoRemDeadKey        := 1
- , SpaceReplacer         := " "   ; how to display space bar in typing mode
  , ShowSingleKey         := 1     ; show only key combinations ; it disables typing mode
  , HideAnnoyingKeys      := 1     ; Left click and PrintScreen can easily get in the way.
  , ShowMouseButton       := 1     ; in the OSD
@@ -184,15 +182,15 @@ FEATURES:
  , ShowMouseHalo         := 0     ; constantly highlight mouse cursor
  , MouseHaloRadius       := 35
  , MouseHaloColor        := "eedd00"  ; HEX format also accepted
- , MouseHaloAlpha        := 150   ; from 0 to 255
+ , MouseHaloAlpha        := 130   ; from 0 to 255
  , FlashIdleMouse        := 0     ; locate an idling mouse with a flashing box
  , MouseIdleRadius       := 40
  , MouseIdleAfter        := 10    ; in seconds
- , IdleMouseAlpha        := 130   ; from 0 to 255
+ , IdleMouseAlpha        := 70   ; from 0 to 255
  , UseINIfile            := 1
  , IniFile               := "keypress-osd.ini"
- , version               := "3.69"
- , releaseDate := "2017 / 12 / 07"
+ , version               := "3.72"
+ , releaseDate := "2017 / 12 / 10"
  
 ; Initialization variables. Altering these may lead to undesired results.
 
@@ -241,12 +239,7 @@ FEATURES:
  , editField3 := " "
  , CurrentKBD := "Default: English US"
  , loadedLangz := A_IsCompiled ? 1 : 0
- , kbLayoutSymbols := "0"
- , kbLayoutAltGRpairs := "0"
  , kbLayoutRaw := 0
- , CapsEqualsShift := 0
- , AltGrPassesThrough := 0
- , noCapsAllowed := ""
  , LangChanged := 0
  , DeadKeys := 0
  , DKnotShifted_list := ""
@@ -274,13 +267,13 @@ if (visualMouseClicks=1)
 if (FlashIdleMouse=1)
 {
     CoordMode Mouse, Screen
-    SetTimer, ShowMouseIdleLocation, 1000, -5
+    SetTimer, ShowMouseIdleLocation, 1000, -15
 }
 
 if (ShowMouseHalo=1)
 {
     CoordMode Mouse, Screen
-    SetTimer, MouseHalo, 60, -2
+    SetTimer, MouseHalo, 70, -12
 }
 
 CreateOSDGUI()
@@ -307,75 +300,21 @@ TypedLetter(key) {
    }
 
    global lastTypedSince := A_TickCount
-   AltGrMatcher := "i)^((.?ctrl \+ )?(AltGr|.?Ctrl \+ Alt) \+ (.?shift \+ )?((.)$|(.)[\r\n \,]))|^(altgr \(spe)"
-   if ((key ~= AltGrMatcher) && (enableAltGr=1) || (AltGrPressed=1) && (enableAltGr=1) && (StickyKeys=1))
-   {
-      if (StrLen(key)>2)
-      {
-         keye := SubStr(key, InStr(key, "+", 0, 0)+2)
-         if InStr(key, " {")
-            keye := SubStr(key, InStr(key, " {", 0, 0)-1)
-         if InStr(key, " (")
-            keye := SubStr(key, InStr(key, " (", 0, 0)-1)
 
-         StringLeft, keye, keye, 1
-         if !keye && (keye!="0")
-         {
-             StringRight, key, key, 1
-         } else
-         {
-            key := keye
-         }
-      }
-      key := GetAltGrSymbol(key)
-      AltGrMagic := 1
-      if (key && StrLen(typed)>1)
-         SetTimer, returnToTyped, 300
-   }
+   if (enableAltGr=1) && (StickyKeys=1) && (AltGrPressed=1)
+      typed := backTyped
 
-   if (StrLen(key)<2) && (AltGrPressed=1) && (enableAltGr=1) && (StickyKeys=0) && (AltGrMagic!=1)
-      key := GetAltGrSymbol(key)
+   vk := "0x0" SubStr(key, InStr(key, "vk", 0, 0)+2)
+   sc := "0x0" getKeySc("vk" vk)
 
-   StringLeft, key, key, 1
-   if (AltGrMagic!=1)
-      Stringlower, key, key
-      
-   GetKeyState, CapsState, CapsLock, T
+   key := toUnicodeExtended(vk, sc)
 
-   If (CapsState != "D")
-   {
-       if GetKeyState("Shift") || (shiftPressed=1) && (StickyKeys=1)
-       {
-          StringUpper, key, key
-          key := GetShiftedSymbol(key)
-       }
-   } else
-   {
-       if (CapsEqualsShift=1) 
-       {
-         if (key ~= noCapsAllowed)
-             StringUpper, key, key
-
-          key := GetKeyState("Shift") ? key : GetShiftedSymbol(key)
-       }
-       
-       noCapsAllowed := noCapsAllowed ? noCapsAllowed : 0
-
-       if !(key ~= noCapsAllowed)
-          StringUpper, key, key
-
-       if GetKeyState("Shift") || ((shiftPressed=1) && (StickyKeys=1))
-       {
-         if (key ~= noCapsAllowed)
-             StringUpper, key, key
-
-         key := (CapsEqualsShift=1) ? key : GetShiftedSymbol(key)
-         Stringlower, key, key
-       }
-   }
-
-   AltGrPressed := 0
    typed := InsertChar2caret(key)
+
+   if (enableAltGr=1) && (StickyKeys=0) && (AltGrPressed=1)
+      backTyped := typed
+   
+   AltGrPressed := 0
 
    return typed
 }
@@ -393,11 +332,10 @@ InsertChar2caret(char) {
   if (CaretPos = 3000)
      CaretPos := StrLen(typed)+1
 
-  section := RTrim(typed, lola)
-  CaretPos := CaretPos < (StrLen(section)+1) ? CaretPos : StrLen(section)+1
+  StringGetPos, CaretPos, typed, % lola
+  CaretPos := CaretPos+1
   StringReplace, typed, typed, % lola
   typed := ST_Insert(char lola, typed, CaretPos)
-  CaretPos := (char || char=0) ? CaretPos+1 : CaretPos
 
   CalcVisibleText()
 
@@ -422,24 +360,24 @@ CalcVisibleText() {
       Loop
       {
         StringGetPos, vCaretPos, typed, % lola
-        visibleTextFieldLength := A_Index
+        visibleTextFieldLength := round(A_Index + A_Index/2)
         Stringmid, NEWvisibleTextField, typed, vCaretPos+4, visibleTextFieldLength, L
         text_width2 := GetTextExtentPoint(NEWvisibleTextField, FontName, FontSize, bBold) / (OSDautosizeFactory/100)
         if (text_width2 > maxAllowedGuiWidth-30)
            allGood := 1
       }
-      Until (allGood=1) || (A_Index=990)
+      Until (allGood=1) || (A_Index=120)
       
       if (allGood!=1)
       {
           Loop
           {
-            Stringmid, NEWvisibleTextField, typed, vCaretPos+A_Index, visibleTextFieldLength, L
+            Stringmid, NEWvisibleTextField, typed, vCaretPos+round(A_Index + A_Index/2), visibleTextFieldLength, L
             text_width3 := GetTextExtentPoint(NEWvisibleTextField, FontName, FontSize, bBold) / (OSDautosizeFactory/100)
             if (text_width3 > maxAllowedGuiWidth-30)
                stopLoop2 := 1
           }
-          Until (stopLoop2 = 1) || (A_Index=990)
+          Until (stopLoop2 = 1) || (A_Index=240)
       }
 
       visibleTextField := NEWvisibleTextField
@@ -525,6 +463,58 @@ st_delete(string, start=1, length=1) {
       return substr(string " ", 1, start-length-1) SubStr(string " ", ((start<0) ? start : 0), -1)
 }
 
+toUnicodeExtended(uVirtKey,uScanCode,wFlags:=0) {
+; Many thanks to Helgef:
+; https://autohotkey.com/boards/viewtopic.php?f=5&t=41065&p=187582#p187582
+
+  nsa := DllCall("MapVirtualKey", "Uint", uVirtKey, "Uint", 2)
+
+  if (nsa<=0) && (DeadKeys=0)
+  {
+     if (deadKeyBeeper = 1) && (ShowSingleKey = 1) && (NoBindedDeadKeys=0) || (deadKeyBeeper = 1) && (BeepHiddenKeys = 1) && (NoBindedDeadKeys=0)
+        deadKeysBeeper()
+
+     if (ShowDeadKeys=1) && (NoBindedDeadKeys=0)
+     {
+       RmDkSymbol := (autoRemDeadKey=1) ? "▫" : "▪"
+       InsertChar2caret(RmDkSymbol)
+     }
+
+     if (StrLen(typed)<3) && (NoBindedDeadKeys=0)
+     {
+        ShowHotkey("[dead key]")
+        Sleep, 350
+     }
+
+     Return
+   }
+
+  thread := DllCall("GetWindowThreadProcessId", "ptr", WinActive("A"), "ptr", 0)
+  hkl := DllCall("GetKeyboardLayout", "uint", thread, "ptr")
+  cchBuff := 3            ; number of characters the buffer can hold
+  VarSetCapacity(lpKeyState,256,0)
+  VarSetCapacity(pwszBuff, (cchBuff+1) * (A_IsUnicode ? 2 : 1), 0)  ; this will hold cchBuff (3) characters and the null terminator on both unicode and ansi builds.
+
+  for modifier, vk in {Shift:0x10, Control:0x11, Alt:0x12}
+      NumPut(128*(GetKeyState("L" modifier) || GetKeyState("R" modifier)) , lpKeyState, vk, "Uchar")
+  if (StickyKeys=1)
+  {
+     NumPut(128*shiftPressed, lpKeyState, 0x10, "Uchar")
+     NumPut(128*AltGrPressed, lpKeyState, 0x12, "Uchar")
+     NumPut(128*AltGrPressed, lpKeyState, 0x11, "Uchar")
+  }
+  if NumGet(lpKeyState, 0x11, "Uchar") && NumGet(lpKeyState, 0x11, "Uchar") && (StickyKeys=0)
+     AltGrPressed := 1
+
+  NumPut(GetKeyState("CapsLock", "T") , &lpKeyState+0, 0x14, "Uchar")
+
+  n := DllCall("ToUnicodeEx", "Uint", uVirtKey, "Uint", uScanCode, "UPtr", &lpKeyState, "ptr", &pwszBuff, "Int", cchBuff, "Uint", wFlags, "ptr", hkl)
+  if (DeadKeys=1)
+     n := DllCall("ToUnicodeEx", "Uint", uVirtKey, "Uint", uScanCode, "UPtr", &lpKeyState, "ptr", &pwszBuff, "Int", cchBuff, "Uint", wFlags, "ptr", hkl)
+  return StrGet(&pwszBuff, n, "utf-16")
+}
+
+
 OnMousePressed() {
     if (Visible=1)
        tickcount_start := A_TickCount-500
@@ -597,7 +587,7 @@ OnRLeftPressed() {
            typed := (OnlyTypingMode=1) ? typed : ""
     }
     shiftPressed := 0
-    AltgrPressed := 0
+    AltGrPressed := 0
 
     if (beepFiringKeys=1)
        SetTimer, firedBeeperTimer, 2, -20
@@ -735,7 +725,7 @@ OnKeyPressed() {
         if ((key ~= "i)(enter|esc)") && (DisableTypingMode=0) && (ShowSingleKey=1))
         {
             if (enterErasesLine=0) && (OnlyTypingMode=1)
-               TypedLetter(" ")
+               InsertChar2caret(" ")
 
             if (enterErasesLine=0) && (OnlyTypingMode=1) && (key ~= "i)(esc)")
                dontReturn := 1
@@ -765,7 +755,7 @@ OnKeyPressed() {
            typed := (OnlyTypingMode=1) ? typed : ""
         } else if ((key ~= "i)^((.?Shift \+ )?Tab)") && typed && (DisableTypingMode=0))
         {
-            TypedLetter(" ")
+            InsertChar2caret(" ")
         }
         ShowHotkey(key)
         SetTimer, HideGUI, % -DisplayTime
@@ -806,7 +796,7 @@ OnLetterPressed() {
 
     try {
         if (typed && DeadKeys=1)
-            sleep, 40    ; this delay helps with dead keys, but it generates errors; the following actions: stringleft,1 and stringlower help correct these
+            sleep, 30    ; this delay helps with dead keys, but it generates errors; the following actions: stringleft,1 and stringlower help correct these
 
         AltGrMatcher := "i)^((.?ctrl \+ )?(AltGr|.?Ctrl \+ Alt) \+ (.?shift \+ )?((.)$|(.)[\r\n \,]))|^(altgr \(spe)"
         key := GetKeyStr(1)     ; consider it a letter
@@ -815,7 +805,7 @@ OnLetterPressed() {
         {
             if (key ~= AltGrMatcher) && (DisableTypingMode=0) && (enableAltGr=1) || ((AltGrPressed=1) && (DisableTypingMode=0) && (StrLen(key)<2) && (ShowSingleKey=1) && (StickyKeys=1)) && (enableAltGr=1)
             {
-               typed := (enableAltGr=1) ? TypedLetter(key) : ""
+               typed := (enableAltGr=1) ? TypedLetter(A_ThisHotkey) : ""
                if ((StrLen(typed)>2) && (OnlyTypingMode=0)) || ((StrLen(typed)>2) && (OnlyTypingMode=1))
                {
                   ShowHotkey(visibleTextField)
@@ -835,9 +825,7 @@ OnLetterPressed() {
             {
                 if (key ~= "i)^(.?Shift \+ ((.)$|(.)[\r\n \,]))")
                 {
-                   keyPosition := RegExMatch(key, "\+ ")
-                   lettera := SubStr(key, keyPosition+2, 1)
-                   TypedLetter(lettera)
+                   TypedLetter(A_ThisHotkey)
                    if (OnlyTypingMode=1)
                       ShowHotkey(visibleTextField)
                 }
@@ -846,7 +834,7 @@ OnLetterPressed() {
 
         } else
         {
-            TypedLetter(key)
+            TypedLetter(A_ThisHotkey)
             ShowHotkey(visibleTextField)
             SetTimer, HideGUI, % -DisplayTimeTyping
             shiftPressed := 0
@@ -879,6 +867,9 @@ OnCtrlVup() {
     CaretPos := CaretPos + StrLen(toPaste)
   }
 
+  if (KeyBeeper = 1)
+     keysBeeper()
+
   if (StrLen(typed)>3)
   {
      global lastTypedSince := A_TickCount
@@ -895,21 +886,21 @@ OnSpacePressed() {
        Critical, on
 
     try {
+          key := GetKeyStr()
           if (A_TickCount-lastTypedSince < ReturnToTypingDelay) && strlen(typed)>1 && (DisableTypingMode=0) && (ShowSingleKey=1)
           {
              if (typed ~= "i)(▫│)$")
              {
                 typed := SubStr(typed, 1, StrLen(typed) - 2)
-                TypedLetter("▪")
+                InsertChar2caret("▪")
              } else
              {
-                TypedLetter(SpaceReplacer)
+                InsertChar2caret(" ")
              }
              deadKeyProcessing()
              ShowHotkey(visibleTextField)
              SetTimer, HideGUI, % -DisplayTimeTyping
           }
-          key := GetKeyStr()
 
           if (prefixed || strlen(typed)<2 || (A_TickCount-lastTypedSince > (ReturnToTypingDelay+50)))
           {
@@ -1304,11 +1295,17 @@ OnModPressed() {
     {
        shiftPressed := 1
 
+       If (StrLen(typed)>1) && (DisableTypingMode=0)
+          GuiControl, OSD:, CapsDummy, 60
+
        if (ShowKeyCountFired=0) && (ShowKeyCount=1) && (A_TickCount-tickcount_start2 > 150)
           repeatCount := (A_TickCount-tickcount_start2 > 5) ? repeatCount+1 : repeatCount
 
        if (ModBeeper = 1) && (ShowSingleKey = 1) && (ShowSingleModifierKey = 1) && (A_TickCount-tickcount_start2 > 150) || (ModBeeper = 1) && (BeepHiddenKeys = 1) && (A_TickCount-tickcount_start2 > 150)
           SetTimer, shiftBeeperTimer, 15, -10
+
+       if (ModBeeper = 0) && (beepFiringKeys = 1) && (ShowSingleKey = 1) && (ShowSingleModifierKey = 1) && (A_TickCount-tickcount_start2 > 150) || (ModBeeper = 1) && (BeepHiddenKeys = 1) && (A_TickCount-tickcount_start2 > 150)
+          SetTimer, firedBeeperTimer, 15, -10
 
        if (ShiftDisableCaps=1)
           SetCapsLockState, off
@@ -1385,7 +1382,7 @@ OnModPressed() {
    if (fl_prefix ~= AltGrMatcher) && (DisableTypingMode=0) && (enableAltGr=1) && (StickyKeys=0) && (strLen(typed)>2)
       backTyped := !typed ? backTyped : typed
 
-   if ((strLen(typed)>3) && (fl_prefix ~= "i)^(.?Shift \+)") && (visible=1) && (A_TickCount-lastTypedSince < DisplayTimeTyping)) || (ShowSingleKey = 0) || ((A_TickCount-tickcount_start > 1800) && visible && !typed && keycount>5 && StickyKeys=1) || (OnlyTypingMode=1)
+   if ((strLen(typed)>3) && (fl_prefix ~= "i)^(.?Shift.?.?.?)$") && (visible=1) && (A_TickCount-lastTypedSince < DisplayTimeTyping)) || (ShowSingleKey = 0) || ((A_TickCount-tickcount_start > 1800) && visible && !typed && keycount>5 && StickyKeys=1) || (OnlyTypingMode=1)
    {
       sleep, 10
    } else
@@ -1439,10 +1436,10 @@ OnDeadKeyPressed() {
   {
        if (typed ~= "i)(▫│)")
        {
-           TypedLetter("▪")
+           InsertChar2caret("▪")
        } else
        {
-           TypedLetter(RmDkSymbol)
+           InsertChar2caret(RmDkSymbol)
        }
   }
 
@@ -1462,7 +1459,7 @@ OnDeadKeyPressed() {
   if (StrLen(typed)<3)
   {
      if (ShowDeadKeys=1) && (DisableTypingMode=0)
-        TypedLetter(RmDkSymbol)
+        InsertChar2caret(RmDkSymbol)
 
      if (A_ThisHotkey ~= "i)^(~\+)")
      {
@@ -1663,9 +1660,9 @@ CreateHotkey() {
         n := GetKeyName("vk" code)
 
         if (n = "")
-           n := GetKeyChar("vk" code, "A")
+           n := GetKeyChar("vk" code)
 
-        if (n = "") || (StrLen(n)>1)
+        if (n = " ") || (n = "") || (StrLen(n)>1)
            continue
 
         if (DeadKeys=1)
@@ -1953,7 +1950,7 @@ ShowHotkey(HotkeyStr) {
 
     if (rightoleft=1)
     {
-        GuiGetSize(W, H)
+        GuiGetSize(W, H, 1)
         dGuiX := w ? GuiX - w : GuiX
         GuiControl, OSD: Move, HotkeyText, w%text_width% Left
     }
@@ -1963,7 +1960,7 @@ ShowHotkey(HotkeyStr) {
 
     if (rightoleft=1)
     {
-        GuiGetSize(W, H)
+        GuiGetSize(W, H, 1)
         dGuiX := w ? GuiX - w : GuiX
         Gui, OSD: Show, NoActivate x%dGuiX% y%GuiY% h%GuiHeight% w%text_width%, KeypressOSD
     }
@@ -2002,8 +1999,15 @@ GetTextExtentPoint(sString, sFaceName, nHeight, bBold = 1, bItalic = False, bUnd
   Return nWidth
 }
 
-GuiGetSize( ByRef W, ByRef H) {          ; function by VxE from https://autohotkey.com/board/topic/44150-how-to-properly-getset-gui-size/
-  Gui, OSD: +LastFoundExist
+GuiGetSize( ByRef W, ByRef H, vindov) {          ; function by VxE from https://autohotkey.com/board/topic/44150-how-to-properly-getset-gui-size/
+  if (vindov=1)
+     Gui, OSD: +LastFoundExist
+  if (vindov=2)
+     Gui, MouseH: +LastFoundExist
+  if (vindov=3)
+     Gui, MouseIdlah: +LastFoundExist
+  if (vindov=4)
+     Gui, Mouser: +LastFoundExist
   VarSetCapacity( rect, 16, 0 )
   DllCall("GetClientRect", uint, MyGuiHWND := WinExist(), uint, &rect )
   W := NumGet( rect, 8, "int" )
@@ -2083,10 +2087,10 @@ GetKeyStr(letter := 0) {
     } else
     {
         backupKey := !key ? backupKey : key
-        if (StrLen(key)=1) || InStr(key, " up") && StrLen(key)=4 && typed
+        if (StrLen(key)=1)
         {
-            StringLeft, key, key, 1
-            key := GetKeyChar(key, "A")
+            StringLeft, key, key, 2
+            key := GetKeyChar(key)
         } else if (SubStr(key, 1, 2) = "sc") && (key != "ScrollLock") || (SubStr(key, 1, 2) = "vk") {
             key := (GetSpecialSC(key) || GetSpecialSC(key)=0) ? GetSpecialSC(key) : key
         } else if (StrLen(key)<1) && !prefix {
@@ -2210,67 +2214,6 @@ GetKeyStr(letter := 0) {
     return result ? result : prefix . key
 }
 
-GetShiftedSymbol(symbol) {
-    Thread, priority, 10
-    if ((prioritizeBeepers=0) && (missingAudios=0)) || ((prioritizeBeepers=1) && (missingAudios=0))
-       Critical, on
-    symbolPairs_1 := {1:"!", 2:"@", 3:"#", 4:"$", 5:"%", 6:"^", 7:"&", 8:"*", 9:"(", 0:")", "-":"_", "=":"+", "[":"{", "]":"}", "\":"|", ";":":", "'":"""", ",":"<", ".":">", "/":"?", "``":"~"}
-
-    if (AutoDetectKBD=0)
-       kbLayoutSymbols := symbolPairs_1   ; this the default, English US
-
-    StringLower, symbol1, symbol
-    StringUpper, symbol2, symbol1
-
-    if kbLayoutSymbols.hasKey(symbol) {
-       symbol := kbLayoutSymbols[symbol]
-       foundSymbol := 1
-    } else if (AltGrPressed=1) && (symbol2==symbol1) && (foundSymbol!=1)
-    {
-       symbol := ""
-    }
-
-    return symbol
-}
-
-GetAltGrSymbol(letterina) {
-    Thread, priority, 10
-    if ((prioritizeBeepers=0) && (missingAudios=0)) || ((prioritizeBeepers=1) && (missingAudios=0))
-       Critical, on
-    if (AutoDetectKBD=0)
-    {
-       kbLayoutAltGRpairs := AltGrPairs_0   ; this the default, English US
-       enableAltGr := 0
-    }
-
-    if kbLayoutAltGRpairs.hasKey(letterina)
-    {
-       if (StickyKeys=1)
-          typed := (AltGrPressed=1) ? backTyped : ""
-       letterina := kbLayoutAltGRpairs[letterina]
-       if (StrLen(letterina)>1)
-       {
-          if GetKeyState("Shift") || (shiftPressed=1) && (StickyKeys=1)
-             StringUpper, letterina, letterina
-          InsertChar2caret(letterina)
-          CaretPos := CaretPos + 1
-          letterina := (AltGrPassesThrough=1) ? letterina : ""
-          if (AltGrPassesThrough=1)
-             StringLower, letterina, letterina
-          global lastTypedSince := A_TickCount
-       }
-       return letterina
-    } else
-    {
-       if (StickyKeys=1)
-          typed := (AltGrPressed=1) ? backTyped : ""
-       letterina := (AltGrPassesThrough=1) ? letterina : ""
-       if (AltGrPassesThrough=1)
-          StringLower, letterina, letterina
-       return letterina
-    }
-}
-
 CompactModifiers(stringy) {
     Thread, priority, 10
     if ((prioritizeBeepers=0) && (missingAudios=0)) || ((prioritizeBeepers=1) && (missingAudios=0))
@@ -2302,6 +2245,9 @@ CompactModifiers(stringy) {
 }
 
 GetCrayCrayState(key) {
+    Thread, priority, 30
+    Critical, on
+
     GetKeyState, keyState, %key%, T
 
     If (keyState = "D")
@@ -2332,7 +2278,7 @@ GetSpecialSC(sc) {
 
     if !k[sc]
     {
-       brr := GetKeyChar(sc, "A")
+       brr := GetKeyChar(sc)
        StringLeft, brr, brr, 1
        k[sc] := brr
     }
@@ -2355,7 +2301,7 @@ GetDeadKeySymbol(sc) {
        k := {sc01AvkBA: "'", sc01AvkBB: "+", sc00DvkBB: "+", sc02BvkDE: "#", sc02BvkDC: "\", sc029vkDF: "``", sc029vkC0: "–", sc029vkBF: "§", sc028vkC0: "'", sc028vkDE: "·", sc00DvkDD: "`", sc00DvkBF: "´", sc01BvkDD: ")", sc00CvkBD: "=", sc035vkBF: "/", sc027vkBA: ";", sc002vk31:"1", sc003vk32:"2", sc004vk33:"3", sc005vk34:"4", sc006vk35:"5", sc007vk36:"6", sc008vk37:"7", sc009vk38:"8", sc00Avk39:"9", sc00Bvk30:"0", sc056vkE2: "\", sc01BvkBA: "'", sc034vkBE: "."}
 
     if !k[sc]
-       k[sc] := GetKeyChar(sc, "A")
+       k[sc] := GetKeyChar(sc)
     
     if !k[sc]
        k[sc] := GetKeyName(sc)
@@ -2365,14 +2311,12 @@ GetDeadKeySymbol(sc) {
 
 ; <tmplinshi>: thanks to Lexikos: https://autohotkey.com/board/topic/110808-getkeyname-for-other-languages/#entry682236
 
-GetKeyChar(Key, WinTitle:=0) {
-
-    thread := WinTitle=0 ? 0
-        : DllCall("GetWindowThreadProcessId", "ptr", WinExist(WinTitle), "ptr", 0)
-    hkl := DllCall("GetKeyboardLayout", "uint", thread, "ptr")
+GetKeyChar(Key) {
 
     if (key ~= "i)^(vk)")
     {
+       sc := "0x0" GetKeySC(Key)
+       sc := sc + 0
        vk := "0x0" SubStr(key, InStr(key, "vk")+2, 3)
     } else if (StrLen(key)>7)
     {
@@ -2384,11 +2328,20 @@ GetKeyChar(Key, WinTitle:=0) {
        sc := GetKeySC(Key)
        vk := GetKeyVK(Key)
     }
+
+    nsa := DllCall("MapVirtualKey", "Uint", vk, "Uint", 2)
+    if (nsa<=0) && (DeadKeys=0)
+       Return
+
+    thread := DllCall("GetWindowThreadProcessId", "ptr", WinActive("A"), "ptr", 0)
+    hkl := DllCall("GetKeyboardLayout", "uint", thread, "ptr")
+
     VarSetCapacity(state, 256, 0)
     VarSetCapacity(char, 4, 0)
-    n := DllCall("ToUnicodeEx", "uint", vk, "uint", sc
-        , "ptr", &state, "ptr", &char, "int", 2, "uint", 0, "ptr", hkl)
 
+    n := DllCall("ToUnicodeEx", "uint", vk, "uint", sc, "ptr", &state, "ptr", &char, "int", 2, "uint", 0, "ptr", hkl)
+    if (DeadKeys=1)
+       n := DllCall("ToUnicodeEx", "uint", vk, "uint", sc, "ptr", &state, "ptr", &char, "int", 2, "uint", 0, "ptr", hkl)
     return StrGet(&char, n, "utf-16")
 }
 
@@ -2524,14 +2477,6 @@ IdentifyKBDlayout() {
 
   if (kbLayoutSupport!="-") && (check_kbd=1) && (loadedLangz=1)
   {
-      Loop, parse, LangChars_%kbLayout%, |
-      {
-         Hotkey, % "~*" A_LoopField, OnLetterPressed, useErrorLevel
-         Hotkey, % "~*" A_LoopField " Up", OnKeyUp, useErrorLevel
-         if (errorlevel!=0) && (audioAlerts=1)
-             soundbeep, 1900, 50
-      }
-
       identifiedKbdName := (check_kbd_exact=1) ? LangRaw_%kbLayoutRaw% : LangName_%kbLayout%
       CurrentKBD := "Auto-detected: " identifiedKbdName ". " kbLayoutRaw " / " perWindowKbLayout
       if (LangIDfailed=2)
@@ -2561,38 +2506,6 @@ IdentifyKBDlayout() {
   }
   LangChanged := 0
   IniWrite, %LangChanged%, %IniFile%, TempSettings, LangChanged
-
-    if (!symbolPairs_%kbLayoutRaw%)
-    {
-        RawNotMatch := 1
-    } else
-    {
-        kbLayoutSymbols := symbolPairs_%kbLayoutRaw%
-    }
-
-    if (!symbolPairs_%kbLayout% && RawNotMatch=1)
-    {
-       kbLayoutSymbols := 0           ; undefined layout
-    } else if (RawNotMatch=1)
-    {
-       kbLayoutSymbols := symbolPairs_%kbLayout%
-    }
-
-    if noCaps_%kbLayoutRaw%
-       noCapsAllowed := noCaps_%kbLayoutRaw%
-
-    if AltGrPairs_%kbLayoutRaw%
-    {
-       kbLayoutAltGRpairs := AltGrPairs_%kbLayoutRaw%
-       if (enableAltGrUser=1)
-          enableAltGr := 1
-
-       if (enableAltGrUser=0)
-          enableAltGr := 0
-    } else
-    {
-       enableAltGr := 0
-    }
 
     if (AutoDetectKBD=1) && (loadedLangz=1)
     {
@@ -2817,7 +2730,8 @@ SuspendScript:         ; Shift+Pause/Break
       Menu, Tray, Check, &KeyPress activated
    }
    Menu, Tray, Uncheck, &KeyPress deactivated
-
+   IniRead, ShowMouseHalo, %inifile%, SavedSettings, ShowMouseHalo, %ShowMouseHalo%
+   IniRead, FlashIdleMouse, %inifile%, SavedSettings, FlashIdleMouse, %FlashIdleMouse%
    CreateOSDGUI()
    ShowLongMsg("KeyPress OSD toggled")
    SetTimer, HideGUI, % -DisplayTime/6
@@ -3068,48 +2982,45 @@ ClipChanged(Type) {
 CreateMouseGUI() {
     global
 
-    Gui, Mouser: +AlwaysOnTop -Caption +ToolWindow
+    Gui, Mouser: +AlwaysOnTop -Caption +ToolWindow +E0x20
     Gui, Mouser: Margin, 0, 0
-
-    if (A_OSVersion!="WIN_XP")
-       Gui, Mouser: +E0x20
 }
 
 ShowMouseClick(clicky) {
     Thread, priority, -10
+    GuiGetSize(Wa, Ha, 4)
     SetTimer, HideMouseClickGUI, 900, -22
-    SetTimer, ShowMouseIdleLocation, off
     Sleep, 150
     Gui, Mouser: Destroy
     MouseClickCounter := (MouseClickCounter > 10) ? 1 : 11
     TransparencyLevel := MouseVclickAlpha - MouseClickCounter*4
-    BoxW := (16 + MouseClickCounter/3)*ClickScale
+    BoxW := 15*ClickScale
     BoxH := 40*ClickScale
-    MouseDistance := 15*ClickScale
+    MouseDistance := 10 * ClickScale
     MouseGetPos, mX, mY
-    mY := mY - BoxH
+    mY := mY - Ha/2
     if InStr(clicky, "LButton")
     {
-       mX := mX - BoxW*2 - MouseDistance
+       mX := mX - Wa*2 - MouseDistance
     } else if InStr(clicky, "MButton")
     {
-       BoxW := (45 + MouseClickCounter)*ClickScale
-       mX := mX - BoxW
+       BoxW := 45 * ClickScale
+       mX := mX - Wa/2
     } else if InStr(clicky, "RButton")
     {
-       mX := mX + MouseDistance
+       mX := mX + MouseDistance*2.5
     } else if InStr(clicky, "Wheelup")
     {
-       BoxW := (50 + MouseClickCounter)*ClickScale
-       BoxH := 15*ClickScale
-       mX := mX - BoxW
-       mY := mY - MouseDistance
+       BoxW := 50 * ClickScale
+       BoxH := 15 * ClickScale
+       mX := mX - Wa/2
+       mY := mY - MouseDistance*2.5
     } else if InStr(clicky, "Wheeldown")
     {
-       BoxW := (50 + MouseClickCounter)*ClickScale
-       BoxH := 15*ClickScale
-       mX := mX - BoxW
-       mY := mY + BoxH*2 + MouseDistance*2
+       BoxW := 50 * ClickScale
+       BoxH := 15 * ClickScale
+       mX := mX - Wa/2
+       mY := mY + Ha*2 + MouseDistance/2
     }
 
     InnerColor := "555555"
@@ -3145,8 +3056,6 @@ HideMouseClickGUI() {
           Gui, Mouser: Hide
           MouseClickCounter := 20
           SetTimer, HideMouseClickGUI, off
-          if (FlashIdleMouse=1)
-             SetTimer, ShowMouseIdleLocation, on
           Break
        } else
        {
@@ -3157,29 +3066,35 @@ HideMouseClickGUI() {
 
 ShowMouseIdleLocation() {
     Thread, priority, -10
-    If (A_TimeIdlePhysical > (MouseIdleAfter*1000)) && !A_IsSuspended
+    If (FlashIdleMouse=1) && (A_TimeIdlePhysical > (MouseIdleAfter*1000)) && !A_IsSuspended
     {
-       Gui, Mouser: Destroy
-       Sleep, 300
+       MouseClickCounter := (MouseClickCounter > 10) ? 1 : 11
+       AlphaVariator := IdleMouseAlpha - MouseClickCounter*3
        MouseGetPos, mX, mY
        BoxW := MouseIdleRadius
        BoxH := BoxW
-       mX := mX - BoxW
-       mY := mY - BoxH
+       GuiGetSize(W, H, 3)
+       mX := mX - W/2
+       mY := mY - W/2
        BorderSize := 4
        RectW := BoxW - BorderSize*2
        RectH := BoxH - BorderSize*2
        InnerColor := "111111"
        OuterColor := "eeeeee"
-       CreateMouseGUI()
-       Gui, Mouser: Color, %OuterColor%  ; outer rectangle
-       Gui, Mouser: Add, Progress, x%BorderSize% y%BorderSize% w%RectW% h%RectH% Background%InnerColor% c%InnerColor%, 100   ; inner rectangle
-       Gui, Mouser: Show, NoActivate x%mX% y%mY% w%BoxW% h%BoxH%, MousarWin
-       WinSet, Transparent, %IdleMouseAlpha%, MousarWin
-       WinSet, AlwaysOnTop, On, MousarWin
+       Gui, MouseIdlah: +AlwaysOnTop -Caption +ToolWindow +E0x20
+       Gui, MouseIdlah: Color, %OuterColor%  ; outer rectangle
+       Gui, MouseIdlah: Add, Progress, x%BorderSize% y%BorderSize% w%RectW% h%RectH% Background%InnerColor% c%InnerColor%, 100   ; inner rectangle
+       Gui, MouseIdlah: Show, NoActivate x%mX% y%mY% w%BoxW% h%BoxH%, MouseIdlah
+       WinSet, Transparent, %AlphaVariator%, MouseIdlah
+       WinSet, AlwaysOnTop, On, MouseIdlah
     } else
     {
-        Gui, Mouser: Hide
+        Gui, MouseIdlah: Destroy
+    }
+    if (FlashIdleMouse=1) && A_IsSuspended
+    {
+       Gui, MouseIdlah: Destroy
+       FlashIdleMouse := 0
     }
 }
 
@@ -3190,17 +3105,21 @@ MouseHalo() {
        MouseGetPos, mX, mY
        BoxW := MouseHaloRadius
        BoxH := BoxW
-       mX := mX - BoxW
-       mY := mY - BoxH
-       Gui, MouseH: +AlwaysOnTop -Caption +ToolWindow
+       GuiGetSize(W, H, 2)
+       mX := mX - W/2
+       mY := mY - W/2
+       Gui, MouseH: +AlwaysOnTop -Caption +ToolWindow +E0x20
        Gui, MouseH: Margin, 0, 0
        Gui, MouseH: Color, %MouseHaloColor%
        Gui, MouseH: Show, NoActivate x%mX% y%mY% w%BoxW% h%BoxH%, MousarHallo
        WinSet, Transparent, %MouseHaloAlpha%, MousarHallo
        WinSet, AlwaysOnTop, On, MousarHallo
+    }
 
-       if (A_OSVersion!="WIN_XP")
-          Gui, MouseH: +E0x20
+    If (ShowMouseHalo=1) && A_IsSuspended
+    {
+       Gui, MouseH: Destroy
+       ShowMouseHalo := 0
     }
 }
 
@@ -3317,16 +3236,13 @@ ShowTypeSettings() {
 
     global editF1, editF2    
     deadKstatus := (DeadKeys=1) ? "Dead keys present." : "No dead keys defined."
-    altGrStatus := (enableAltGr=1) && (AutoDetectKBD=1) || (enableAltGr=2) && (AutoDetectKBD=1) ? "AltGr keys present." : "No AltGr keys defined."
-    if !InStr(CurrentKBD, "unsupported") && !InStr(CurrentKBD, "unrecognized")
-       ShiftStatus := (kbLayoutSymbols=0) && (AutoDetectKBD=1) ? "WARNING: no keys with Shift defined." : ""
 
     Gui, SettingsGUIA: font, bold
-    Gui, SettingsGUIA: Add, text, x15 y15, Keyboard layout status: %ShiftStatus%
+    Gui, SettingsGUIA: Add, text, x15 y15, Keyboard layout status:
     Gui, SettingsGUIA: font, normal
     Gui, Add, text, xp+0 yp+15, %CurrentKBD%.
     if !InStr(CurrentKBD, "unsupported") && !InStr(CurrentKBD, "unrecognized")
-       Gui, Add, text, xp+0 yp+15, %deadKstatus% %altGrStatus%
+       Gui, Add, text, xp+0 yp+15, %deadKstatus%
     Gui, Add, Checkbox, xp+0 yp+30 gVerifyTypeOptions Checked%ShowSingleKey% vShowSingleKey, Show single keys in the OSD, not just key combinations
     Gui, Add, Checkbox, xp+0 yp+20 gVerifyTypeOptions Checked%DisableTypingMode% vDisableTypingMode, Disable typing mode
     Gui, Add, Checkbox, xp+0 yp+20 gVerifyTypeOptions Checked%OnlyTypingMode% vOnlyTypingMode, Typing mode only
@@ -4074,12 +3990,13 @@ AboutWindow() {
 
     Gui, SettingsGUIA: add, link, x16 y50, AHK script developed by <a href="http://marius.sucan.ro">Marius Șucan</a>. Send <a href="mailto:marius.sucan@gmail.com">feedback</a>.
     Gui, SettingsGUIA: add, text, xp+0 yp+20, Based on KeypressOSD v2.22 by Tmplinshi.
+    Gui, SettingsGUIA: add, text, xp+0 yp+20, Freeware. Open source. For Windows XP, Vista, 7, 8, and 10.
     Gui, SettingsGUIA: add, text, xp+0 yp+35, Many thanks to the great people from #ahk (irc.freenode.net), 
-    Gui, SettingsGUIA: add, text, xp+0 yp+20, ... in particular to Neuromancer, Phaleth, Tidbit, Saiapatsu.
-    Gui, SettingsGUIA: add, text, xp+0 yp+20, Special mentions: Drugwash and Neuromancer.
+    Gui, SettingsGUIA: add, text, xp+0 yp+20, ... in particular to Phaleth, Drugwash, Tidbit and Saiapatsu.
+    Gui, SettingsGUIA: add, text, xp+0 yp+20, Special mention: Neuromancer.
     Gui, SettingsGUIA: add, text, xp+0 yp+35, This contains code also from: Maestrith (color picker),
     Gui, SettingsGUIA: add, text, xp+0 yp+20, Alguimist (font list generator), VxE (GuiGetSize),
-    Gui, SettingsGUIA: add, text, xp+0 yp+20, Sean (GetTextExtentPoint), Tidbit and Lexikos.
+    Gui, SettingsGUIA: add, text, xp+0 yp+20, Sean (GetTextExtentPoint), Helgef (toUnicodeEx), Tidbit and Lexikos.
     Gui, SettingsGUIA: add, Button, xp+0 yp+35 w75 Default gCloseWindow, &Close
     Gui, SettingsGUIA: add, Button, xp+80 yp+0 w85 gChangeLog, Version &history
     Gui, SettingsGUIA: add, text, xp+90 yp+1, Released: %releaseDate%
@@ -4751,10 +4668,10 @@ CheckSettings() {
      maxGuiWidth := 500
 
   if IdleMouseAlpha is not digit
-     IdleMouseAlpha := 130
+     IdleMouseAlpha := 70
 
   if MouseHaloAlpha is not digit
-     MouseHaloAlpha := 150
+     MouseHaloAlpha := 130
 
   if MouseHaloRadius is not digit
      MouseHaloRadius := 35
