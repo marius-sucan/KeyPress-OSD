@@ -32,8 +32,6 @@
  #MaxThreadsBuffer On
  SetTitleMatchMode, 2
  SetBatchLines, -1
- SetWinDelay, 50
- SetControlDelay, 10
  ListLines, Off
  SetWorkingDir, %A_ScriptDir%
  Critical, on
@@ -74,7 +72,7 @@
  , ShowKeyCount          := 1     ; count how many times a key is pressed
  , ShowKeyCountFired     := 0     ; show only key presses (0) or catch key fires as well (1)
  , NeverDisplayOSD       := 0
- , ReturnToTypingUser    := 15    ; in seconds
+ , ReturnToTypingUser    := 20    ; in seconds
  , DisplayTimeTypingUser := 10    ; in seconds
  , synchronizeMode       := 0
  , alternativeJumps      := 0
@@ -134,8 +132,8 @@
 
  , UseINIfile            := 1
  , IniFile               := "keypress-osd.ini"
- , version               := "3.93"
- , releaseDate := "2018 / 01 / 03"
+ , version               := "3.94"
+ , releaseDate := "2018 / 01 / 04"
  
 ; Initialization variables. Altering these may lead to undesired results.
 
@@ -174,6 +172,7 @@ global typed := "" ; hack used to determine if user is writing
  , visibleTextField := ""
  , text_width := 60
  , CaretPos := "1"
+ , SecondaryTypingMode := 0
  , maxTextChars := "4"
  , lastTypedSince := 0
  , editingField := "3"
@@ -191,6 +190,9 @@ global typed := "" ; hack used to determine if user is writing
  , DKnotShifted_list := ""
  , DKshift_list := ""
  , DKaltGR_list := ""
+ , OnMSGchar := ""
+ , OnMSGdeadChar := ""
+ , Window2Activate := ""
  , SCnames2 := "▪"
  , FontList := []
  , missingAudios := 1
@@ -250,7 +252,9 @@ TypedLetter(key) {
    sc := "0x0" GetKeySc("vk" vk)
 
    key := toUnicodeExtended(vk, sc)
-   typed := InsertChar2caret(key)
+   typed := OnMSGchar ? InsertChar2caret(OnMSGchar) : InsertChar2caret(key)
+   OnMSGchar := ""
+   OnMSGdeadChar := ""
 
    if (enableAltGr=1) && (StickyKeys=1) && (AltGrPressed=1) || (enableAltGr=1) && (AltGrPressed=2)
       backTyped := typed
@@ -1016,6 +1020,25 @@ OnKeyPressed() {
         AltGrPressed := 0
         TypingFriendlyKeys := "i)^((.?shift \+ )?(Num|Caps|Scroll|Insert|Tab)|\{|AppsKey|Volume |Media_|Wheel |◐)"
 
+        if (enterErasesLine=1) && (SecondaryTypingMode=1) && InStr(key, "enter")
+        {
+           ToggleSecondaryTypingMode()
+           Sleep, 25
+           WinActivate, %Window2Activate%
+           Sleep, 25
+           sendOSDcontent()
+           skipRest := 1
+        }
+
+        if (SecondaryTypingMode=1) && InStr(key, "esc")
+        {
+           ToggleSecondaryTypingMode()
+           Sleep, 25
+           IfWinActive, KeyPressOSD
+             WinActivate, %Window2Activate%
+           Sleep, 25
+        }
+
         if ((key ~= "i)(enter|esc)") && (DisableTypingMode=0) && (ShowSingleKey=1))
         {
             if (enterErasesLine=0) && (OnlyTypingMode=1)
@@ -1036,7 +1059,7 @@ OnKeyPressed() {
                editingField := 3
             }
             if (enterErasesLine=1)
-               typed := ""
+               typed := (skipRest=1) ? typed : ""
         }
 
         if (A_TickCount-tickcount_start2 < 50) && StrLen(typed)>2 && prefixed
@@ -1052,7 +1075,7 @@ OnKeyPressed() {
                 AltGrPressed := 1
            }
            backTyped := !typed && (AltGrPressed=1) && (enableAltGr=1) ? backTyped : typed
-           typed := (OnlyTypingMode=1) ? typed : ""
+           typed := (OnlyTypingMode=1 || skipRest=1) ? typed : ""
         } else if ((key ~= "i)^((.?Shift \+ )?Tab)") && typed && (DisableTypingMode=0))
         {
             InsertChar2caret(" ")
@@ -1095,7 +1118,7 @@ OnLetterPressed() {
         }
 
         if (typed && DeadKeys=1 && DoNotBindDeadKeys=1)
-            sleep, 100
+            sleep, 30
 
         AltGrMatcher := "i)^((.?ctrl \+ )?(AltGr|.?Ctrl \+ Alt) \+ (.?shift \+ )?((.)$|(.)[\r\n \,]))"
         key := GetKeyStr(1)     ; consider it a letter
@@ -1346,14 +1369,25 @@ OnSpacePressed() {
           key := GetKeyStr()
           if (A_TickCount-lastTypedSince < ReturnToTypingDelay) && strlen(typed)>1 && (DisableTypingMode=0) && (ShowSingleKey=1)
           {
-             if (typed ~= "i)(▫│)$")
+             if (typed ~= "i)(▫│)$") && (SecondaryTypingMode=0)
              {
                 typed := SubStr(typed, 1, StrLen(typed) - 2)
                 InsertChar2caret("▪")
-             } else
+             } else if (SecondaryTypingMode=0)
              {
                 InsertChar2caret(" ")
              }
+
+             if (SecondaryTypingMode=1)
+             {
+                if !OnMSGdeadChar
+                   char2insert := OnMSGchar ? OnMSGchar : " "
+                char2insert := OnMSGdeadChar ? OnMSGdeadChar : " "
+                InsertChar2caret(char2insert)
+             }
+             OnMSGchar := ""
+             OnMSGdeadChar := ""
+
              deadKeyProcessing()
              ShowHotkey(visibleTextField)
              SetTimer, HideGUI, % -DisplayTimeTyping
@@ -1436,6 +1470,8 @@ OnBspPressed() {
     }
     shiftPressed := 0
     AltGrPressed := 0
+    OnMSGchar := ""
+
 }
 
 OnDelPressed() {
@@ -1693,9 +1729,26 @@ OnModUp() {
     if (StickyKeys=0) && StrLen(typed)>1
        SetTimer, returnToTyped, % -DisplayTime/4.5
 }
+SecondaryTypingModeDeadKeys() {
+   global lastTypedSince := A_TickCount
+   InsertChar2caret(OnMSGchar)
+   OnMSGchar := ""
+   CalcVisibleText()
+   ShowHotkey(visibleTextField)
+   SetTimer, HideGUI, % -DisplayTimeTyping
+   if (deadKeyBeeper=1)
+      beeperzDefunctions.ahkPostFunction["OnDeathKeyPressed", ""]
+}
 
 OnDeadKeyPressed() {
   sleep, 100
+
+  if (A_TickCount-deadKeyPressed<900) && (SecondaryTypingMode=1)
+  {
+     SecondaryTypingModeDeadKeys()
+     Return
+  }
+
   global deadKeyPressed := A_TickCount
   RmDkSymbol := "▪"
   TrueRmDkSymbol := GetDeadKeySymbol(A_ThisHotkey)
@@ -1768,6 +1821,12 @@ deadKeyProcessing() {
 
 OnAltGrDeadKeyPressed() {
   sleep, 100
+
+  if (A_TickCount-deadKeyPressed<900) && (SecondaryTypingMode=1)
+  {
+     SecondaryTypingModeDeadKeys()
+     Return
+  }
   
   global deadKeyPressed := A_TickCount
 
@@ -2260,8 +2319,6 @@ ShowHotkey(HotkeyStr) {
         if (startPoint > text_width+growthIncrement) || (startPoint < text_width-growthIncrement)
            text_width := round(startPoint)
         text_width := (text_width > maxAllowedGuiWidth-growthIncrement*2) ? maxAllowedGuiWidth : text_width
-
-
     } else if (OSDautosize=0)
     {
         text_width := maxAllowedGuiWidth
@@ -2289,7 +2346,6 @@ ShowHotkey(HotkeyStr) {
     }
     WinSet, AlwaysOnTop, On, KeypressOSD
     visible := 1
-
 }
 
 ShowLongMsg(stringo) {
@@ -2302,31 +2358,26 @@ ShowLongMsg(stringo) {
 GetTextExtentPoint(sString, sFaceName, nHeight, initialStart := 0) {
 ; by Sean from https://autohotkey.com/board/topic/16414-hexview-31-for-stdlib/#entry107363
 ; Sleep, 30 ; megatest
-  bBold := 1
-  bItalic := 0
-  bUnderline := 0
-  bStrikeOut := 0
-  nCharSet := 0
 
   hDC := DllCall("GetDC", "Ptr", 0, "Ptr")
   nHeight := -DllCall("MulDiv", "int", nHeight, "int", DllCall("GetDeviceCaps", "ptr", hDC, "int", 90), "int", 72)
 
   hFont := DllCall("CreateFont"
-    , "int", nHeight
-    , "int", 0    ; nWidth
-    , "int", 0    ; nEscapement
-    , "int", 0    ; nOrientation
-    , "int", 700  ; fnWeight
-    , "Uint", 0   ; fdwItalic
-    , "Uint", 0   ; fdwUnderline
-    , "Uint", 0   ; fdwStrikeOut
-    , "Uint", 0   ; fdwCharSet
-    , "Uint", 0   ; fdwOutputPrecision
-    , "Uint", 0   ; fdwClipPrecision
-    , "Uint", 0   ; fdwQuality
-    , "Uint", 0   ; fdwPitchAndFamily
-    , "str", sFaceName
-    , "Ptr")
+		, "int", nHeight
+		, "int", 0    ; nWidth
+		, "int", 0    ; nEscapement
+		, "int", 0    ; nOrientation
+		, "int", 700  ; fnWeight
+		, "Uint", 0   ; fdwItalic
+		, "Uint", 0   ; fdwUnderline
+		, "Uint", 0   ; fdwStrikeOut
+		, "Uint", 0   ; fdwCharSet
+		, "Uint", 0   ; fdwOutputPrecision
+		, "Uint", 0   ; fdwClipPrecision
+		, "Uint", 0   ; fdwQuality
+		, "Uint", 0   ; fdwPitchAndFamily
+		, "str", sFaceName
+		, "Ptr")
   hFold := DllCall("SelectObject", "ptr", hDC, "ptr", hFont, "Ptr")
 
   DllCall("GetTextExtentPoint32", "ptr", hDC, "str", sString, "int", StrLen(sString), "int64P", nSize)
@@ -2346,7 +2397,7 @@ GetTextExtentPoint(sString, sFaceName, nHeight, initialStart := 0) {
     GuiHeight := nSize >> 32 & 0xFFFFFFFF
     GuiHeight := GuiHeight / (OSDautosizeFactory/100) + (OSDautosizeFactory/10) + 4
     GuiHeight := (GuiHeight<minHeight) ? minHeight+1 : round(GuiHeight)
-    GuiHeight := (GuiHeight>maxHeight) ? maxHeight+1 : round(GuiHeight)
+    GuiHeight := (GuiHeight>maxHeight) ? maxHeight-1 : round(GuiHeight)
   }
 
   Return nWidth
@@ -2473,7 +2524,7 @@ GetKeyStr(letter := 0) {
             if (HideAnnoyingKeys=1 && !prefix)
             {
                 if (!(typed ~= "i)(  │)") && strlen(typed)>3 && (ShowMouseButton=1)) {
-                    typed := InsertChar2caret(" ")
+                    InsertChar2caret(" ")
                 }
                 throw
             }
@@ -2805,8 +2856,7 @@ IdentifyKBDlayout() {
       {
           if (ForceKBD!=1) && (LangIDfailed!=1) && (LangIDfailed!=2)
              ShowLongMsg("Layout detected: " identifiedKbdName " (kbd" kbLayout "). " partialKBDmatch)
-          SetTimer, HideGUI, % -DisplayTime
-          Sleep, 200
+          Sleep, 20
           if (ForceKBD=1)
              ShowLongMsg("Enforced layout: " identifiedKbdName " (kbd" kbLayout "). " partialKBDmatch)
 
@@ -2816,7 +2866,7 @@ IdentifyKBDlayout() {
           if (LangIDfailed=1)
              ShowLongMsg("Layout identification failed. Default: " identifiedKbdName " (kbd" kbLayout "). " partialKBDmatch)
 
-          SetTimer, HideGUI, % -DisplayTime
+          SetTimer, HideGUI, % -DisplayTime/2
       }
   }
   LangChanged := 0
@@ -2973,12 +3023,12 @@ ConstantKBDlayoutChanger() {
         {
            InputLocaleName := Strlen(InputLocaleName)>3 && !InStr(InputLocaleName, "unsupported") ? InputLocaleName : lastKBDid
            ShowLongMsg("Layout changed to: " InputLocaleName)
-           sleep, 1000
+           Sleep, 250
+           SetTimer, HideGUI, % -DisplayTime
         }
         ReloadScript()
     }
 }
-
 
 IsDoubleClick(MSec = 300) {
     Return (A_ThisHotKey = A_PriorHotKey) && (A_TimeSincePriorHotkey < MSec)
@@ -3038,6 +3088,7 @@ CreateGlobalShortcuts() {
       Hotkey, !+^F11, DetectLangNow
       Hotkey, !+^F12, ReloadScriptNow
       Hotkey, !Pause, ToggleCapture2Text   ; Alt+Pause/Break
+      Hotkey, #Enter, ToggleSecondaryTypingMode
       if (DisableTypingMode=0)
       {
          Hotkey, #Insert, SynchronizeApp
@@ -3054,49 +3105,49 @@ SynchronizeApp() {
   Clipboard := ""
   if (synchronizeMode=0)
   {
-      sleep 10
+      sleep 15
       Sendinput {LCtrl Down}
-      sleep 10
+      sleep 15
       Sendinput a
-      sleep 10
+      sleep 15
       Sendinput c
-      sleep 10
+      sleep 15
       Sendinput {LCtrl Up}
-      sleep 10
+      sleep 15
       Sendinput {Right}
-      sleep 10
+      sleep 15
       Sendinput {End 2}
   } else if (synchronizeMode=1)
   {
-      sleep 10
+      sleep 15
       Sendinput {LShift Down}
-      sleep 10
+      sleep 15
       Sendinput {Up 2}
-      sleep 10
+      sleep 15
       Sendinput {Home 2}
-      sleep 10
+      sleep 15
       Sendinput {LShift Up}
-      sleep 10
+      sleep 15
       Sendinput ^c
-      sleep 10
+      sleep 15
       Sendinput {Right}
   } Else
   {
-      sleep 10
+      sleep 15
       Sendinput {End 2}
-      sleep 10
+      sleep 15
       Sendinput {LShift Down}
-      sleep 10
+      sleep 15
       Sendinput {Home 2}
-      sleep 10
+      sleep 15
       Sendinput {LShift Up}
-      sleep 10
+      sleep 15
       Sendinput ^c
-      sleep 10
+      sleep 15
       Sendinput {Left}
-      sleep 10
+      sleep 15
       Sendinput {Right}
-      sleep 10
+      sleep 15
       Sendinput {End 2}
   }
   if (StrLen(Clipboard)>0)
@@ -3134,14 +3185,14 @@ sendOSDcontent() {
      StringReplace, typed, typed, %lola%
      StringReplace, typed, typed, %lola2%
      Clipboard := typed
-     sleep 10
+     sleep 15
      if (synchronizeMode=10)
      {
         Sendinput ^a
-        sleep 10
+        sleep 15
      }
      Sendinput ^v
-     sleep 10
+     sleep 15
      CaretPos := StrLen(typed)+1
      typed := ST_Insert(lola, typed, CaretPos)
      global lastTypedSince := A_TickCount
@@ -3350,9 +3401,19 @@ ReloadScript(silent:=1) {
         Reload
     } Else
     {
-        ShowLongMsg("Main file missing... Adios.")
+        ShowLongMsg("FATAL ERROR: Main file missing. Execution terminated.")
         SoundBeep
-        sleep, 3000
+        sleep, 1000
+        MsgBox, 4,, Do you want to choose another file to execute?
+        IfMsgBox Yes
+        {
+            FileSelectFile, i, 2, %A_ScriptDir%\%A_ScriptName%, Select a different script to load, AutoHotkey script (*.ahk; *.ah1u)
+            if !InStr(FileExist(i), "D")  ; we can't run a folder, we need to run a script
+               Run, %i%
+        } else
+        {
+            sleep, 500
+        }
         ExitApp
     }
 }
@@ -4163,10 +4224,10 @@ Color := hexRGB("0x" Color)
      exit
 
 ;  Loop,16
-;  {
+;	{
 ;    NumGet(custom,(A_Index-1)*4,"UInt")
 ; save custom colors to ini file, to be loaded on a subsequent session
-;  }
+;	}
   setformat, IntegerFast, H
   Color := NumGet(CHOOSECOLOR,3*A_PtrSize,"UInt")
   SetFormat, IntegerFast, D
@@ -5292,7 +5353,7 @@ CheckSettings() {
      DisplayTimeTypingUser := 10
 
   if ReturnToTypingUser is not digit
-     ReturnToTypingUser := 15
+     ReturnToTypingUser := 20
 
   if FontSize is not digit
      FontSize := 20
@@ -5408,6 +5469,98 @@ CheckSettings() {
    FontName := StrLen(FontName)>2 ? FontName : "Arial"
 
 }
+
+createTypingWindow() {
+    global
+
+    Gui, TypingWindow: destroy
+    Gui, TypingWindow: +AlwaysOnTop -Caption +Owner +LastFound +ToolWindow
+    Gui, TypingWindow: Color, %CapsColorHighlight%
+}
+
+ToggleSecondaryTypingMode() {
+   createTypingWindow()
+   SecondaryTypingMode := (SecondaryTypingMode=1) ? 0 : 1
+
+   if (SecondaryTypingMode=1)
+   {
+       WinGetTitle, Window2Activate, A
+       toggleWidth := FontSize/2 < 11 ? 11 : FontSize/2
+       Gui, TypingWindow: Show, x%GuiX% y%GuiY% h%GuiHeight% w%toggleWidth%, KeypressOSDtyping
+       WinSet, AlwaysOnTop, On, KeypressOSDtyping
+       ShowDeadKeys := 0
+       ShowSingleKey := 1
+       DisableTypingMode := 0
+       if (ConstantAutoDetect=1)
+       {
+          SetTimer, ConstantKBDtimer, off
+          Menu, Tray, unCheck, &Monitor keyboard layout
+       }
+       OnlyTypingMode := 1
+       typed := ""
+       backTyped := ""
+       backTyped2 := ""
+       visibleTextField := " │"
+       OnMSGchar := ""
+       SetTimer, checkTypingWindow, on, 700, -10
+   } Else
+   {
+       Gui, TypingWindow: Destroy
+       IniRead, ShowDeadKeys, %inifile%, SavedSettings, ShowDeadKeys, %ShowDeadKeys%
+       IniRead, ShowSingleKey, %inifile%, SavedSettings, ShowSingleKey, %ShowSingleKey%
+       IniRead, OnlyTypingMode, %inifile%, SavedSettings, OnlyTypingMode, %OnlyTypingMode%
+       IniRead, ConstantAutoDetect, %inifile%, SavedSettings, ConstantAutoDetect, %ConstantAutoDetect%
+       IniRead, DisableTypingMode, %inifile%, SavedSettings, DisableTypingMode, %DisableTypingMode%
+       if (ConstantAutoDetect=1)
+       {
+          SetTimer, ConstantKBDtimer, 950, -25
+          Menu, Tray, Check, &Monitor keyboard layout
+       }
+       CalcVisibleText()
+       SetTimer, checkTypingWindow, off
+   }
+   ShowHotkey(visibleTextField)
+   SetTimer, HideGUI, % -DisplayTimeTyping
+   OnMessage(0x102, "CharMSG")
+   OnMessage(0x103, "deadCharMSG")
+   Return
+}
+
+checkTypingWindow() {
+   IfWinNotActive, KeypressOSDtyping
+       ToggleSecondaryTypingMode()
+}
+
+CharMSG(wParam, lParam) {
+    if (SecondaryTypingMode=0)
+       Return
+    OnMSGchar := chr(wParam) ; & 0xFFFF
+}
+
+deadCharMSG(wParam, lParam) {
+  if (SecondaryTypingMode=0)
+     Return
+
+  OnMSGdeadChar := chr(wParam) ; & 0xFFFF
+
+  if (DoNotBindDeadKeys=0)
+     Return
+
+  lola := "│"
+  StringReplace, visibleTextField, visibleTextField, %lola%, %OnMSGdeadChar%
+  if (A_TickCount-deadKeyPressed<500)
+  {
+     InsertChar2caret(OnMSGdeadChar)
+     CalcVisibleText()
+  }
+  ShowHotkey(visibleTextField)
+  global deadKeyPressed := A_TickCount
+  if (deadKeyBeeper=1)
+     beeperzDefunctions.ahkPostFunction["OnDeathKeyPressed", ""]
+
+  SetTimer, returnToTyped, 800, -10
+}
+
 
 dummy() {
     MsgBox, This feature is not yet available. It might be implemented soon. Thank you.

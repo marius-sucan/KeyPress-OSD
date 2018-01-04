@@ -7,6 +7,11 @@ http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd.ahk
 Please use AHK_H v1.1.27 [unicode] to execute this script.
 
 by Marius Sucan (robodesign.ro)
+  v3.94 (2018-01-04)
+  - [new] Secondary/alternative typing mode. Access it with Winkey + Enter. A new approach to the typing mode. Full support for dead keys for any layout.
+  - reduced delays when automatic layout change occurs;
+  - re-added on request [from drugwash] the option to choose another script when the main file is missing and the script attempts to reload itself
+
   v3.93 (2018-01-03)
   - substantially changed how Shift and AltGr are detected when typing; it should be much more reliable; it buffers the events more orderly;
   - simplified the error handling of script file missing; I do not want the user to pick the new file :-)
@@ -519,9 +524,12 @@ Features to implement:
   - external loader? to keep all files as a code
   - separate UI settings and tray menu?
   - download latest AHK_H
+- [bug] osd, show preview - capsdummy error
 
+- Insert text with the OSD. Secondary typing mode. 
+- speak text line
 - with long timers, dead keys do not work reliably
-- reduce flickering with Ctrl+A/C/V/Left/Right
+- reduce flickering with Ctrl+A/Z/X/C/V/Left/Right
 
 - Update troubleshooting.
   - I do not see letters with accents when I use dead keys. 
