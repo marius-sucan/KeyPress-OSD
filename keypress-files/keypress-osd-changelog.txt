@@ -9,8 +9,12 @@ Please use AHK_H v1.1.27 [unicode] to execute this script.
 by Marius Sucan (robodesign.ro)
   v3.94 (2018-01-04)
   - [new] Secondary/alternative typing mode. Access it with Winkey + Enter. A new approach to the typing mode. Full support for dead keys for any layout.
+    - The dead key symbol is shown when such a key is presssed and the resulted combination.
+    - it works even if typing mode is disabled
+    - On Enter, the text is sent to the current app.
+
   - reduced delays when automatic layout change occurs;
-  - re-added on request [from drugwash] the option to choose another script when the main file is missing and the script attempts to reload itself
+  - re-added on request [from drugwash] the option to choose another script when the main file is missing when the script attempts to reload itself
 
   v3.93 (2018-01-03)
   - substantially changed how Shift and AltGr are detected when typing; it should be much more reliable; it buffers the events more orderly;
@@ -525,6 +529,7 @@ Features to implement:
   - separate UI settings and tray menu?
   - download latest AHK_H
 - [bug] osd, show preview - capsdummy error
+- [bug] capslock este pe dos?!?! in alternative typing mode
 
 - Insert text with the OSD. Secondary typing mode. 
 - speak text line
