@@ -1,4 +1,4 @@
-; KeypressOSD.ahk - main file
+﻿; KeypressOSD.ahk - main file
 ; Latest version at:
 ; https://github.com/marius-sucan/KeyPress-OSD
 ; http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd.ahk
@@ -54,6 +54,7 @@
  
  , DisableTypingMode     := 0     ; do not echo what you write
  , OnlyTypingMode        := 0
+ , alternateTypingMode   := 1
  , enableTypingHistory   := 0
  , enterErasesLine       := 1
  , pgUDasHE              := 0    ; page up/down behaves like home/end
@@ -77,6 +78,8 @@
  , synchronizeMode       := 0
  , alternativeJumps      := 0
  , pasteOSDcontent       := 1
+ , pasteOnClick          := 1
+ , ImmediateAltTypeMode  := 0
  
  , DisplayTimeUser       := 3     ; in seconds
  , JumpHover             := 0
@@ -95,6 +98,7 @@
  , OSDbgrColor           := "111111"
  , OSDtextColor          := "ffffff"
  , CapsColorHighlight    := "88AAff"
+ , TypingColorHighlight    := "12E217"
  , OSDautosize           := 1     ; make adjustments to the growth factors to match your font size
  , OSDautosizeFactory    := round(A_ScreenDPI / 1.1)
  
@@ -132,8 +136,8 @@
 
  , UseINIfile            := 1
  , IniFile               := "keypress-osd.ini"
- , version               := "3.94"
- , releaseDate := "2018 / 01 / 04"
+ , version               := "3.95"
+ , releaseDate := "2018 / 01 / 05"
  
 ; Initialization variables. Altering these may lead to undesired results.
 
@@ -192,12 +196,13 @@ global typed := "" ; hack used to determine if user is writing
  , DKaltGR_list := ""
  , OnMSGchar := ""
  , OnMSGdeadChar := ""
- , Window2Activate := ""
+ , Window2Activate := " "
  , SCnames2 := "▪"
  , FontList := []
  , missingAudios := 1
  , deadKeyPressed := "9500"
  , previewWindowText := "Preview window..."
+ , alternateTypedText := ""
  , showPreview := 0
 
    maxAllowedGuiWidth := (OSDautosize=1) ? maxGuiWidth : GuiWidth
@@ -1020,23 +1025,19 @@ OnKeyPressed() {
         AltGrPressed := 0
         TypingFriendlyKeys := "i)^((.?shift \+ )?(Num|Caps|Scroll|Insert|Tab)|\{|AppsKey|Volume |Media_|Wheel |◐)"
 
-        if (enterErasesLine=1) && (SecondaryTypingMode=1) && InStr(key, "enter")
+        if (enterErasesLine=1) && (SecondaryTypingMode=1) && (key ~= "i)(enter|esc)")
         {
+           DetectHiddenWindows, on
            ToggleSecondaryTypingMode()
-           Sleep, 25
+           Sleep, 20
            WinActivate, %Window2Activate%
-           Sleep, 25
-           sendOSDcontent()
-           skipRest := 1
-        }
-
-        if (SecondaryTypingMode=1) && InStr(key, "esc")
-        {
-           ToggleSecondaryTypingMode()
-           Sleep, 25
-           IfWinActive, KeyPressOSD
-             WinActivate, %Window2Activate%
-           Sleep, 25
+           Sleep, 40
+           if instr(key, "enter")
+           {
+              sendOSDcontent()
+              skipRest := 1
+           }
+           DetectHiddenWindows, on
         }
 
         if ((key ~= "i)(enter|esc)") && (DisableTypingMode=0) && (ShowSingleKey=1))
@@ -1090,6 +1091,31 @@ OnKeyPressed() {
 OnLetterPressed() {
 ; ; Sleep, 60 ; megatest
 
+    if (A_TickCount-lastTypedSince > ReturnToTypingDelay*1.25) && strlen(typed)<3 && (OnlyTypingMode=0)
+       typed := ""
+
+    if (StrLen(typed)>1 && ImmediateAltTypeMode=1 && SecondaryTypingMode=0 && ShowSingleKey=1 && (A_TickCount-lastTypedSince < 900) && Capture2Text=0)
+    {
+       BlockInput, On
+       loalee := Clipboard
+       Sleep, 30
+       SendInput {LShift Down}
+       Sleep, 30
+       SendInput {Left 2}
+       Sleep, 30
+       SendInput {LShift Up}
+       Sleep, 30
+       SendInput ^c
+       Sleep, 30
+       SendInput {BackSpace}
+       Sleep, 30
+       ToggleSecondaryTypingMode()
+       StringLeft, typed, Clipboard, 1
+       Clipboard := loalee
+       loalee := " "
+       BlockInput, Off
+    }
+
     if (DisableTypingMode=0)
     {
         if InStr(A_ThisHotkey, "+")
@@ -1101,9 +1127,6 @@ OnLetterPressed() {
            backTyped := !typed ? backTyped : typed
         }
     }
-
-    if (A_TickCount-lastTypedSince > ReturnToTypingDelay*1.25) && strlen(typed)<3 && (OnlyTypingMode=0)
-       typed := ""
 
     if (A_TickCount-lastTypedSince > ReturnToTypingDelay*1.75) && strlen(typed)>4
        InsertChar2caret(" ")
@@ -2632,12 +2655,14 @@ CompactModifiers(stringy) {
 GetCrayCrayState(key) {
 
     GetKeyState, keyState, %key%, T
-
-    If (keyState = "D")
+    shtate := GetKeyState(key, "T")
+    if (SecondaryTypingMode=1)
+       shtate := !shtate
+    If (shtate=1)
     {
        tehResult := key " ON"
-    }
-    else {
+    } else
+    {
        tehResult := key " off"
     }
     StringReplace, tehResult, tehResult, lock, %A_SPACE%lock
@@ -2662,14 +2687,10 @@ GetSpecialSC(sc) {
 }
 
 GetDeadKeySymbol(hotkeya) {
-
    lenghty := InStr(SCnames2, hotkeya)
    lenghty := (lenghty=0) ? 2 : lenghty
-
    symbol := SubStr(SCnames2, lenghty-1, 1)
-
    symbol := (symbol="") || (symbol="v") || (symbol="k") ? "▪" : symbol
-
    return symbol
 }
 
@@ -3079,6 +3100,9 @@ CreateGlobalShortcuts() {
       Hotkey, ^+Insert, sendOSDcontent
       Hotkey, ^!Insert, sendOSDcontent2
    }
+
+   if (alternateTypingMode=1)
+      Hotkey, ^Insert, ToggleSecondaryTypingMode
    
    if (KeyboardShortcuts=1)
    {
@@ -3088,7 +3112,6 @@ CreateGlobalShortcuts() {
       Hotkey, !+^F11, DetectLangNow
       Hotkey, !+^F12, ReloadScriptNow
       Hotkey, !Pause, ToggleCapture2Text   ; Alt+Pause/Break
-      Hotkey, #Enter, ToggleSecondaryTypingMode
       if (DisableTypingMode=0)
       {
          Hotkey, #Insert, SynchronizeApp
@@ -3102,7 +3125,6 @@ SynchronizeApp() {
   lola := "│"
   lola2 := "║"
   loalee := Clipboard
-  Clipboard := ""
   if (synchronizeMode=0)
   {
       sleep 15
@@ -3201,6 +3223,7 @@ sendOSDcontent() {
      Clipboard := loalee
      loalee := " "
      SetTimer, HideGUI, % -DisplayTimeTyping
+     alternateTypedText := ""
   }
 }
 
@@ -3218,6 +3241,8 @@ SuspendScript() {        ; Shift+Pause/Break
  
    ScriptelSuspendel := A_IsSuspended ? 0 : 1
    IniWrite, %ScriptelSuspendel%, %IniFile%, TempSettings, ScriptelSuspendel
+   if (Capture2Text=1)
+      ToggleCapture2Text()
 
    Menu, Tray, UseErrorLevel
    Menu, Tray, Rename, &KeyPress activated,&KeyPress deactivated
@@ -3246,7 +3271,7 @@ ToggleConstantDetection() {
    }
 
    AutoDetectKBD := 1
-   ConstantAutoDetect := (ConstantAutoDetect=0) ? 1 : 0
+   ConstantAutoDetect := !ConstantAutoDetect
    IniWrite, %ConstantAutoDetect%, %IniFile%, SavedSettings, ConstantAutoDetect
    IniWrite, %AutoDetectKBD%, %IniFile%, SavedSettings, AutoDetectKBD
 
@@ -3266,7 +3291,7 @@ ToggleConstantDetection() {
 }
 
 ToggleNeverDisplay() {
-   NeverDisplayOSD := (NeverDisplayOSD=0) ? 1 : 0
+   NeverDisplayOSD := !NeverDisplayOSD
    IniWrite, %NeverDisplayOSD%, %IniFile%, SavedSettings, NeverDisplayOSD
 
    if (NeverDisplayOSD=1) {
@@ -3280,7 +3305,7 @@ ToggleNeverDisplay() {
 }
 
 ToggleShowSingleKey() {
-    ShowSingleKey := (!ShowSingleKey) ? 1 : 0
+    ShowSingleKey := !ShowSingleKey
     if (ShowSingleKey=0)
        OnlyTypingMode := 0
 
@@ -3302,7 +3327,7 @@ TogglePosition() {
       Return
     }
  
-    GUIposition := (GUIposition=1) ? 0 : 1
+    GUIposition := !GUIposition
     Gui, OSD: hide
 
     if (GUIposition=1)
@@ -3339,7 +3364,7 @@ ToggleForcedLanguage() {
     IniWrite, %ReloadCounter%, %IniFile%, TempSettings, ReloadCounter
     ForceKBD := 1
     AutoDetectKBD := 1
-    ForcedKBDlayout := (ForcedKBDlayout = 0) ? 1 : 0
+    ForcedKBDlayout := !ForcedKBDlayout
     niceNaming := (ForcedKBDlayout = 0) ? "A" : "B"
     CreateOSDGUI()
     ShowLongMsg("Switching layout to preset " niceNaming "...")
@@ -3351,7 +3376,7 @@ ToggleForcedLanguage() {
 }
 
 ToggleSilence() {
-    SilentMode := (SilentMode = 0) ? 1 : 0
+    SilentMode := !SilentMode
     IniWrite, %SilentMode%, %IniFile%, SavedSettings, SilentMode
     mouseFonctiones.ahkReload[]
     beeperzDefunctions.ahkReload[]
@@ -3362,7 +3387,6 @@ ToggleSilence() {
     {
        Menu, SubSetMenu, unCheck, S&ilent mode
     }
-
     sleep, 400
 }
 
@@ -3443,7 +3467,7 @@ ToggleCapture2Text() {        ; Alt+Pause/Break
         }
    }
 
-    featureValidated := featureValidated=0 ? 0 : 1
+    featureValidated := !featureValidated
 
     if (featureValidated=1)
     {
@@ -3473,7 +3497,7 @@ ToggleCapture2Text() {        ; Alt+Pause/Break
         SetTimer, HideGUI, % -DisplayTime/7
     } else if (featureValidated=1)
     {
-        Capture2Text := (Capture2Text=1) ? 0 : 1
+        Capture2Text := !Capture2Text
         IniRead, GUIposition, %inifile%, SavedSettings, GUIposition, %GUIposition%
         if (GUIposition=1)
         {
@@ -3493,7 +3517,7 @@ ToggleCapture2Text() {        ; Alt+Pause/Break
         mouseFonctiones.ahkReload[]
         mouseRipplesThread.ahkReload[]
         SetTimer, capturetext, off
-        Capture2Text := (Capture2Text=1) ? 0 : 1
+        Capture2Text := !Capture2Text
         ShowLongMsg("Disabled automatic Capture 2 Text")
         SetTimer, HideGUI, % -DisplayTime
     }
@@ -3706,8 +3730,9 @@ ShowTypeSettings() {
     deadKstatus := (DeadKeys=1) && !InStr(CurrentKBD, "unsupported") && !InStr(CurrentKBD, "unrecognized") ? "Dead keys present." : " "
 
     Gui, Add, Checkbox, x15 y15 gVerifyTypeOptions Checked%ShowSingleKey% vShowSingleKey, Show single keys in the OSD, not just key combinations
-    Gui, Add, Checkbox, xp+0 yp+20 gVerifyTypeOptions Checked%DisableTypingMode% vDisableTypingMode, Disable typing mode
-    Gui, Add, Checkbox, xp+0 yp+20 gVerifyTypeOptions Checked%OnlyTypingMode% vOnlyTypingMode, Typing mode only
+    Gui, Add, Checkbox, xp+0 yp+20 gVerifyTypeOptions Checked%DisableTypingMode% vDisableTypingMode, Disable typing mode (by shadowing host app)
+    Gui, Add, Checkbox, xp+0 yp+20 gVerifyTypeOptions Checked%alternateTypingMode% valternateTypingMode, Enter alternate typing mode with Ctrl + Insert
+    Gui, Add, Checkbox, xp+0 yp+20 gVerifyTypeOptions Checked%OnlyTypingMode% vOnlyTypingMode, Typing mode only (by shadowing host app)
 
     Gui, Add, Checkbox, xp+0 yp+30 gVerifyTypeOptions Checked%enableTypingHistory% venableTypingHistory, Typed text history (with Page Up / Down)
     Gui, Add, Checkbox, xp+0 yp+20 gVerifyTypeOptions Checked%pgUDasHE% vpgUDasHE, Page Up / Down should behave as Home / End
@@ -3724,8 +3749,10 @@ ShowTypeSettings() {
     Gui, Add, Edit, xp+265 yp+0 w45 r1 limit2 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF2, %ReturnToTypingUser%
     Gui, Add, UpDown, vReturnToTypingUser Range2-99, %ReturnToTypingUser%
 
-    Gui, Add, Checkbox, x330 y15 gVerifyTypeOptions Checked%enterErasesLine% venterErasesLine, Enter and Escape keys erase texts from the OSD
-    Gui, Add, Checkbox, xp+0 yp+20 Checked%enableAltGrUser% venableAltGrUser, Enable Ctrl+Alt / AltGr support
+    Gui, Add, Checkbox, x330 y15 Checked%enableAltGrUser% venableAltGrUser, Enable Ctrl+Alt / AltGr support
+    Gui, Add, Checkbox, xp+0 yp+20 gVerifyTypeOptions Checked%ImmediateAltTypeMode% vImmediateAltTypeMode, Immediately use the alternate typing mode
+    Gui, Add, Checkbox, xp+0 yp+20 gVerifyTypeOptions Checked%pasteOnClick% vpasteOnClick, In alternate typing mode, paste on click
+    Gui, Add, Checkbox, xp+0 yp+20 gVerifyTypeOptions Checked%enterErasesLine% venterErasesLine, Enter and Escape keys erase texts from the OSD
 
     Gui, Add, Checkbox, xp+0 yp+30 gVerifyTypeOptions Checked%ShowDeadKeys% vShowDeadKeys, Insert the dead key symbol in the OSD when typing
     Gui, Add, Checkbox, xp+0 yp+20 gVerifyTypeOptions Checked%autoRemDeadKey% vautoRemDeadKey, Do not treat dead keys as a different character (generic symbol)
@@ -3742,7 +3769,7 @@ ShowTypeSettings() {
     Gui, SettingsGUIA: font, normal
     Gui, Add, text, xp+0 yp+15 w280, %CurrentKBD%.
     
-    Gui, SettingsGUIA: add, Button, xp+150 yp+20 w70 h30 Default gApplySettings, A&pply
+    Gui, SettingsGUIA: add, Button, xp+150 yp+30 w70 h30 Default gApplySettings, A&pply
     Gui, SettingsGUIA: add, Button, xp+75 yp+0 w70 h30 gCloseSettings, C&ancel
     Gui, SettingsGUIA: show, autoSize, Typing mode settings: KeyPress OSD
     VerifyTypeOptions()
@@ -3766,9 +3793,13 @@ VerifyTypeOptions() {
     GuiControlGet, editF2
     GuiControlGet, DoNotBindDeadKeys
     GuiControlGet, DoNotBindAltGrDeadKeys
+    GuiControlGet, alternateTypingMode
+    GuiControlGet, pasteOnClick
+    GuiControlGet, ImmediateAltTypeMode
 
     if (ShowSingleKey=0)
     {
+       GuiControl, Disable, ImmediateAltTypeMode
        GuiControl, Disable, DisableTypingMode
        GuiControl, Disable, enableTypingHistory
        GuiControl, Disable, CapslockBeeper
@@ -3788,6 +3819,7 @@ VerifyTypeOptions() {
        GuiControl, Disable, editF2
     } else
     {
+       GuiControl, Enable, ImmediateAltTypeMode
        GuiControl, Enable, DisableTypingMode
        GuiControl, Enable, enableTypingHistory
        GuiControl, Enable, CapslockBeeper
@@ -3810,6 +3842,7 @@ VerifyTypeOptions() {
     if (DisableTypingMode=1)
     {
        GuiControl, Disable, CapslockBeeper
+       GuiControl, Disable, ImmediateAltTypeMode
        GuiControl, Disable, enableTypingHistory
        GuiControl, Disable, ShowDeadKeys
        GuiControl, Disable, autoRemDeadKey
@@ -3828,6 +3861,7 @@ VerifyTypeOptions() {
     } else if (ShowSingleKey!=0)
     {
        GuiControl, Enable, CapslockBeeper
+       GuiControl, Enable, ImmediateAltTypeMode
        GuiControl, Enable, enableTypingHistory
        GuiControl, Enable, ShowDeadKeys
        GuiControl, Enable, autoRemDeadKey
@@ -3890,6 +3924,15 @@ VerifyTypeOptions() {
 
     if (UpDownAsLR=1)
        GuiControl, , UpDownAsHE, 0      
+
+    if (ImmediateAltTypeMode=0) && (alternateTypingMode=0) || (ShowSingleKey=0) && (alternateTypingMode=0) || (DisableTypingMode=1) && (alternateTypingMode=0)
+    {
+       GuiControl, Disable, pasteOnClick
+      
+    } Else
+    {
+       GuiControl, Enable, pasteOnClick
+    }
 }
 
 ShowSoundsSettings() {
@@ -4320,9 +4363,6 @@ VerifyMouseOptions() {
 }
 
 OSDpreview() {
-    Thread, Priority, -20
-    Critical, off
-
     Gui, SettingsGUIA: Submit, NoHide
 
     if (A_TickCount-tickcount_start2 < 150)
@@ -5160,6 +5200,9 @@ ShaveSettings() {
   IniWrite, %MouseClickRipples%, %inifile%, SavedSettings, MouseClickRipples
   IniWrite, %MouseRippleThickness%, %inifile%, SavedSettings, MouseRippleThickness
   IniWrite, %MouseRippleMaxSize%, %inifile%, SavedSettings, MouseRippleMaxSize
+  IniWrite, %ImmediateAltTypeMode%, %inifile%, SavedSettings, ImmediateAltTypeMode
+  IniWrite, %pasteOnClick%, %inifile%, SavedSettings, pasteOnClick
+  IniWrite, %alternateTypingMode%, %inifile%, SavedSettings, alternateTypingMode
 }
 
 LoadSettings() {
@@ -5251,6 +5294,9 @@ LoadSettings() {
   IniRead, MouseClickRipples, %inifile%, SavedSettings, MouseClickRipples, %MouseClickRipples%
   IniRead, MouseRippleMaxSize, %inifile%, SavedSettings, MouseRippleMaxSize, %MouseRippleMaxSize%
   IniRead, MouseRippleThickness, %inifile%, SavedSettings, MouseRippleThickness, %MouseRippleThickness%
+  IniRead, alternateTypingMode, %inifile%, SavedSettings, alternateTypingMode, %alternateTypingMode%
+  IniRead, ImmediateAltTypeMode, %inifile%, SavedSettings, ImmediateAltTypeMode, %ImmediateAltTypeMode%
+  IniRead, pasteOnClick, %inifile%, SavedSettings, pasteOnClick, %pasteOnClick%
 
   CheckSettings()
 
@@ -5323,6 +5369,9 @@ CheckSettings() {
     TypingBeepers := (TypingBeepers=0 || TypingBeepers=1) ? TypingBeepers : 0
     DTMFbeepers := (DTMFbeepers=0 || DTMFbeepers=1) ? DTMFbeepers : 0
     MouseClickRipples := (MouseClickRipples=0 || MouseClickRipples=1) ? MouseClickRipples : 0
+    pasteOnClick := (pasteOnClick=0 || pasteOnClick=1) ? pasteOnClick : 1
+    ImmediateAltTypeMode := (ImmediateAltTypeMode=0 || ImmediateAltTypeMode=1) ? ImmediateAltTypeMode : 0
+    alternateTypingMode := (alternateTypingMode=0 || alternateTypingMode=1) ? alternateTypingMode : 1
 
     if (UpDownAsHE=1) && (UpDownAsLR=1)
        UpDownAsLR := 0
@@ -5475,15 +5524,20 @@ createTypingWindow() {
 
     Gui, TypingWindow: destroy
     Gui, TypingWindow: +AlwaysOnTop -Caption +Owner +LastFound +ToolWindow
-    Gui, TypingWindow: Color, %CapsColorHighlight%
+    Gui, TypingWindow: Color, %TypingColorHighlight%
+    WinSet, Transparent, 150
 }
 
 ToggleSecondaryTypingMode() {
+   if (Capture2Text=1)
+      Return
+
    createTypingWindow()
-   SecondaryTypingMode := (SecondaryTypingMode=1) ? 0 : 1
+   SecondaryTypingMode := !SecondaryTypingMode
 
    if (SecondaryTypingMode=1)
    {
+       Sleep, 15
        WinGetTitle, Window2Activate, A
        toggleWidth := FontSize/2 < 11 ? 11 : FontSize/2
        Gui, TypingWindow: Show, x%GuiX% y%GuiY% h%GuiHeight% w%toggleWidth%, KeypressOSDtyping
@@ -5506,6 +5560,7 @@ ToggleSecondaryTypingMode() {
    } Else
    {
        Gui, TypingWindow: Destroy
+       alternateTypedText := typed
        IniRead, ShowDeadKeys, %inifile%, SavedSettings, ShowDeadKeys, %ShowDeadKeys%
        IniRead, ShowSingleKey, %inifile%, SavedSettings, ShowSingleKey, %ShowSingleKey%
        IniRead, OnlyTypingMode, %inifile%, SavedSettings, OnlyTypingMode, %OnlyTypingMode%
@@ -5528,7 +5583,15 @@ ToggleSecondaryTypingMode() {
 
 checkTypingWindow() {
    IfWinNotActive, KeypressOSDtyping
+   {
+       backTyped2 := typed || (A_TickCount-lastTypedSince > DisplayTimeTyping) ? typed : backTyped2
+       backTyped := typed
+       Sleep, 300
+       if (pasteOnClick=1)
+          sendOSDcontent()
+       Sleep, 45
        ToggleSecondaryTypingMode()
+   }
 }
 
 CharMSG(wParam, lParam) {
@@ -5566,7 +5629,6 @@ dummy() {
     MsgBox, This feature is not yet available. It might be implemented soon. Thank you.
 }
 
-/*
+
 #SPACE::
 Return
-*/

@@ -7,6 +7,13 @@ http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd.ahk
 Please use AHK_H v1.1.27 [unicode] to execute this script.
 
 by Marius Sucan (robodesign.ro)
+  v3.95 (2018-01-05)
+  - [new] option to paste on click the written text when using the alternate typing mode
+  - [new] option to immediately change to alternate typing mode, when typing
+  - [new] option to deactivate/activate the keyboard shortcut for alternate typing mode
+  - changed shortcut from WinKey + Insert to Ctrl + Insert.
+  - bug fixes
+
   v3.94 (2018-01-04)
   - [new] Secondary/alternative typing mode. Access it with Winkey + Enter. A new approach to the typing mode. Full support for dead keys for any layout.
     - The dead key symbol is shown when such a key is presssed and the resulted combination.
@@ -528,10 +535,7 @@ Features to implement:
   - external loader? to keep all files as a code
   - separate UI settings and tray menu?
   - download latest AHK_H
-- [bug] osd, show preview - capsdummy error
-- [bug] capslock este pe dos?!?! in alternative typing mode
 
-- Insert text with the OSD. Secondary typing mode. 
 - speak text line
 - with long timers, dead keys do not work reliably
 - reduce flickering with Ctrl+A/Z/X/C/V/Left/Right
