@@ -6,6 +6,20 @@ https://github.com/marius-sucan/KeyPress-OSD
 http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd.ahk
 Please use AHK_H v1.1.27 [unicode] to execute this script.
 
+
+by Marius Sucan (robodesign.ro)
+  v3.96.5 (2018-01-06)
+  - [new] option to change color for the alternate typing mode highlight
+  - MANY bug fixes; the alternative mode for typing was not functioning in many, many scenarios; it was very screwed ;-) .... still got some bugs left to fix
+  - considerably improved dead keys support
+
+by Drugwash (robodesign.ro)
+  v3.96 (2018-01-06)
+  - [new] option to enable the possibility to drag the OSD
+  - improved UI: removed the buttons to pick colors,  you can click the colors to change themnow 
+  - mouse halo is now round, when idling, the flashing halo is round as well
+  - improved the positioning of visual mouse clicks elements
+
 by Marius Sucan (robodesign.ro)
   v3.95 (2018-01-05)
   - [new] option to paste on click the written text when using the alternate typing mode
@@ -535,6 +549,12 @@ Features to implement:
   - external loader? to keep all files as a code
   - separate UI settings and tray menu?
   - download latest AHK_H
+
+- bug with visible text - calcvisible
+- bug with igbo, altgr, alternative typing mode
+- bug with altgr + dead keys, alternative typing mode
+- onmsgchar wparam two chars
+
 
 - speak text line
 - with long timers, dead keys do not work reliably

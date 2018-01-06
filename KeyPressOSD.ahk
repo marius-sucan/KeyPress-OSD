@@ -82,6 +82,7 @@
  , ImmediateAltTypeMode  := 0
  
  , DisplayTimeUser       := 3     ; in seconds
+ , DragOSDmode           := 0
  , JumpHover             := 0
  , OSDborder             := 0
  , GUIposition           := 1     ; toggle between positions with Ctrl + Alt + Shift + F9
@@ -98,7 +99,7 @@
  , OSDbgrColor           := "111111"
  , OSDtextColor          := "ffffff"
  , CapsColorHighlight    := "88AAff"
- , TypingColorHighlight    := "12E217"
+ , TypingColorHighlight  := "12E217"
  , OSDautosize           := 1     ; make adjustments to the growth factors to match your font size
  , OSDautosizeFactory    := round(A_ScreenDPI / 1.1)
  
@@ -124,11 +125,11 @@
  , MouseVclickAlpha      := 150   ; from 0 to 255
  , ClickScaleUser        := 10
  , ShowMouseHalo         := 0     ; constantly highlight mouse cursor
- , MouseHaloRadius       := 35
+ , MouseHaloRadius       := 85
  , MouseHaloColor        := "eedd00"  ; HEX format also accepted
  , MouseHaloAlpha        := 130   ; from 0 to 255
  , FlashIdleMouse        := 0     ; locate an idling mouse with a flashing box
- , MouseIdleRadius       := 40
+ , MouseIdleRadius       := 130
  , MouseIdleAfter        := 10    ; in seconds
  , IdleMouseAlpha        := 70   ; from 0 to 255
  , MouseRippleMaxSize    := 155
@@ -136,8 +137,8 @@
 
  , UseINIfile            := 1
  , IniFile               := "keypress-osd.ini"
- , version               := "3.95"
- , releaseDate := "2018 / 01 / 05"
+ , version               := "3.96.5"
+ , releaseDate := "2018 / 01 / 06"
  
 ; Initialization variables. Altering these may lead to undesired results.
 
@@ -204,6 +205,9 @@ global typed := "" ; hack used to determine if user is writing
  , previewWindowText := "Preview window..."
  , alternateTypedText := ""
  , showPreview := 0
+ , hOSD, hOSDctrl, nowDraggable
+ , CColor1 := CColor2 := CColor3 := CColor4 := CColor5 := CColor6 := CColor7 := CColor8 := CColor9 := CColor10 := CColor11 := CColor12 := CColor13 := CColor14 := CColor15 := CColor16 := 0x00FFFFFF
+ , cclvo := "-E0x200 +Border -Hdr -Multi +ReadOnly Report -Hidden AltSubmit gsetColors"
 
    maxAllowedGuiWidth := (OSDautosize=1) ? maxGuiWidth : GuiWidth
    ScriptelSuspendel := 0
@@ -217,9 +221,8 @@ global typed := "" ; hack used to determine if user is writing
 
 
 CreateOSDGUI()
-
-   verifyNonCrucialFiles()
-   Sleep, 250
+verifyNonCrucialFiles()
+Sleep, 250
 
 if ((VisualMouseClicks=1) || (FlashIdleMouse=1) || (ShowMouseHalo=1))
    global mouseFonctiones := ahkthread(" #Include *i keypress-files\keypress-mouse-functions.ahk ")
@@ -228,13 +231,20 @@ if (MouseClickRipples=1)
    global mouseRipplesThread := ahkthread(" #Include *i keypress-files\keypress-mouse-ripples-functions.ahk ")
 
 global beeperzDefunctions := ahkthread(" #Include *i keypress-files\keypress-beeperz-functions.ahk ")
-
 CreateHotkey()
 CreateGlobalShortcuts()
 CheckInstalledLangs()
 InitializeTray()
 if (ClipMonitor=1)
    OnClipboardChange("ClipChanged")
+
+if (DragOSDmode=1)
+{
+   hCursM := DllCall("LoadCursor", "Ptr", NULL, "Int", 32646, "Ptr")  ; IDC_SIZEALL
+   hCursH := DllCall("LoadCursor", "Ptr", NULL, "Int", 32649, "Ptr")  ; IDC_HAND
+   OnMessage(0x200, "MouseMove")    ; WM_MOUSEMOVE
+   OnExit, cleanup
+}
 return
 
 ; The script
@@ -248,31 +258,29 @@ TypedLetter(key) {
       Return
    }
 
-   global lastTypedSince := A_TickCount
-
    if (enableAltGr=1) && (StickyKeys=1) && (AltGrPressed=1) || (enableAltGr=1) && (AltGrPressed=2)
       typed := backTyped
+   if (SecondaryTypingMode=1)
+      Sleep, 10
 
-   vk := "0x0" SubStr(key, InStr(key, "vk", 0, 0)+2)
-   sc := "0x0" GetKeySc("vk" vk)
-
-   key := toUnicodeExtended(vk, sc)
-   typed := OnMSGchar ? InsertChar2caret(OnMSGchar) : InsertChar2caret(key)
-   OnMSGchar := ""
-   OnMSGdeadChar := ""
+   if (SecondaryTypingMode=0)
+   {
+      vk := "0x0" SubStr(key, InStr(key, "vk", 0, 0)+2)
+      sc := "0x0" GetKeySc("vk" vk)
+      key := toUnicodeExtended(vk, sc)
+      typed := InsertChar2caret(key)
+      global lastTypedSince := A_TickCount
+   }
 
    if (enableAltGr=1) && (StickyKeys=1) && (AltGrPressed=1) || (enableAltGr=1) && (AltGrPressed=2)
       backTyped := typed
    
    AltGrPressed := 0
-
    return typed
 }
 
 replaceSelection() {
-  
   backTypedUndo := typed
-
   lola := "│"
   lola2 := "║"
 
@@ -309,12 +317,15 @@ InsertChar2caret(char) {
   StringReplace, typed, typed, %lola%
   CaretPos := CaretPos+1
   typed := ST_Insert(char lola, typed, CaretPos)
-
-  CalcVisibleText()
-
+  if (A_TickCount-deadKeyPressed>150)
+  {
+      CalcVisibleText()
+  } else
+  {
+      SetTimer, CalcVisibleTextFieldDummy, 200, 50
+  }
   Return typed
 }
-
 
 CalcVisibleTextFieldDummy() {
     CalcVisibleText()
@@ -546,7 +557,6 @@ caretJumpMain(direction) {
      CaretPos := StrLen(typed)+1
 }
 
-
 caretJumper(direction) {
   lola := "│"
   lola2 := "║"
@@ -602,15 +612,21 @@ toUnicodeExtended(uVirtKey,uScanCode,wFlags:=0) {
 
   nsa := DllCall("MapVirtualKey", "Uint", uVirtKey, "Uint", 2)
 
-  if (nsa<=0) && (DeadKeys=0)
+  if (nsa<=0) && (DeadKeys=0) && (SecondaryTypingMode=1)
+  {
+      global deadKeyPressed := A_TickCount
+      Return
+  }
+
+  if (nsa<=0) && (DeadKeys=0) && (SecondaryTypingMode=0)
   {
      if (deadKeyBeeper = 1) && (ShowSingleKey = 1)
         beeperzDefunctions.ahkPostFunction["OnDeathKeyPressed", ""]
 
      if (ShowDeadKeys=1) && (DoNotBindDeadKeys=0)
      {
-       RmDkSymbol := (autoRemDeadKey=1) ? "▫" : "▪"
-       InsertChar2caret(RmDkSymbol)
+        RmDkSymbol := (autoRemDeadKey=1) ? "▫" : "▪"
+        InsertChar2caret(RmDkSymbol)
      }
 
      if (StrLen(typed)<3) && (DoNotBindDeadKeys=0)
@@ -618,9 +634,8 @@ toUnicodeExtended(uVirtKey,uScanCode,wFlags:=0) {
         ShowHotkey("[dead key]")
         Sleep, 300
      }
-
      Return
-   }
+  }
 
   thread := DllCall("GetWindowThreadProcessId", "ptr", WinActive("A"), "ptr", 0)
   hkl := DllCall("GetKeyboardLayout", "uint", thread, "ptr")
@@ -662,11 +677,9 @@ toUnicodeExtended(uVirtKey,uScanCode,wFlags:=0) {
   NumPut(GetKeyState("CapsLock", "T") , &lpKeyState+0, 0x14, "Uchar")
 
   n := DllCall("ToUnicodeEx", "Uint", uVirtKey, "Uint", uScanCode, "UPtr", &lpKeyState, "ptr", &pwszBuff, "Int", cchBuff, "Uint", wFlags, "ptr", hkl)
-  if (DeadKeys=1)
-     n := DllCall("ToUnicodeEx", "Uint", uVirtKey, "Uint", uScanCode, "UPtr", &lpKeyState, "ptr", &pwszBuff, "Int", cchBuff, "Uint", wFlags, "ptr", hkl)
+  n := DllCall("ToUnicodeEx", "Uint", uVirtKey, "Uint", uScanCode, "UPtr", &lpKeyState, "ptr", &pwszBuff, "Int", cchBuff, "Uint", wFlags, "ptr", hkl)
   return StrGet(&pwszBuff, n, "utf-16")
 }
-
 
 OnMousePressed() {
     Thread, Priority, -20
@@ -1032,7 +1045,7 @@ OnKeyPressed() {
            Sleep, 20
            WinActivate, %Window2Activate%
            Sleep, 40
-           if instr(key, "enter")
+           if InStr(key, "enter")
            {
               sendOSDcontent()
               skipRest := 1
@@ -1141,7 +1154,7 @@ OnLetterPressed() {
         }
 
         if (typed && DeadKeys=1 && DoNotBindDeadKeys=1)
-            sleep, 30
+            sleep, 10
 
         AltGrMatcher := "i)^((.?ctrl \+ )?(AltGr|.?Ctrl \+ Alt) \+ (.?shift \+ )?((.)$|(.)[\r\n \,]))"
         key := GetKeyStr(1)     ; consider it a letter
@@ -1175,8 +1188,7 @@ OnLetterPressed() {
                 }
             }
             SetTimer, HideGUI, % -DisplayTime
-
-        } else
+        } else if (SecondaryTypingMode=0)
         {
             TypedLetter(A_ThisHotkey)
             ShowHotkey(visibleTextField)
@@ -1600,7 +1612,7 @@ OnNumpadsPressed() {
             typed := (OnlyTypingMode=1) ? typed : ""
             ShowHotkey(key)
             SetTimer, HideGUI, % -DisplayTime
-        } else if (ShowSingleKey=1)
+        } else if (ShowSingleKey=1) && (SecondaryTypingMode!=1)
         {
             key := SubStr(key, 3, 1)
             InsertChar2caret(key)
@@ -1752,26 +1764,13 @@ OnModUp() {
     if (StickyKeys=0) && StrLen(typed)>1
        SetTimer, returnToTyped, % -DisplayTime/4.5
 }
-SecondaryTypingModeDeadKeys() {
-   global lastTypedSince := A_TickCount
-   InsertChar2caret(OnMSGchar)
-   OnMSGchar := ""
-   CalcVisibleText()
-   ShowHotkey(visibleTextField)
-   SetTimer, HideGUI, % -DisplayTimeTyping
-   if (deadKeyBeeper=1)
-      beeperzDefunctions.ahkPostFunction["OnDeathKeyPressed", ""]
-}
 
 OnDeadKeyPressed() {
-  sleep, 100
 
-  if (A_TickCount-deadKeyPressed<900) && (SecondaryTypingMode=1)
-  {
-     SecondaryTypingModeDeadKeys()
+  if (A_TickCount-deadKeyPressed<25) && (SecondaryTypingMode=1)
      Return
-  }
 
+  sleep, 100
   global deadKeyPressed := A_TickCount
   RmDkSymbol := "▪"
   TrueRmDkSymbol := GetDeadKeySymbol(A_ThisHotkey)
@@ -1843,16 +1842,12 @@ deadKeyProcessing() {
 }
 
 OnAltGrDeadKeyPressed() {
-  sleep, 100
 
-  if (A_TickCount-deadKeyPressed<900) && (SecondaryTypingMode=1)
-  {
-     SecondaryTypingModeDeadKeys()
+  if (A_TickCount-deadKeyPressed<25) && (SecondaryTypingMode=1)
      Return
-  }
-  
-  global deadKeyPressed := A_TickCount
 
+  sleep, 100
+  global deadKeyPressed := A_TickCount
   RmDkSymbol := "▪"
   TrueRmDkSymbol := GetDeadKeySymbol(A_ThisHotkey)
   StringRight, TrueRmDkSymbol, TrueRmDkSymbol, 1
@@ -1942,7 +1937,7 @@ CreateOSDGUI() {
 
     CapsDummy := 1
     Gui, OSD: destroy
-    Gui, OSD: +AlwaysOnTop -Caption +Owner +LastFound +ToolWindow
+    Gui, OSD: +AlwaysOnTop -Caption +Owner +LastFound +ToolWindow +HwndhOSD
     Gui, OSD: Margin, 20, 10
     Gui, OSD: Color, %OSDbgrColor%
     Gui, OSD: Font, c%OSDtextColor% s%FontSize% bold, %FontName%, -wrap
@@ -1962,19 +1957,18 @@ CreateOSDGUI() {
 
     textAlign := "left"
     widtha := A_ScreenWidth - 50
-    positionText := 10
+    positionText := 11
 
     if ((rightoleft=1) && (NeverRightoLeft=0) && (OSDautosize=1)) || ((rightoleft=1) && (FavorRightoLeft=1))
     {
        textAlign := "right"
        positionText := -10
     }
-
-    if (A_OSVersion!="WIN_XP")
-       Gui, OSD: Add, Edit, -E0x200 x%positionText% -multi %textAlign% readonly -WantCtrlA -wrap w%widtha% vHotkeyText, %HotkeyText%
-
+    draggableOSD := (DragOSDmode=1) ? "gMoveOSD" : " "
     if (A_OSVersion="WIN_XP")
-       Gui, OSD: Add, Text, 0x80 w%widtha% vHotkeyText %textOrientation% %wrappy%
+       Gui, OSD: Add, Text, 0x80 %draggableOSD% w%widtha% vHotkeyText %textOrientation% %wrappy% hwndhOSDctrl
+    else 
+       Gui, OSD: Add, Edit, -E0x200 %draggableOSD% x%positionText% -multi %textAlign% readonly -WantCtrlA -WantReturn -wrap w%widtha% vHotkeyText hwndhOSDctrl, %HotkeyText%
 
     if (OSDborder=1)
     {
@@ -1985,6 +1979,7 @@ CreateOSDGUI() {
     progressHeight := (FontSize*2.5 < 64) ? 65 : FontSize*2.5
     progressWidth := FontSize/2 < 11 ? 11 : FontSize/2
     Gui, OSD: Add, Progress, x0 y0 w%progressWidth% h%progressHeight% Background%OSDbgrColor% c%CapsColorHighlight% vCapsDummy, 0
+    Gui, OSD: Show, NoActivate Hide x%GuiX% y%GuiY%, KeypressOSD  ; required for initialization when Drag2Move is active
 }
 
 CreateHotkey() {
@@ -2348,7 +2343,6 @@ ShowHotkey(HotkeyStr) {
     }
 
     dGuiX := round(GuiX)
-
     GuiControl, OSD: , HotkeyText, %HotkeyStr%
 
     if (rightoleft=1)
@@ -3063,7 +3057,10 @@ IsDoubleClickEx(MSec = 300) {
 HideGUI() {
     Thread, Priority, -20
     Critical, off
-
+    if (SecondaryTypingMode=1)
+       Return
+    if (DragOSDmode=1)
+       GuiControl, OSD: Enable, Edit1
     visible := 0
     Gui, OSD: Hide
     SetTimer, checkMousePresence, off
@@ -3073,12 +3070,21 @@ checkMousePresence() {
     Thread, Priority, -20
     Critical, off
 
+    nowDraggable := 0
     id := mouseIsOver()
     title := getWinTitleFromID(id)
-    if (title = "KeypressOSD") && (JumpHover=0)
+
+    WinGetTitle, activeWindow, A
+    if (activeWindow ~= "i)^(KeyPressOSD)") && (nowDraggable=0) && (SecondaryTypingMode=0)
+       HideGUI()
+
+    if (title = "KeypressOSD") && (DragOSDmode=1) && !A_IsSuspended
+       nowDraggable := 1
+
+    if (title = "KeypressOSD") && (JumpHover=0) && (DragOSDmode=0)
     {
        HideGUI()
-    } else if (title = "KeypressOSD") && (JumpHover=1)
+    } else if (title = "KeypressOSD") && (JumpHover=1) && (DragOSDmode=0) && !A_IsSuspended
     {
        TogglePosition()
     }
@@ -3201,27 +3207,30 @@ sendOSDcontent() {
 
   if (StrLen(typed)>2)
   {
-     loalee := Clipboard
+     Sleep 50    ; Give Windows time to actually populate the clipboard - you may need to experiment with the time here.
+     clipBackup := ClipboardAll
+     Clipboard := ""
      lola := "│"
      lola2 := "║"
      StringReplace, typed, typed, %lola%
      StringReplace, typed, typed, %lola2%
      Clipboard := typed
-     sleep 15
+     ClipWait, 2, 1
+     Sleep, 150
      if (synchronizeMode=10)
      {
         Sendinput ^a
         sleep 15
      }
      Sendinput ^v
-     sleep 15
+     sleep 900          ; Metro/Win10 apps need A LONG DELAY
      CaretPos := StrLen(typed)+1
      typed := ST_Insert(lola, typed, CaretPos)
      global lastTypedSince := A_TickCount
      CalcVisibleText()
      ShowHotkey(visibleTextField)
-     Clipboard := loalee
-     loalee := " "
+     Clipboard := clipBackup
+     clipBackup := ""
      SetTimer, HideGUI, % -DisplayTimeTyping
      alternateTypedText := ""
   }
@@ -3300,7 +3309,6 @@ ToggleNeverDisplay() {
    {
       Menu, SubSetMenu, unCheck, &Never show the OSD
    }
-
    Sleep, 300
 }
 
@@ -3326,10 +3334,17 @@ TogglePosition() {
       WinActivate, KeyPress OSD
       Return
     }
- 
+
+    if (DragOSDmode=1)
+    {
+      IniRead, GuiXa, %inifile%, SavedSettings, GuiXa, %GuiXa%
+      IniRead, GuiXb, %inifile%, SavedSettings, GuiXb, %GuiXb%
+      IniRead, GuiYa, %inifile%, SavedSettings, GuiYa, %GuiYa%
+      IniRead, GuiYb, %inifile%, SavedSettings, GuiYb, %GuiYb%
+    }
+
     GUIposition := !GUIposition
     Gui, OSD: hide
-
     if (GUIposition=1)
     {
        GuiY := GuiYa
@@ -3443,16 +3458,15 @@ ReloadScript(silent:=1) {
 }
 
 ToggleCapture2Text() {        ; Alt+Pause/Break
-   if (A_IsSuspended=1)
-   {
-      SoundBeep, 300, 900
-      Return
-   }
+    if (A_IsSuspended=1)
+    {
+       SoundBeep, 300, 900
+       Return
+    }
 
-   DetectHiddenWindows, on
-
-   IfWinNotExist, Capture2Text
-   {
+    DetectHiddenWindows, on
+    IfWinNotExist, Capture2Text
+    {
         if (Capture2Text!=1)
         {
             SoundBeep, 1900
@@ -3465,7 +3479,7 @@ ToggleCapture2Text() {        ; Alt+Pause/Break
                 featureValidated := 0
             }
         }
-   }
+    }
 
     featureValidated := !featureValidated
 
@@ -3477,9 +3491,8 @@ ToggleCapture2Text() {        ; Alt+Pause/Break
            Menu, Tray, Rename, &Capture2Text enabled, &Capture2Text enable
         Menu, Tray, Uncheck, &Capture2Text enable
         Menu, Tray, Check, &Capture2Text enabled
-
         Sleep, 300
-        Capture2Text := (Capture2Text=1) ? 0 : 1
+        Capture2Text := !Capture2Text
     }
 
     if (Capture2Text=1) && (featureValidated=1)
@@ -3490,6 +3503,7 @@ ToggleCapture2Text() {        ; Alt+Pause/Break
            ClipMonitor := 1
            OnClipboardChange("ClipChanged")
         }
+        DragOSDmode := 0
         SetTimer, capturetext, 1500, -10
         mouseFonctiones.ahkTerminate[]
         mouseRipplesThread.ahkTerminate[]
@@ -3509,6 +3523,7 @@ ToggleCapture2Text() {        ; Alt+Pause/Break
            GuiX := GuiXb
         }
         IniRead, JumpHover, %inifile%, SavedSettings, JumpHover, %JumpHover%
+        IniRead, DragOSDmode, %inifile%, SavedSettings, DragOSDmode, %DragOSDmode%
         Gui, OSD: Destroy
         sleep, 50
         CreateOSDGUI()
@@ -3521,8 +3536,7 @@ ToggleCapture2Text() {        ; Alt+Pause/Break
         ShowLongMsg("Disabled automatic Capture 2 Text")
         SetTimer, HideGUI, % -DisplayTime
     }
-
-   DetectHiddenWindows, off
+    DetectHiddenWindows, off
 }
 
 capturetext() {
@@ -3711,12 +3725,13 @@ SettingsGUI() {
    Gui, SettingsGUIA: margin, 15, 15
 }
 
-ShowTypeSettings() {
+initSettingsWindow() {
     if (prefOpen = 1)
     {
         SoundBeep, 300, 900
         WinActivate, KeyPress OSD
-        return
+        doNotOpen := 1
+        return doNotOpen
     }
 
     if (A_IsSuspended!=1)
@@ -3725,6 +3740,12 @@ ShowTypeSettings() {
     Sleep, 50
     prefOpen := 1
     SettingsGUI()
+}
+
+ShowTypeSettings() {
+    doNotOpen := initSettingsWindow()
+    if (doNotOpen=1)
+       Return
 
     global editF1, editF2    
     deadKstatus := (DeadKeys=1) && !InStr(CurrentKBD, "unsupported") && !InStr(CurrentKBD, "unrecognized") ? "Dead keys present." : " "
@@ -3936,24 +3957,13 @@ VerifyTypeOptions() {
 }
 
 ShowSoundsSettings() {
-    if (prefOpen = 1)
-    {
-        SoundBeep, 300, 900
-        WinActivate, KeyPress OSD
-        return
-    }
-
-    if (A_IsSuspended!=1)
-       SuspendScript()
+    doNotOpen := initSettingsWindow()
+    if (doNotOpen=1)
+       Return
 
     verifyNonCrucialFilesRan := 2
     IniWrite, %verifyNonCrucialFilesRan%, %inifile%, TempSettings, verifyNonCrucialFilesRan
-
     verifyNonCrucialFiles()
-
-    Sleep, 50
-    prefOpen := 1
-    SettingsGUI()
 
     Gui, SettingsGUIA: add, text, x15 y15, Make a beep when the following keys are released:
     Gui, Add, Checkbox, gVerifySoundsOptions xp+15 yp+20 Checked%KeyBeeper% vKeyBeeper, All bound keys
@@ -4021,19 +4031,9 @@ VerifySoundsOptions() {
 }
 
 ShowKBDsettings() {
-    if (prefOpen = 1)
-    {
-        SoundBeep, 300, 900
-        WinActivate, KeyPress OSD
-        return
-    }
-
-    if (A_IsSuspended!=1)
-       SuspendScript()
-
-    Sleep, 50
-    prefOpen := 1
-    SettingsGUI()
+    doNotOpen := initSettingsWindow()
+    if (doNotOpen=1)
+       Return
 
     Gui, Add, text, x15 y15 w220, Status: %CurrentKBD%
     Gui, SettingsGUIA: add, text, xp+0 yp+40, Settings regarding keyboard layouts:
@@ -4174,21 +4174,11 @@ ForceKbdInfo() {
 }
 
 ShowMouseSettings() {
-    if (prefOpen = 1)
-    {
-        SoundBeep, 300, 900
-        WinActivate, KeyPress OSD
-        return
-    }
-    
-    if (A_IsSuspended!=1)
-       SuspendScript()
+    doNotOpen := initSettingsWindow()
+    if (doNotOpen=1)
+       Return
 
-    Sleep, 50
-    prefOpen := 1
-    SettingsGUI()
     global editF1, editF2, editF3, editF4, editF5, editF6, editF7, btn1
-
     Gui, Add, Checkbox, gVerifyMouseOptions x15 y15 Checked%ShowMouseButton% vShowMouseButton, Show mouse clicks in the OSD
     Gui, Add, Checkbox, gVerifyMouseOptions xp+0 yp+20 Checked%MouseBeeper% vMouseBeeper, Beep on mouse clicks
     Gui, Add, Checkbox, gVerifyMouseOptions xp+0 yp+20 Checked%VisualMouseClicks% vVisualMouseClicks, Visual mouse clicks (scale, alpha)
@@ -4202,11 +4192,10 @@ ShowMouseSettings() {
     Gui, Add, Edit, xp+50 yp+0 w45 r1 limit2 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF9, %MouseRippleThickness%
     Gui, Add, UpDown, vMouseRippleThickness Range5-50, %MouseRippleThickness%
 
-    Gui, Add, Edit, x335 y40 w60 r1 limit3 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF3, %MouseHaloRadius%
+    Gui, Add, Edit, x345 y40 w60 r1 limit3 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF3, %MouseHaloRadius%
     Gui, Add, UpDown, vMouseHaloRadius Range5-950, %MouseHaloRadius%
-    Gui, Add, Progress, xp+0 yp+25 w35 h20 BackgroundBlack c%MouseHaloColor% vMouseHaloColor, 100
-    Gui, Add, Button, xp+36 yp+0 w25 h20 gChooseColorHalo vBtn1, P
-    Gui, Add, Edit, xp-36 yp+25 w60 r1 limit3 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF4, %MouseHaloAlpha%
+    Gui, Add, ListView, xp+0 yp+25 w60 h20 %cclvo% Background%MouseHaloColor% vMouseHaloColor hwndhLV4, 1
+    Gui, Add, Edit, xp+0 yp+25 w60 r1 limit3 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF4, %MouseHaloAlpha%
     Gui, Add, UpDown, vMouseHaloAlpha Range10-240, %MouseHaloAlpha%
     Gui, Add, Edit, xp+0 yp+55 w60 r1 limit3 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF5, %MouseIdleAfter%
     Gui, Add, UpDown, vMouseIdleAfter Range3-950, %MouseIdleAfter%
@@ -4231,14 +4220,24 @@ ShowMouseSettings() {
     VerifyMouseOptions()
 }
 
-ChooseColorHalo() {
-    if (ShowMouseHalo=0)
-       Return
-
-    cc := dlg_color(MouseHaloColor,hwnd)
-    MouseHaloColor := hexRGB(cc)
-    StringRight, MouseHaloColor, MouseHaloColor, 6
-    GuiControl, +c%MouseHaloColor%, MouseHaloColor
+setColors(hC, event, c, err=0) {
+  ; by Drugwash
+  ; Critical MUST be disabled below! If that's not done, script will enter a deadlock !
+  Static
+  oc := A_IsCritical
+  Critical, Off
+  if (event != "Normal")
+    return
+  g := A_Gui, ctrl := A_GuiControl
+  r := Dlg_Color(%ctrl%, hC)
+  Critical, %oc%
+  if ErrorLevel
+    return
+  r := %ctrl% := hexRGB(r)
+  StringRight, %ctrl%, %ctrl%, 6
+  GuiControl, %g%:+Background%r%, %ctrl%
+  Sleep, 100
+  OSDpreview()
 }
 
 hexRGB(c) {
@@ -4249,28 +4248,30 @@ hexRGB(c) {
 }
 
 Dlg_Color(Color,hwnd) {
-  static
-  if !cc {
-    VarSetCapacity(CUSTOM,64,0),cc:=1,size:=VarSetCapacity(CHOOSECOLOR,9*A_PtrSize,0)
-    Loop, 16 {
 ; retrieve custom colors if saved by the user to ini file, then load them here instead of 0x00FFFFFF
-      NumPut(0x00FFFFFF,CUSTOM,(A_Index-1)*4,"UInt")
+  static
+  if !cpdInit {
+     VarSetCapacity(CUSTOM,64,0), cpdInit:=1, size:=VarSetCapacity(CHOOSECOLOR,9*A_PtrSize,0)
+     Loop, 16 {
+        NumPut(CColor%A_Index%,CUSTOM,(A_Index-1)*4,"UInt")
     }
   }
-Color := hexRGB("0x" Color)
+
+  Color := hexRGB(InStr(Color, "0x") ? Color : "0x" Color)
   NumPut(size,CHOOSECOLOR,0,"UInt"),NumPut(hwnd,CHOOSECOLOR,A_PtrSize,"UPtr")
   ,NumPut(Color,CHOOSECOLOR,3*A_PtrSize,"UInt"),NumPut(3,CHOOSECOLOR,5*A_PtrSize,"UInt")
   ,NumPut(&CUSTOM,CHOOSECOLOR,4*A_PtrSize,"UPtr")
-  ret := DllCall("comdlg32\ChooseColor","UPtr",&CHOOSECOLOR,"UInt")
+    if !ret := DllCall("comdlg32\ChooseColor","UPtr",&CHOOSECOLOR,"UInt")
+       exit
 
-  if !ret
-     exit
-
-;  Loop,16
-;	{
-;    NumGet(custom,(A_Index-1)*4,"UInt")
-; save custom colors to ini file, to be loaded on a subsequent session
-;	}
+  Loop, 16
+	{
+    setformat, IntegerFast, H
+    c := NumGet(CUSTOM, (A_Index-1)*4,"UInt")
+    SetFormat, IntegerFast, D
+    CColor%A_Index% := c
+    ; save custom colors to ini file, to be loaded on a subsequent session
+	}
   setformat, IntegerFast, H
   Color := NumGet(CHOOSECOLOR,3*A_PtrSize,"UInt")
   SetFormat, IntegerFast, D
@@ -4364,7 +4365,6 @@ VerifyMouseOptions() {
 
 OSDpreview() {
     Gui, SettingsGUIA: Submit, NoHide
-
     if (A_TickCount-tickcount_start2 < 150)
        Return
 
@@ -4393,23 +4393,13 @@ OSDpreview() {
 }
 
 ShowOSDsettings() {
-    if (prefOpen = 1)
-    {
-        SoundBeep, 300, 900
-        WinActivate, KeyPress OSD
-        return
-    }
+    doNotOpen := initSettingsWindow()
+    if (doNotOpen=1)
+       Return
 
-    if (A_IsSuspended!=1)
-       SuspendScript()
-
-    Sleep, 50
-    prefOpen := 1
-    SettingsGUI()
     EnumFonts()
-
     static positionB
-    global editF1, editF2, editF3, editF4, editF5, editF6, editF7, editF8, editF9, btn1, btn2, btn3, btn4, btn5
+    global editF1, editF2, editF3, editF4, editF5, editF6, editF7, editF8, editF9, editF10, btn1, btn2, btn3, btn4, btn5
     GUIposition := GUIposition + 1
 
     Gui, SettingsGUIA: Add, Radio, x15 y35 gVerifyOsdOptions Checked vGUIposition, Position A (x, y)
@@ -4427,15 +4417,15 @@ ShowOSDsettings() {
     Gui, Add, DropDownList, xp-150 yp+25 w145 Sort Choose1 vFontName, %FontName%
     Gui, Add, Edit, xp+150 yp+0 gVerifyOsdOptions w55 r1 limit3 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF5, %FontSize%
     Gui, Add, UpDown, gVerifyOsdOptions vFontSize Range7-295, %FontSize%
-    Gui, Add, Progress, xp-60 yp+25 w55 h20 BackgroundBlack c%OSDtextColor% vOSDtextColor, 100
-    Gui, Add, Button, xp+60 yp+0 w55 h20 gChooseColorTEXT vBtn3, Pick
-    Gui, Add, Progress, xp-60 yp+25 w55 h20 BackgroundBlack c%OSDbgrColor% vOSDbgrColor, 100
-    Gui, Add, Button, xp+60 yp+0 w55 h20 gChooseColorBGR vBtn4, Pick
-    Gui, Add, Progress, xp-60 yp+25 w55 h20 BackgroundBlack c%CapsColorHighlight% vCapsColorHighlight, 100
-    Gui, Add, Button, xp+60 yp+0 w55 h20 gChooseCapsColor vBtn5, Pick
+    Gui, Add, ListView, xp-60 yp+25 w55 h20 %cclvo% Background%OSDtextColor% vOSDtextColor hwndhLV1,
+    Gui, Add, ListView, xp+60 yp+0 w55 h20 %cclvo% Background%OSDbgrColor% vOSDbgrColor hwndhLV2,
+    Gui, Add, ListView, xp-60 yp+25 w55 h20 %cclvo% Background%CapsColorHighlight% vCapsColorHighlight hwndhLV3,
+    Gui, Add, ListView, xp+60 yp+0 w55 h20 %cclvo% Background%TypingColorHighlight% vTypingColorHighlight hwndhLV5,
     Gui, Add, Edit, xp-60 yp+25 w55 r1 limit2 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF6, %DisplayTimeUser%
     Gui, Add, UpDown, vDisplayTimeUser Range2-99, %DisplayTimeUser%
-    Gui, Add, Edit, xp+0 yp+25 w55 r1 limit3 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF7, %GuiWidth%
+    Gui, Add, Edit, xp+60 yp+0 w55 r1 limit2 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF10, %DisplayTimeTypingUser%
+    Gui, Add, UpDown, vDisplayTimeTypingUser Range2-99, %DisplayTimeTypingUser%
+    Gui, Add, Edit, xp-60 yp+25 w55 r1 limit3 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF7, %GuiWidth%
     Gui, Add, UpDown, gVerifyOsdOptions vGuiWidth Range55-990, %GuiWidth%
     Gui, Add, Edit, xp+60 yp+0 w55 r1 limit3 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF8, %maxGuiWidth%
     Gui, Add, UpDown, gVerifyOsdOptions vmaxGuiWidth Range55-995, %maxGuiWidth%
@@ -4443,20 +4433,20 @@ ShowOSDsettings() {
     Gui, Add, UpDown, gVerifyOsdOptions vOSDautosizeFactory Range10-400, %OSDautosizeFactory%
 
     Gui, Add, text, x15 y15, OSD location presets. Click L to define each.
-    Gui, Add, text, xp+0 yp+72, Font
-    Gui, Add, text, xp+0 yp+25, Text color
-    Gui, Add, text, xp+0 yp+25, Background color
-    Gui, Add, text, xp+0 yp+25, Caps lock highlight color
-    Gui, Add, text, xp+0 yp+25, Display time (in seconds)
+    Gui, Add, text, xp+0 yp+72, Font / size
+    Gui, Add, text, xp+0 yp+25, Text / background
+    Gui, Add, text, xp+0 yp+25, Caps lock / alt. typing mode
+    Gui, Add, text, xp+0 yp+25, Display time / when typing (in sec.)
     Gui, Add, text, xp+0 yp+25, Width (fixed size / dynamic max,)
     Gui, Add, text, xp+0 yp+25, Text width factor (lower = larger)
     Gui, Add, Checkbox, xp+0 yp+25 gVerifyOsdOptions Checked%OSDautosize% vOSDautosize, Auto-resize OSD (screen DPI: %A_ScreenDPI%)
-    Gui, Add, Checkbox, xp+0 yp+25 gVerifyOsdOptions Checked%OSDborder% vOSDborder, System border around OSD
-    Gui, Add, Checkbox, xp+0 yp+25 gVerifyOsdOptions Checked%FavorRightoLeft% vFavorRightoLeft, Favor right alignment
-    Gui, Add, Checkbox, xp+0 yp+25 gVerifyOsdOptions Checked%NeverRightoLeft% vNeverRightoLeft, Never align to the right
+    Gui, Add, Checkbox, xp+0 yp+20 gVerifyOsdOptions Checked%OSDborder% vOSDborder, System border around OSD
+    Gui, Add, Checkbox, xp+0 yp+20 gVerifyOsdOptions Checked%FavorRightoLeft% vFavorRightoLeft, Favor right alignment
+    Gui, Add, Checkbox, xp+0 yp+20 gVerifyOsdOptions Checked%NeverRightoLeft% vNeverRightoLeft, Never align to the right
     Gui, Add, text, xp+15 yp+15 w250, Recommended if you want to place the OSD on a secondary screen
     Gui, Add, Checkbox, xp-15 yp+35 gVerifyOsdOptions Checked%JumpHover% vJumpHover, Toggle OSD positions when mouse runs over it
-    Gui, Add, Checkbox, xp+0 yp+25 gVerifyOsdOptions Checked%showPreview% vshowPreview, Show preview window
+    Gui, Add, Checkbox, xp+0 yp+20 gVerifyOsdOptions Checked%DragOSDmode% vDragOSDmode, Allow easy OSD repositioning (click to drag it)
+    Gui, Add, Checkbox, xp+0 yp+20 gVerifyOsdOptions Checked%showPreview% vshowPreview, Show preview window
     Gui, Add, Edit, xp+170 yp+0 gVerifyOsdOptions w115 limit20 r1 -multi -wantReturn -wantTab -wrap vpreviewWindowText, %previewWindowText%
 
     Loop, % FontList.MaxIndex() {
@@ -4476,7 +4466,17 @@ VerifyOsdOptions() {
     GuiControlGet, FavorRightoLeft
     GuiControlGet, GUIposition
     GuiControlGet, showPreview
+    GuiControlGet, JumpHover
+    GuiControlGet, DragOSDmode
 
+    if (DragOSDmode=1)
+    {
+       GuiControl, Disable, JumpHover
+    } else
+    {
+        GuiControl, Enable, JumpHover
+    }
+  
     if (showPreview=1)
     {
         GuiControl, Enable, previewWindowText
@@ -4589,29 +4589,6 @@ EnumFonts() {
 EnumFontsCallback(lpelf) {
     FontList.Push(StrGet(lpelf + 28, 32))
     Return True
-}
-
-ChooseColorBGR() {
-    cc := dlg_color(OSDbgrColor,hwnd)
-    OSDbgrColor := hexRGB(cc)
-    StringRight, OSDbgrColor, OSDbgrColor, 6
-    GuiControl, +c%OSDbgrColor%, OSDbgrColor
-    OSDpreview()
-}
-
-ChooseColorTEXT() {
-    cc := dlg_color(OSDtextColor,hwnd)
-    OSDtextColor := hexRGB(cc)
-    StringRight, OSDtextColor, OSDtextColor, 6
-    GuiControl, +c%OSDtextColor%, OSDtextColor
-    OSDpreview()
-}
-
-ChooseCapsColor() {
-    cc := dlg_color(CapsColorHighlight,hwnd)
-    CapsColorHighlight := hexRGB(cc)
-    StringRight, CapsColorHighlight, CapsColorHighlight, 6
-    GuiControl, +c%CapsColorHighlight%, CapsColorHighlight
 }
 
 ApplySettings() {
@@ -5203,6 +5180,10 @@ ShaveSettings() {
   IniWrite, %ImmediateAltTypeMode%, %inifile%, SavedSettings, ImmediateAltTypeMode
   IniWrite, %pasteOnClick%, %inifile%, SavedSettings, pasteOnClick
   IniWrite, %alternateTypingMode%, %inifile%, SavedSettings, alternateTypingMode
+  IniWrite, %DragOSDmode%, %inifile%, SavedSettings, DragOSDmode
+  IniWrite, %TypingColorHighlight%, %inifile%, SavedSettings, TypingColorHighlight
+  Loop, 16
+        IniWrite, % CColor%A_Index%, %inifile%, CustomColors, CColor%A_Index%
 }
 
 LoadSettings() {
@@ -5297,6 +5278,10 @@ LoadSettings() {
   IniRead, alternateTypingMode, %inifile%, SavedSettings, alternateTypingMode, %alternateTypingMode%
   IniRead, ImmediateAltTypeMode, %inifile%, SavedSettings, ImmediateAltTypeMode, %ImmediateAltTypeMode%
   IniRead, pasteOnClick, %inifile%, SavedSettings, pasteOnClick, %pasteOnClick%
+  IniRead, DragOSDmode, %inifile%, SavedSettings, DragOSDmode, %DragOSDmode%
+  IniRead, TypingColorHighlight, %inifile%, SavedSettings, TypingColorHighlight, %TypingColorHighlight%
+  Loop, 16
+        IniRead, CColor%A_Index%, %inifile%, CustomColors, CColor%A_Index%, 0x00FFFFFF
 
   CheckSettings()
 
@@ -5372,6 +5357,7 @@ CheckSettings() {
     pasteOnClick := (pasteOnClick=0 || pasteOnClick=1) ? pasteOnClick : 1
     ImmediateAltTypeMode := (ImmediateAltTypeMode=0 || ImmediateAltTypeMode=1) ? ImmediateAltTypeMode : 0
     alternateTypingMode := (alternateTypingMode=0 || alternateTypingMode=1) ? alternateTypingMode : 1
+    DragOSDmode := (DragOSDmode=0 || DragOSDmode=1) ? DragOSDmode : 0
 
     if (UpDownAsHE=1) && (UpDownAsLR=1)
        UpDownAsLR := 0
@@ -5420,13 +5406,13 @@ CheckSettings() {
      MouseHaloAlpha := 130
 
   if MouseHaloRadius is not digit
-     MouseHaloRadius := 35
+     MouseHaloRadius := 85
 
   if MouseIdleAfter is not digit
      MouseIdleAfter := 10
 
   if MouseIdleRadius is not digit
-     MouseIdleRadius := 40
+     MouseIdleRadius := 130
 
   if MouseVclickAlpha is not digit
      MouseVclickAlpha := 150
@@ -5470,7 +5456,7 @@ CheckSettings() {
     MouseRippleMaxSize := (MouseRippleMaxSize < 90) ? 91 : round(MouseRippleMaxSize)
 
     if (GuiXa<0 || GuiXb<0 || GuiYa<0 || GuiYb<0)
-       NeverRightoLeft := 0
+       NeverRightoLeft := 1
 
 ; verify maximum numeric values
     ClickScaleUser := (ClickScaleUser > 91) ? 90 : round(ClickScaleUser)
@@ -5511,6 +5497,9 @@ CheckSettings() {
 
    if (MouseHaloColor ~= "[^[:xdigit:]]") || (strLen(MouseHaloColor) < 6) || (strLen(MouseHaloColor) > 6)
       MouseHaloColor := "eedd00"
+
+   if (TypingColorHighlight ~= "[^[:xdigit:]]") || (strLen(MouseHaloColor) < 6) || (strLen(MouseHaloColor) > 6)
+      TypingColorHighlight := "12E217"
 ;
    if (OSDtextColor ~= "[^[:xdigit:]]") || (strLen(OSDtextColor) < 6) || (strLen(OSDtextColor) > 6)
       OSDtextColor := "ffffff"
@@ -5559,6 +5548,8 @@ ToggleSecondaryTypingMode() {
        SetTimer, checkTypingWindow, on, 700, -10
    } Else
    {
+       OnMSGchar := ""
+       OnMSGdeadChar := ""
        Gui, TypingWindow: Destroy
        alternateTypedText := typed
        IniRead, ShowDeadKeys, %inifile%, SavedSettings, ShowDeadKeys, %ShowDeadKeys%
@@ -5597,7 +5588,22 @@ checkTypingWindow() {
 CharMSG(wParam, lParam) {
     if (SecondaryTypingMode=0)
        Return
-    OnMSGchar := chr(wParam) ; & 0xFFFF
+    OnMSGchar := chr(wParam)
+    OnMSGchar := (OnMSGchar=" " || OnMSGchar="") ? "" : OnMSGchar
+    if (OnMSGchar=OnMSGdeadChar) && (A_TickCount-deadKeyPressed<800) && (A_TickCount-lastTypedSince>700)
+    {
+       InsertChar2caret(OnMSGchar)
+    } Else if (OnMSGchar!=OnMSGdeadChar)
+    {
+       InsertChar2caret(OnMSGchar)
+       global lastTypedSince := A_TickCount
+    }
+    shiftPressed := 0
+    AltGrPressed := 0
+    OnMSGchar := ""
+    OnMSGdeadChar := ""
+    CalcVisibleText()
+    ShowHotkey(visibleTextField)
 }
 
 deadCharMSG(wParam, lParam) {
@@ -5606,12 +5612,12 @@ deadCharMSG(wParam, lParam) {
 
   OnMSGdeadChar := chr(wParam) ; & 0xFFFF
 
-  if (DoNotBindDeadKeys=0)
+  if (DoNotBindDeadKeys=0) && (DeadKeys=1)
      Return
 
   lola := "│"
   StringReplace, visibleTextField, visibleTextField, %lola%, %OnMSGdeadChar%
-  if (A_TickCount-deadKeyPressed<500)
+  if (A_TickCount-deadKeyPressed<150)
   {
      InsertChar2caret(OnMSGdeadChar)
      CalcVisibleText()
@@ -5620,15 +5626,104 @@ deadCharMSG(wParam, lParam) {
   global deadKeyPressed := A_TickCount
   if (deadKeyBeeper=1)
      beeperzDefunctions.ahkPostFunction["OnDeathKeyPressed", ""]
-
+  if (DeadKeys=0)
+     Sleep, 40
   SetTimer, returnToTyped, 800, -10
 }
 
+; by Drugwash ================================================================
+MoveOSD() {
+  if (!GetKeyState("LButton", "P") || nowDraggable!=1)
+     return
+  SetTimer, HideGUI, Off
+  SetTimer, returnToTyped, Off
+  SetTimer, checkMousePresence, Off
+  DllCall("SetCursor", "Ptr", hCursM)
+  PostMessage, 0xA1, 2,,, KeypressOSD
+  Sleep, 0    ; Required to process OSD position change for the 'track' subroutine
+  SetTimer, trackMouseDragging, -1
+  return
+}
+
+trackMouseDragging() {
+  DetectHiddenWindows, On
+  WinGetPos, NewX, NewY,,, ahk_id %hOSD%
+  GuiX := NewX, GuiY := NewY
+  trackID := TrackMouseEvent(hOSD)
+  nowDraggable := 0
+  Sleep, 500
+  HideGUI()
+  saveGuiPositions()
+  return
+}
+
+TrackMouseEvent(hwnd, t="L", time=0xFFFFFFFF) {
+  Static
+  Static sz := 12+A_PtrSize
+  f := t="H" ? 1 : t="L" ? 2 : t="N" ? 16 : t="C" ? (0x80000000 | pf) : 0x40000000
+  pf := (f & 0x13)
+  VarSetCapacity(TRACKMOUSEEVENT, sz, 0)
+  NumPut(sz, TRACKMOUSEEVENT, 0, "UInt")          ; cbSize
+  NumPut(f, TRACKMOUSEEVENT, 4, "UInt")          ; dwFlags
+  NumPut(hwnd, TRACKMOUSEEVENT, 8, "Ptr")        ; hwndTrack
+  NumPut(time, TRACKMOUSEEVENT, 8+A_PtrSize, "UInt")    ; dwHoverTime [ms]
+  return DllCall("_TrackMouseEvent", "Ptr", &TRACKMOUSEEVENT)  ; comctl32.dll
+}
+
+MouseMove(wP, lP, msg, hwnd) {
+    Global
+    SetFormat, IntegerFast, H
+    hwnd+=0, A := WinExist("A")
+    SetFormat, IntegerFast, D
+    if hwnd in %hOSD%,%hOSDctrl%
+    {
+      if (nowDraggable=1 && !(wP&0x13) && !trackID)
+         hAWin := (A!=hOSD && A!=hOSDctrl) ? A : hAWin
+      else if (nowDraggable=1 && (wP&0x1) && !trackID)
+      {
+        GuiControl, OSD:Disable, Edit1  ; it won't drag if it's not disabled
+        While GetKeyState("LButton", "P")
+        {
+          PostMessage, 0xA1, 2,,, ahk_id %hOSD%
+          DllCall("SetCursor", "Ptr", hCursM)
+          Sleep, 0
+        }
+        SetTimer, trackMouseDragging, -1
+      }
+    }
+}
+
+cleanup:
+  DllCall("DestroyCursor", "Ptr", hCursM)
+  DllCall("DestroyCursor", "Ptr", hCursH)
+  ExitApp
+Return
+
+;================================================================
+
+saveGuiPositions() {
+  NeverRightoLeft := 1
+  if (GUIposition=1)
+  {
+     GuiYa := GuiY
+     GuiXa := GuiX
+     IniWrite, %GuiXa%, %inifile%, SavedSettings, GuiXa
+     IniWrite, %GuiYa%, %inifile%, SavedSettings, GuiYa
+  } else
+  {
+     GuiYb := GuiY
+     GuiXb := GuiX
+     IniWrite, %GuiXb%, %inifile%, SavedSettings, GuiXb
+     IniWrite, %GuiYb%, %inifile%, SavedSettings, GuiYb
+  }
+  IniWrite, %NeverRightoLeft%, %inifile%, SavedSettings, NeverRightoLeft
+}
 
 dummy() {
     MsgBox, This feature is not yet available. It might be implemented soon. Thank you.
 }
 
-
+/*
 #SPACE::
 Return
+*/

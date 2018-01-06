@@ -22,9 +22,9 @@ global VisualMouseClicks     := 0     ; shows visual indicators for different mo
  , MouseBeeper           := 0     ; if both, ShowMouseButton and Visual Mouse Clicks are disabled, mouse click beeps will never occur
  , MouseHaloAlpha        := 130   ; from 0 to 255
  , MouseHaloColor        := "eedd00"  ; HEX format also accepted
- , MouseHaloRadius       := 35
+ , MouseHaloRadius       := 85
  , MouseIdleAfter        := 10    ; in seconds
- , MouseIdleRadius       := 40
+ , MouseIdleRadius       := 130
  , MouseVclickAlpha      := 150   ; from 0 to 255
  , ShowMouseHalo         := 0     ; constantly highlight mouse cursor
  , IniFile               := "keypress-osd.ini"
@@ -33,6 +33,8 @@ global VisualMouseClicks     := 0     ; shows visual indicators for different mo
  , MouseClickCounter := 0
  , ScriptelSuspendel := 0
  , SilentMode        := 0
+ , wa := 0
+ , ha := 0
 
   IniRead, ScriptelSuspendel, %inifile%, TempSettings, ScriptelSuspendel, %ScriptelSuspendel%
   IniRead, ClickScaleUser, %inifile%, SavedSettings, ClickScaleUser, %ClickScaleUser%
@@ -73,66 +75,85 @@ if (visualMouseClicks=1)
 }
 
 ShowMouseIdleLocation() {
+    Static
 
     If (FlashIdleMouse=1) && (A_TimeIdle > (MouseIdleAfter*1000)) && !A_IsSuspended
     {
        MouseClickCounter := (MouseClickCounter > 10) ? 1 : 11
        AlphaVariator := IdleMouseAlpha - MouseClickCounter*3
-       MouseGetPos, mX, mY
-       BoxW := MouseIdleRadius
-       BoxH := BoxW
-       GuiGetSize(W, H, 3)
-       mX := mX - W/2
-       mY := mY - W/2
-       BorderSize := 4
-       RectW := BoxW - BorderSize*2
-       RectH := BoxH - BorderSize*2
-       InnerColor := "111111"
-       OuterColor := "eeeeee"
-       Gui, MouseIdlah: +AlwaysOnTop -Caption +ToolWindow +E0x20
-       Gui, MouseIdlah: Color, %OuterColor%  ; outer rectangle
-       Gui, MouseIdlah: Add, Progress, x%BorderSize% y%BorderSize% w%RectW% h%RectH% Background%InnerColor% c%InnerColor%, 100   ; inner rectangle
+       if !idleOn
+       {
+          MouseGetPos, mX, mY
+          BoxW := MouseIdleRadius
+          BoxH := BoxW
+          mX := mX - BoxW/2
+          mY := mY - BoxW/2
+          BorderSize := 4
+          RectW := BoxW - BorderSize*2
+          RectH := BoxH - BorderSize*2
+          InnerColor := "333333"
+          OuterColor := "eeeeee"
+          idleOn := 1
+       }
+
+       if !isIdleGui
+       {
+          Gui, MouseIdlah: +AlwaysOnTop -Caption +ToolWindow +E0x20 +hwndhIdle
+          Gui, MouseIdlah: Color, %OuterColor%  ; outer rectangle
+          Gui, MouseIdlah: Add, Progress, x%BorderSize% y%BorderSize% w%RectW% h%RectH% Background%InnerColor% c%InnerColor% hwndhIdle1, 100   ; inner rectangle
+          WinSet, Region, 0-0 W%RectW% H%RectH% E, ahk_id %hIdle1%
+          Gui, MouseIdlah: Show, NoActivate x%mX% y%mY% w%BoxW% h%BoxH%, MouseIdlah
+          WinSet, Region, 0-0 W%BoxW% H%BoxH% E, ahk_id %hIdle%
+          isIdleGui := 1
+       }
+
        Gui, MouseIdlah: Show, NoActivate x%mX% y%mY% w%BoxW% h%BoxH%, MouseIdlah
        WinSet, Transparent, %AlphaVariator%, MouseIdlah
        WinSet, AlwaysOnTop, On, MouseIdlah
     } else
     {
-        Gui, MouseIdlah: Destroy
+        Gui, MouseIdlah: Hide
+        idleOn := 0
     }
+
     if (FlashIdleMouse=1) && A_IsSuspended
     {
-       Gui, MouseIdlah: Destroy
-       FlashIdleMouse := 0
+        Gui, MouseIdlah: Hide
+        FlashIdleMouse := 0
     }
 }
 
 MouseHalo() {
-
+    Static
     If (ShowMouseHalo=1) && !A_IsSuspended
     {
        MouseGetPos, mX, mY
        BoxW := MouseHaloRadius
        BoxH := BoxW
-       GuiGetSize(W, H, 2)
-       mX := mX - W/2
-       mY := mY - W/2
-       Gui, MouseH: +AlwaysOnTop -Caption +ToolWindow +E0x20
-       Gui, MouseH: Margin, 0, 0
-       Gui, MouseH: Color, %MouseHaloColor%
+       mX := mX - BoxW/2
+       mY := mY - BoxW/2
+       if !isHaloGui
+       {
+           Gui, MouseH: +AlwaysOnTop -Caption +ToolWindow +E0x20 +hwndhHalo
+           Gui, MouseH: Margin, 0, 0
+           Gui, MouseH: Color, %MouseHaloColor%
+           Gui, MouseH: Show, NoActivate x%mX% y%mY% w%BoxW% h%BoxH%, MousarHallo
+           WinSet, Region, 0-0 W%BoxW% H%BoxH% E, ahk_id %hHalo%
+           WinSet, Transparent, %MouseHaloAlpha%, MousarHallo
+           WinSet, AlwaysOnTop, On, MousarHallo
+           isHaloGui := 1
+	     }
        Gui, MouseH: Show, NoActivate x%mX% y%mY% w%BoxW% h%BoxH%, MousarHallo
-       WinSet, Transparent, %MouseHaloAlpha%, MousarHallo
-       WinSet, AlwaysOnTop, On, MousarHallo
     }
 
     If (ShowMouseHalo=1) && A_IsSuspended
     {
-       Gui, MouseH: Destroy
+       Gui, MouseH: Hide
        ShowMouseHalo := 0
     }
 }
 
 OnMousePressed() {
-
     if (VisualMouseClicks=1)
     {
        mkey := SubStr(A_ThisHotkey, 3)
@@ -148,7 +169,6 @@ OnKeyPressed() {
        if InStr(mkey, "wheel")
           SetTimer, visualMouseClicksDummy, 10, -10
     }
-
 }
 
 visualMouseClicksDummy() {
@@ -159,61 +179,70 @@ visualMouseClicksDummy() {
 
 CreateMouseGUI() {
     global
-
     Gui, Mouser: +AlwaysOnTop -Caption +ToolWindow +E0x20
     Gui, Mouser: Margin, 0, 0
 }
 
 ShowMouseClick(clicky) {
-    GuiGetSize(Wa, Ha, 4)
+    Static
     SetTimer, HideMouseClickGUI, 900
     Sleep, 150
-    Gui, Mouser: Destroy
+    Gui, Mouser: Hide
     MouseClickCounter := (MouseClickCounter > 10) ? 1 : 11
     TransparencyLevel := MouseVclickAlpha - MouseClickCounter*4
     BoxW := 15*ClickScale
     BoxH := 40*ClickScale
     MouseDistance := 10 * ClickScale
-    MouseGetPos, mX, mY
-    mY := mY - Ha/2
-    if InStr(clicky, "LButton")
+    Loop, 2
     {
-       mX := mX - Wa*2 - MouseDistance
-    } else if InStr(clicky, "MButton")
-    {
-       BoxW := 45 * ClickScale
-       mX := mX - Wa/2
-    } else if InStr(clicky, "RButton")
-    {
-       mX := mX + MouseDistance*2.5
-    } else if InStr(clicky, "Wheelup")
-    {
-       BoxW := 50 * ClickScale
-       BoxH := 15 * ClickScale
-       mX := mX - Wa/2
-       mY := mY - MouseDistance*2.5
-    } else if InStr(clicky, "Wheeldown")
-    {
-       BoxW := 50 * ClickScale
-       BoxH := 15 * ClickScale
-       mX := mX - Wa/2
-       mY := mY + Ha*2 + MouseDistance/2
+      MouseGetPos, mX, mY
+      mY := ha ? (mY - Ha/2) : (mY - BoxH/2)
+      if InStr(clicky, "LButton")
+      {
+         mX := wa ? (mX - Wa*2 - MouseDistance) : (mX - BoxW*2 - MouseDistance)
+      } else if InStr(clicky, "MButton")
+      {
+         BoxW := 45 * ClickScale
+         mX := wa ? (mX - Wa/2) : (mX - BoxW/2)
+      } else if InStr(clicky, "RButton")
+      {
+         mX := mX + MouseDistance*2.5
+      } else if InStr(clicky, "Wheelup")
+      {
+         BoxW := 50 * ClickScale
+         BoxH := 15 * ClickScale
+         mX := wa ? (mX - Wa/2) : (mX - BoxW/2)
+         mY := mY - MouseDistance*2.5
+      } else if InStr(clicky, "Wheeldown")
+      {
+         BoxW := 50 * ClickScale
+         BoxH := 15 * ClickScale
+         mX := wa ? (mX - Wa/2) : (mX - BoxW/2)
+         mY := mY + BoxH*2 + MouseDistance/2
+      }
+      InnerColor := "555555"
+      OuterColor := "aaaaaa"
+      BorderSize := 4
+      RectW := BoxW - BorderSize*2
+      RectH := BoxH - BorderSize*2
+
+      if !isMouser
+      {
+          CreateMouseGUI()
+          Gui, Mouser: Color, %OuterColor%  ; outer rectangle
+          Gui, Mouser: Add, Progress, x%BorderSize% y%BorderSize% w%RectW% h%RectH% Background%InnerColor% c%InnerColor%, 100   ; inner rectangle
+          isMouser := 1
+      }  else
+      {
+          GuiControl, Mouser:Move, msctls_progress321, w%RectW% h%RectH%
+          Gui, Mouser: Show, NoActivate x%mX% y%mY% w%BoxW% h%BoxH%, MousarWin
+          WinSet, Transparent, %TransparencyLevel%, MousarWin
+          if A_Index=2
+             Sleep, 250
+          GuiGetSize(Wa, Ha, 4)
+          WinSet, AlwaysOnTop, On, MousarWin
+      }
     }
-
-    InnerColor := "555555"
-    OuterColor := "aaaaaa"
-    BorderSize := 4
-    RectW := BoxW - BorderSize*2
-    RectH := BoxH - BorderSize*2
-
-    CreateMouseGUI()
-
-    Gui, Mouser: Color, %OuterColor%  ; outer rectangle
-    Gui, Mouser: Add, Progress, x%BorderSize% y%BorderSize% w%RectW% h%RectH% Background%InnerColor% c%InnerColor%, 100   ; inner rectangle
-    Gui, Mouser: Show, NoActivate x%mX% y%mY% w%BoxW% h%BoxH%, MousarWin
-    WinSet, Transparent, %TransparencyLevel%, MousarWin
-    Sleep, 250
-    WinSet, AlwaysOnTop, On, MousarWin
 }
 
 HideMouseClickGUI() {
@@ -239,7 +268,6 @@ HideMouseClickGUI() {
        }
     }
 }
-
 
 GuiGetSize( ByRef W, ByRef H, vindov) {          ; function by VxE from https://autohotkey.com/board/topic/44150-how-to-properly-getset-gui-size/
   if (vindov=1)
