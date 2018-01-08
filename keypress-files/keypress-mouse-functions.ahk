@@ -142,8 +142,9 @@ MouseHalo() {
            WinSet, Transparent, %MouseHaloAlpha%, MousarHallo
            WinSet, AlwaysOnTop, On, MousarHallo
            isHaloGui := 1
-	     }
+       }
        Gui, MouseH: Show, NoActivate x%mX% y%mY% w%BoxW% h%BoxH%, MousarHallo
+       WinSet, AlwaysOnTop, On, MousarHallo
     }
 
     If (ShowMouseHalo=1) && A_IsSuspended

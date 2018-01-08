@@ -8,15 +8,26 @@ Please use AHK_H v1.1.27 [unicode] to execute this script.
 
 
 by Marius Sucan (robodesign.ro)
+  v3.97.5 (2018-01-08)
+  - many bug fixes... and notably... fixed a crash on win32
+  - [improvements] made Ctrl+C/X/V/A work with the alternate typing mode
+
+  v3.97 (2018-01-07)
+  - [new] option to highlight text cursor/caret when its position is detectable [Keyboard settings]
+  - [bug fixes] for alternate typing mode 
+  - various other fixes
+  - fonts list is now filtered
+  - now OSD always draggable in preview mode
+
   v3.96.5 (2018-01-06)
   - [new] option to change color for the alternate typing mode highlight
   - MANY bug fixes; the alternative mode for typing was not functioning in many, many scenarios; it was very screwed ;-) .... still got some bugs left to fix
   - considerably improved dead keys support
 
-by Drugwash (robodesign.ro)
+by Drugwash [from the AHK forums]
   v3.96 (2018-01-06)
   - [new] option to enable the possibility to drag the OSD
-  - improved UI: removed the buttons to pick colors,  you can click the colors to change themnow 
+  - improved UI: removed the buttons to pick colors, you can now click the colors to change them 
   - mouse halo is now round, when idling, the flashing halo is round as well
   - improved the positioning of visual mouse clicks elements
 
@@ -550,11 +561,13 @@ Features to implement:
   - separate UI settings and tray menu?
   - download latest AHK_H
 
-- bug with visible text - calcvisible
-- bug with igbo, altgr, alternative typing mode
-- bug with altgr + dead keys, alternative typing mode
-- onmsgchar wparam two chars
+- fix synchronize; do not invent inexistent text, from some distant past
+- test missing audios loops
+- test on winXP, win7
+- text cyrillic, greek with alt typing mode
 
+- typing aid - study it
+- total commander
 
 - speak text line
 - with long timers, dead keys do not work reliably
@@ -587,9 +600,6 @@ https://hotkeyit.github.io/v2/docs/AHKH_Features.htm
 - [add?] Customize keyboard shortcuts? 
 
 - study the idea of spawn a new instance. 
-
-- text caret locator/highlighter
-https://autohotkey.com/board/topic/20357-regionwaitchange-wait-for-region-to-change-or-stop-changing/
 
 - window spy, get texts underneath the mouse using Narrator's accessibility APIs
   https://autohotkey.com/board/topic/57431-get-text-under-mouse-cursor/
