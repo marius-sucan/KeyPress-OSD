@@ -8,6 +8,13 @@ Please use AHK_H v1.1.27 [unicode] to execute this script.
 
 
 by Marius Sucan (robodesign.ro)
+  v3.98 (2018-01-09)
+  - [MEGA-COOL-NEW - yes, I am silly] option for alternative mode to hook to keys. This enables full support for dead keys. Combinations are always displayied. The dead key symbol is displayied and inserted into the OSD [when needed] only if the option "Do not bind to dead keys" ïs not enabled. This new option is now enabled by default.
+  - [new] option to send keystrokes in realtime to host app when using alternative typing mode; it does not work in all apps
+  - improved the way text is sent from the OSD to the host app when using Alternative typing method, much faster and does not rely on the clipboard anymore.
+  - removed two silly options from OSD appearances settings window and replaced them with one: Align OSD to the right side.
+  - other bug fixes and improvements, thanks to drugwash! ;-)
+
   v3.97.5 (2018-01-08)
   - many bug fixes... and notably... fixed a crash on win32
   - [improvements] made Ctrl+C/X/V/A work with the alternate typing mode
@@ -560,14 +567,20 @@ Features to implement:
   - external loader? to keep all files as a code
   - separate UI settings and tray menu?
   - download latest AHK_H
+  - make a github release
 
-- fix synchronize; do not invent inexistent text, from some distant past
-- test missing audios loops
-- test on winXP, win7
-- text cyrillic, greek with alt typing mode
+- crash, choosing font
 
+- add?? option to change keystrokes sending mode??
 - typing aid - study it
-- total commander
+
+- tooltips la settings cu OSD-ul
+- add tabs for settings windows
+
+- dynamic font size? shrink to fit
+- test on winXP, win7
+- check https://autohotkey.com/docs/commands/SysGet.htm
+
 
 - speak text line
 - with long timers, dead keys do not work reliably
