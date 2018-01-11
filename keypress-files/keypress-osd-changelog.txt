@@ -6,10 +6,18 @@ https://github.com/marius-sucan/KeyPress-OSD
 http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd.ahk
 Please use AHK_H v1.1.27 [unicode] to execute this script.
 
-
 by Marius Sucan (robodesign.ro)
-  v3.98 (2018-01-09)
-  - [MEGA-COOL-NEW - yes, I am silly] option for alternative mode to hook to keys. This enables full support for dead keys. Combinations are always displayied. The dead key symbol is displayied and inserted into the OSD [when needed] only if the option "Do not bind to dead keys" ïs not enabled. This new option is now enabled by default.
+  v3.98.07 (2018-01-11) - release candidate
+  - many bug fixes; as always, too many too list here; i would waste time keeping track of them
+  - removed useless options from typing settings: 
+    -- immediately change to alternate typing mode, when typing [because it's too unreliable]
+    -- do not treat dead keys as a different char [the recent changes made it useless]
+
+  v3.98.05 (2018-01-10) - beta
+  - lots of bug fixes and improvements to yesterday's release; now it's working much better; still got some bugs left related to AltGr and Alternate hooks.
+
+  v3.98 (2018-01-09) - alpha
+  - [NEW] option for alternative mode to hook to keys. This enables full support for dead keys. The dead key symbol is displayied and inserted into the OSD [when needed] only if the option "Do not bind to dead keys" ïs not enabled. This new option is now enabled by default. @rommmcek: MANY THANKS for pointing me to TypingAid.
   - [new] option to send keystrokes in realtime to host app when using alternative typing mode; it does not work in all apps
   - improved the way text is sent from the OSD to the host app when using Alternative typing method, much faster and does not rely on the clipboard anymore.
   - removed two silly options from OSD appearances settings window and replaced them with one: Align OSD to the right side.
@@ -565,20 +573,22 @@ TO-DO:
 Features to implement:
 - compile the thing! include all scripts inside?
   - external loader? to keep all files as a code
-  - separate UI settings and tray menu?
+  - separate UI settings and tray menu? separate files with include
   - download latest AHK_H
   - make a github release
 
-- crash, choosing font
+- option to scale typing delays; user/non value
+- alt hooks not active by default
+- enable / disable checkboxes accordingly @ type settings
 
-- add?? option to change keystrokes sending mode??
-- typing aid - study it
+- Test align to the right, multiple monitors. 
+- test on winXP, win7
 
+
+- dynamic font size? shrink to fit
 - tooltips la settings cu OSD-ul
 - add tabs for settings windows
 
-- dynamic font size? shrink to fit
-- test on winXP, win7
 - check https://autohotkey.com/docs/commands/SysGet.htm
 
 
