@@ -508,6 +508,8 @@ clickyBeeperTimer() {
 }
 
 OnMousePressed() {
+    Critical, Off
+    Thread, Priority, -50
     if (silentMode=1)
        Return
 
@@ -536,3 +538,13 @@ checkIfSkipAbeep() {
            skipAbeep := 1
     }
 }
+/*
+changeLang2Main() {
+  Sleep, 990
+   SetFormat, Integer, H
+   IniRead, changeLangMain, %inifile%, TempSettings, changeLangMain, 0
+   WinGet, scriptWinHWND, id, KeyPressOSDwin
+   PostMessage, 0x50, 0, changeLangMain,, A
+   SetFormat, Integer, D
+}
+*/

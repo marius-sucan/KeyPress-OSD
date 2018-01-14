@@ -7,6 +7,14 @@ http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd.ahk
 Please use AHK_H v1.1.27 [unicode] to execute this script.
 
 by Marius Sucan (robodesign.ro)
+  v3.98.5 (2018-01-13) - final
+  - [new] reorganized Typing mode settings window. Made it more informative and better organized and clean.
+  - [new] option to change typing delays required internally to allow host apps to receive dead keys properly.... by changing this multiplier, you can make dead keys work well, even if "Do not bind dead keys" is activated.
+  - minor bug fixes
+  - 
+  v3.98.08 (2018-01-12) - release candidate 2
+  - minor bug fixes
+
   v3.98.07 (2018-01-11) - release candidate
   - many bug fixes; as always, too many too list here; i would waste time keeping track of them
   - removed useless options from typing settings: 
@@ -577,20 +585,20 @@ Features to implement:
   - download latest AHK_H
   - make a github release
 
-- option to scale typing delays; user/non value
-- alt hooks not active by default
-- enable / disable checkboxes accordingly @ type settings
+- jumpy text.... ? wtf?
 
-- Test align to the right, multiple monitors. 
-- test on winXP, win7
+- [bug; ahk bug?] set the same keyboard layout to AHK script window as the host app; i tried it over and over, I was unable to do so
+  -- any idea how to set kbd layout to an ahk window?
+  -- this doesn't work for script windows:
+  PostMessage, 0x50, 0, 0x40A0409,, A
 
+- [add?] Customize keyboard shortcuts? 
+- make displaying of modifiers more reliable? with a timer
+- test on winXP [vm]
 
 - dynamic font size? shrink to fit
-- tooltips la settings cu OSD-ul
-- add tabs for settings windows
-
-- check https://autohotkey.com/docs/commands/SysGet.htm
-
+- [AHK bug] error: too many fonts
+  -- use FNT library
 
 - speak text line
 - with long timers, dead keys do not work reliably
@@ -605,36 +613,19 @@ Features to implement:
 https://hotkeyit.github.io/v2/docs/AHKH_Features.htm
 
 - detect kbd layout without reloads; dynamically unload/remove all hotkeys, and set new ones
-  - make use of onMessage WM-deadchar
-    DLL calls
-    https://autohotkey.com/boards/viewtopic.php?f=7&t=406
 
-  - https://msdn.microsoft.com/en-us/library/windows/desktop/ms646267(v=vs.85).aspx#_win32_Dead_Character_Messages
-  - https://wiki.winehq.org/List_Of_Windows_Messages
-  - https://autohotkey.com/board/topic/70111-retrieve-key-names-from-onmessage-wm-keydown/page-4'
-
-  SetWindowsHookEx ... RegisterWindowMessage 
-  https://msdn.microsoft.com/en-us/library/windows/desktop/ms644990(v=vs.85).aspx
-
-  102 - WM_CHAR - WM_DEADCHAR 103
-  GetMessage
-  https://msdn.microsoft.com/en-us/library/windows/desktop/ms644936(v=vs.85).aspx
-
-- [add?] Customize keyboard shortcuts? 
-
-- study the idea of spawn a new instance. 
-
+- add comments through the source. Present the [lack of] code structure
 - window spy, get texts underneath the mouse using Narrator's accessibility APIs
   https://autohotkey.com/board/topic/57431-get-text-under-mouse-cursor/
   https://blogs.msdn.microsoft.com/oldnewthing/20130408-00/?p=4733
 
-- add comments through the source. Present the [lack of] code structure
 
 - test different DPIs
 - test on different computers - slow computers...
 
 
 Glitches to fix or think of possible solutions:
+- [AHK bug] in Metro/Win10 apps, Input command does not capture the resulting chars with dead keys combinations
 - make the OSD text field non-selectable
 - OSD is never on top of Start menu in Windows 10
 - it does not detect keyboard layout changes when a Metro app is active; I tried to fix it... but failed; or in different IE tabs

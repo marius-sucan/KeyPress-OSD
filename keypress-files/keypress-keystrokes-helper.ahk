@@ -1,3 +1,10 @@
+; KeypressOSD.ahk - file used for alternative hooks
+; Latest version at:
+; http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd.ahk
+;
+; Charset for this file must be UTF 8 with BOM.
+; it may not function properly otherwise.
+
 ; Script based on the tutorials from the AHK documentation
 ; and TypingAid 2.22 by Maniac
 
@@ -11,8 +18,6 @@
 #MaxThreadsBuffer On
 SetBatchLines, -1
 ListLines, Off
-DetectHiddenWindows On
-SetTitleMatchMode 2
 Critical, on
 
 global AltHook2keysUser  := 1
@@ -28,7 +33,7 @@ if (ScriptelSuspendel=1) || (AlternativeHook2keys=0)
 MainLoop()
 
 MainLoop() {
-   global TargetScriptTitle := "KeypressOSDwin"
+   global TargetScriptTitle := "KeyPressOSDwin"
    Loop 
    { 
 ;      Get one key at a time 

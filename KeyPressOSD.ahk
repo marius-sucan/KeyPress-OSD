@@ -52,7 +52,7 @@
  , ForcedKBDlayout       := 0
  , enableAltGr           := 1
  , AltHook2keysUser      := 1
- , typingDelaysScaleUser := 1
+ , typingDelaysScaleUser := 7
  
  , DisableTypingMode     := 0     ; do not echo what you write
  , OnlyTypingMode        := 0
@@ -140,8 +140,8 @@
 
  , UseINIfile            := 1
  , IniFile               := "keypress-osd.ini"
- , version               := "3.98.07 RC"
- , releaseDate := "2018 / 01 / 11"
+ , version               := "3.98.6"
+ , releaseDate := "2018 / 01 / 14"
  
 ; Initialization variables. Altering these may lead to undesired results.
 
@@ -199,8 +199,8 @@ global typed := "" ; hack used to determine if user is writing
  , DKnotShifted_list := ""
  , DKshift_list := ""
  , DKaltGR_list := ""
- , AlternativeHook2keys := 1
- , typingDelaysScaleUser := typingDelaysScale / 100
+ , AlternativeHook2keys := (AltHook2keysUser=0) ? 0 : 1
+ , typingDelaysScale := typingDelaysScaleUser / 10
  , OnMSGchar := ""
  , OnMSGdeadChar := ""
  , Window2Activate := " "
@@ -209,6 +209,7 @@ global typed := "" ; hack used to determine if user is writing
  , missingAudios := 1
  , deadKeyPressed := "9500"
  , TrueRmDkSymbol := ""
+ , globalPrefix := ""
  , previewWindowText := "Preview window..."
  , showPreview := 0
  , hOSD, OSDhandles, nowDraggable
@@ -236,6 +237,7 @@ if (hostCaretHighlight=1)
    SetTimer, CaretHalo, 100, -50
 }
 
+; SetTimer, modsTimer, 200, -50
 if ((VisualMouseClicks=1) || (FlashIdleMouse=1) || (ShowMouseHalo=1))
    global mouseFonctiones := ahkthread(" #Include *i keypress-files\keypress-mouse-functions.ahk ")
 
@@ -255,7 +257,7 @@ hCursM := DllCall("LoadCursor", "Ptr", NULL, "Int", 32646, "Ptr")  ; IDC_SIZEALL
 hCursH := DllCall("LoadCursor", "Ptr", NULL, "Int", 32649, "Ptr")  ; IDC_HAND
 OnMessage(0x200, "MouseMove")    ; WM_MOUSEMOVE
 
-if (AlternativeHook2keys=1) && (DisableTypingMode=0)
+if (AlternativeHook2keys=1) && (DisableTypingMode=0) && (ShowSingleKey=1)
 {
    global keyStrokesThread := ahkthread(" #Include *i keypress-files\keypress-keystrokes-helper.ahk")
    OnMessage(0x4a, "KeyStrokeReceiver")  ; 0x4a is WM_COPYDATA
@@ -426,7 +428,7 @@ CalcVisibleText() {
         if (text_width2 >= maxAllowedGuiWidth-30-(OSDautosizeFactory/15))
            allGood := 1
       }
-      Until (allGood=1) || (A_Index=maxA_Index)
+      Until (allGood=1) || (A_Index=round(maxA_Index)) || (A_Index>=5000)
 
       if (allGood!=1)
       {
@@ -437,7 +439,7 @@ CalcVisibleText() {
             if (text_width3 >= maxAllowedGuiWidth-30-(OSDautosizeFactory/15))
                stopLoop2 := 1
           }
-          Until (stopLoop2 = 1) || (A_Index=round(maxA_Index/1.25))
+          Until (stopLoop2 = 1) || (A_Index=round(maxA_Index/1.25)) || (A_Index>=5000)
       }
 
       if (addSelMarker=1)
@@ -2143,7 +2145,7 @@ CreateOSDGUI() {
     progressHeight := (FontSize*2.5 < 64) ? 65 : FontSize*2.8
     progressWidth := FontSize/2 < 11 ? 11 : FontSize/2
     Gui, OSD: Add, Progress, x0 y0 w%progressWidth% h%progressHeight% Background%OSDbgrColor% c%CapsColorHighlight% vCapsDummy hwndhOSDind, 0
-    Gui, OSD: Show, NoActivate Hide x%GuiX% y%GuiY%, KeypressOSDwin  ; required for initialization when Drag2Move is active
+    Gui, OSD: Show, NoActivate Hide x%GuiX% y%GuiY%, KeyPressOSDwin  ; required for initialization when Drag2Move is active
     OSDhandles := hOSD "," hOSDctrl "," hOSDind
 }
 
@@ -2477,6 +2479,7 @@ CreateHotkey() {
                soundbeep, 1900, 50
         }
     }
+    
 }
 
 ShowHotkey(HotkeyStr) {
@@ -2485,7 +2488,7 @@ ShowHotkey(HotkeyStr) {
     if (HotkeyStr ~= "i)^(\s+)$")
        Return
 
-    if (HotkeyStr ~= "i)( \+ )$") && !typed && ShowSingleModifierKey=0 && StickyKeys=1 || (NeverDisplayOSD=1) ; || (OnlyTypingMode=1)
+    if (HotkeyStr ~= "i)( \+ )$") && !typed && (ShowSingleModifierKey=0) && (StickyKeys=1) || (NeverDisplayOSD=1) ; || (OnlyTypingMode=1)
        Return
 
     if (HotkeyStr ~= "i)(Shift \+ )$") && (ShowSingleModifierKey=0) && (StickyKeys=1)
@@ -2519,15 +2522,15 @@ ShowHotkey(HotkeyStr) {
     }
 
     SetTimer, checkMousePresence, on, 950, -15
-    Gui, OSD: Show, NoActivate x%dGuiX% y%GuiY% h%GuiHeight% w%text_width%, KeypressOSDwin
+    Gui, OSD: Show, NoActivate x%dGuiX% y%GuiY% h%GuiHeight% w%text_width%, KeyPressOSDwin
 
     if (AlignOSDright2left=1)
     {
         GuiGetSize(W, H, 1)
         dGuiX := round(w) ? round(GuiX) - round(w) : round(GuiX)
-        Gui, OSD: Show, NoActivate x%dGuiX% y%GuiY% h%GuiHeight% w%text_width%, KeypressOSDwin
+        Gui, OSD: Show, NoActivate x%dGuiX% y%GuiY% h%GuiHeight% w%text_width%, KeyPressOSDwin
     }
-    WinSet, AlwaysOnTop, On, KeypressOSDwin
+    WinSet, AlwaysOnTop, On, KeyPressOSDwin
     visible := 1
 }
 
@@ -2598,8 +2601,8 @@ GuiGetSize( ByRef W, ByRef H, vindov) {          ; function by VxE from https://
      Gui, Mouser: +LastFoundExist
   VarSetCapacity(rect, 16, 0)
   DllCall("GetClientRect", "Ptr", MyGuiHWND := WinExist(), "Ptr", &rect)
-  W := round(NumGet(rect, 8, "ptr" ))
-  H := round(NumGet(rect, 12, "ptr" ))
+  W := round(NumGet(rect, 8, "uint" ))
+  H := round(NumGet(rect, 12, "uint" ))
 }
 
 GetKeyStr(letter := 0) {
@@ -2656,6 +2659,8 @@ GetKeyStr(letter := 0) {
               AltGrPressed := 2
               backTypedAltGr := !typed ? backTypedAltGr : typed
            }
+           if (ShowSingleModifierKey=0) && !InStr(prefix, " +")
+              prefix := ""
         }
     } else
     {
@@ -2978,7 +2983,7 @@ IdentifyKBDlayout() {
        } else
        {
           kbLayoutRaw := backupkbLayoutRaw
-          if (kbLayoutRaw=kbLayoutRaw2)
+;          if (kbLayoutRaw=kbLayoutRaw2)
              LangIDfailed := (LangChanged=1) ? 1 : 2
        }
        global LastKBDchangeTime := A_TickCount
@@ -2992,7 +2997,7 @@ IdentifyKBDlayout() {
   check_kbd_exact := StrLen(LangRaw_%kbLayoutRaw%)>2 ? 1 : 0
 
   if (check_kbd_exact=0)
-      partialKBDmatch = (Partial match)
+      partialKBDmatch = (partial match)
 
   if (check_kbd=0) && (loadedLangz=1)
   {
@@ -3014,16 +3019,12 @@ IdentifyKBDlayout() {
   if (DeadKeysPresent_%kbLayoutRaw%=1)
   {
       DeadKeys := 1
-      AlternativeHook2keys := (AltHook2keysUser=0) ? 0 : 1
       if DKaltGR_%kbLayoutRaw%
          DKaltGR_list := DKaltGR_%kbLayoutRaw%
       if DKshift_%kbLayoutRaw%
          DKshift_list := DKshift_%kbLayoutRaw%
       if DKnotShifted_%kbLayoutRaw%
          DKnotShifted_list := DKnotShifted_%kbLayoutRaw%
-  } else if (CurrentKBD ~= "i)(unsupported|unrecognized)")
-  {
-      AlternativeHook2keys := (AltHook2keysUser=0) ? 0 : 1
   } else if (check_kbd_exact=1)
   {
       AlternativeHook2keys := 0
@@ -3032,11 +3033,11 @@ IdentifyKBDlayout() {
   if (kbLayoutSupport!="-") && (check_kbd=1) && (loadedLangz=1)
   {
       identifiedKbdName := (check_kbd_exact=1) ? LangRaw_%kbLayoutRaw% : LangName_%kbLayout%
-      CurrentKBD := "Auto-detected: " identifiedKbdName ". " kbLayoutRaw " / " perWindowKbLayout
+      CurrentKBD := "Auto-detected: " identifiedKbdName ". " partialKBDmatch ". " kbLayoutRaw " / " perWindowKbLayout
       if (LangIDfailed=2)
-         CurrentKBD := "Default layout: " identifiedKbdName ". " kbLayoutRaw " / " perWindowKbLayout
+         CurrentKBD := "Layout: " identifiedKbdName ". " partialKBDmatch ". " kbLayoutRaw " / " perWindowKbLayout
       if (LangIDfailed=1)
-         CurrentKBD := "Layout identification failed. Default: " identifiedKbdName ". " kbLayoutRaw " / " perWindowKbLayout
+         CurrentKBD := "Detection failed. " identifiedKbdName ". " partialKBDmatch ". " kbLayoutRaw " / " perWindowKbLayout
       If (ForceKBD=1)
          CurrentKBD := "Enforced: " identifiedKbdName ". " kbLayoutRaw
 
@@ -3049,10 +3050,10 @@ IdentifyKBDlayout() {
              ShowLongMsg("Enforced layout: " identifiedKbdName " (kbd" kbLayout "). " partialKBDmatch)
 
           if (LangIDfailed=2)
-             ShowLongMsg("Default layout: " identifiedKbdName " (kbd" kbLayout "). " partialKBDmatch)
+             ShowLongMsg("Layout: " identifiedKbdName " (kbd" kbLayout "). " partialKBDmatch)
 
           if (LangIDfailed=1)
-             ShowLongMsg("Layout identification failed. Default: " identifiedKbdName " (kbd" kbLayout "). " partialKBDmatch)
+             ShowLongMsg("Detection failed. " identifiedKbdName " (kbd" kbLayout "). " partialKBDmatch)
 
           SetTimer, HideGUI, % -DisplayTime/2
       }
@@ -3159,7 +3160,7 @@ dummyDelayer() {
 }
 
 ConstantKBDtimer() {
-    if A_IsSuspended
+    if A_IsSuspended || (SecondaryTypingMode=1) || (prefOpen=1)
        Return
 
     SetFormat, Integer, H
@@ -3186,7 +3187,7 @@ ConstantKBDtimer() {
 
 ConstantKBDlayoutChanger() {
 
-    if A_IsSuspended
+    if A_IsSuspended || (SecondaryTypingMode=1)
        Return
 
     SetFormat, Integer, H
@@ -3198,7 +3199,7 @@ ConstantKBDlayoutChanger() {
        sleep, 50
     }
 
-    if (A_TickCount - LastKBDchangeTime > 1000) && (A_TickCount - lastTypedSince > 2000) && (A_TickCount - tickcount_start > 2000) && (currentLayout!=InputLocaleID)
+    if (A_TickCount - LastKBDchangeTime > 1000) && (A_TickCount - lastTypedSince > 2000) && (A_TickCount - tickcount_start > 1000) && (currentLayout!=InputLocaleID)
     {
         InputLocaleID := NewInputLocaleID
         lastKBDid := InputLocaleID
@@ -3251,7 +3252,7 @@ checkMousePresence() {
     {
         MouseGetPos, , , id, control
         WinGetTitle, title, ahk_id %id%
-        if (title = "KeypressOSDwin")
+        if (title = "KeyPressOSDwin")
            TogglePosition()
     }
 }
@@ -3376,7 +3377,7 @@ sendOSDcontent() {
         Sendinput ^a
         sleep, 25
      }
-     Sendinput {text}%typed%
+     Sendinput {raw}%typed%
      sleep, 25
      CaretPos := StrLen(typed)+1
      typed := ST_Insert(lola, typed, CaretPos)
@@ -3900,57 +3901,77 @@ ShowTypeSettings() {
     if (doNotOpen=1)
        Return
 
-    global editF1, editF2    
+    global editF1, editF2, editF3
     deadKstatus := (DeadKeys=1) && !InStr(CurrentKBD, "unsupported") && !InStr(CurrentKBD, "unrecognized") ? "Dead keys present." : " "
 
-    Gui, Add, Checkbox, x15 y15 gVerifyTypeOptions Checked%ShowSingleKey% vShowSingleKey, Show single keys in the OSD, not just key combinations
-    Gui, Add, Checkbox, xp+0 yp+20 gVerifyTypeOptions Checked%DisableTypingMode% vDisableTypingMode, Disable main typing mode (by shadowing host app)
+    Gui, Add, Tab3,, General|Dead keys|Behavior
+    Gui, Tab, 1 ; general
+    Gui, Add, Checkbox, x+15 y+15 gVerifyTypeOptions Checked%ShowSingleKey% vShowSingleKey, Show single keys in the OSD, not just key combinations
+    Gui, Add, Checkbox, xp+0 yp+20 Checked%enableAltGr% venableAltGr, Enable {Ctrl + Alt} / {AltGr} support
+    Gui, Add, Checkbox, xp+0 yp+20 gVerifyTypeOptions Checked%DisableTypingMode% vDisableTypingMode, Disable main typing mode
     Gui, Add, Checkbox, xp+0 yp+20 gVerifyTypeOptions Checked%OnlyTypingMode% vOnlyTypingMode, Typing mode only
-    Gui, Add, Checkbox, xp+0 yp+20 gVerifyTypeOptions Checked%AltHook2keysUser% vAltHook2keysUser, Alternative hook to keys (enabled by default)
-    Gui, Add, Text, xp+15 yp+20, This enables full support for dead keys in main typing mode.
+    Gui, Add, Text, xp+15 yp+20, The main typing mode works by attempting to shadow the host app.
+    Gui, Add, Text, xp+0 yp+20, KeyPress will reproduce text cursor actions to mimmick text fields.
 
-    Gui, Add, Checkbox, xp-15 yp+30 gVerifyTypeOptions Checked%alternateTypingMode% valternateTypingMode, Enter alternate typing mode with Ctrl + Insert
+    Gui, Add, Checkbox, xp-15 yp+30 gVerifyTypeOptions Checked%alternateTypingMode% valternateTypingMode, Enter alternate typing mode with {Ctrl + Insert}
     Gui, Add, Text, xp+15 yp+20, Type through KeyPress and send text on {Enter}. This ensures
     Gui, Add, Text, xp+0 yp+20, full support for dead keys and full predictability. In other words,
     Gui, Add, Text, xp+0 yp+20, what you see is what you typed - once you sent it to the host app.
+    Gui, Add, Text, xp+0 yp+20, However, in Windows 7 or below, the keyboard layout of the host app 
+    Gui, Add, Text, xp+0 yp+20, might not match with the one of the OSD.
 
-    Gui, Add, Checkbox, xp-15 yp+30 gVerifyTypeOptions Checked%enableTypingHistory% venableTypingHistory, Typed text history (with Page Up / Down)
-    Gui, Add, Checkbox, xp+0 yp+20 gVerifyTypeOptions Checked%pgUDasHE% vpgUDasHE, Page Up / Down should behave as Home / End
-    Gui, Add, Checkbox, xp+0 yp+20 gVerifyTypeOptions Checked%UpDownAsHE% vUpDownAsHE, Up / Down arrow keys should behave as Home / End
-    Gui, Add, Checkbox, xp+15 yp+20 gVerifyTypeOptions Checked%UpDownAsLR% vUpDownAsLR, ... or as the Left / Right keys
-    Gui, Add, Checkbox, xp-15 yp+30 gVerifyTypeOptions Checked%pasteOSDcontent% vpasteOSDcontent, Ctrl+Shift+Insert to paste the OSD content into active text field
-    Gui, Add, Checkbox, xp+0 yp+20 gVerifyTypeOptions Checked%synchronizeMode% vsynchronizeMode, Synchronize with host app (Win+Ins) using Shift+Up, Home
-    Gui, Add, text, xp+15 yp+15, By default, Ctrl+A [select all] is used to collect the text.
+    Gui, Add, Checkbox, xp+0 yp+30 gVerifyTypeOptions Checked%pasteOnClick% vpasteOnClick, Paste on click what you typed
+    Gui, Add, Checkbox, xp+0 yp+20 gVerifyTypeOptions Checked%sendKeysRealTime% vsendKeysRealTime, Send keystrokes in realtime to the host app
+    Gui, Add, text, xp+15 yp+20, This does not work with all appllications.
+
+    Gui, Tab, 3  ; behavior
+    Gui, Add, Checkbox, x+15 y+15 gVerifyTypeOptions Checked%enableTypingHistory% venableTypingHistory, Typed text history (with {Page Up} / {Page Down})
+    Gui, Add, Checkbox, xp+0 yp+20 gVerifyTypeOptions Checked%pgUDasHE% vpgUDasHE, {Page Up} / {Page Down} should behave as {Home} / {End}
+    Gui, Add, Checkbox, xp+0 yp+20 gVerifyTypeOptions Checked%UpDownAsHE% vUpDownAsHE, {Up} / {Down} arrow keys should behave as {Home} / {End}
+    Gui, Add, Checkbox, xp+15 yp+20 gVerifyTypeOptions Checked%UpDownAsLR% vUpDownAsLR, ... or as the {Left} / {Right} keys
+    Gui, Add, Checkbox, xp-15 yp+30 gVerifyTypeOptions Checked%pasteOSDcontent% vpasteOSDcontent, Enable {Ctrl + Shift + Insert} to paste the OSD content into the active text field
+    Gui, Add, Checkbox, xp+0 yp+20 gVerifyTypeOptions Checked%synchronizeMode% vsynchronizeMode, Synchronize using {Shift + Up} && {Shift + Home} key sequence
+    Gui, Add, text, xp+15 yp+20, By default, {Ctrl + A}, select all, is used to capture the text from the host app.
+    Gui, Add, text, xp+0 yp+20, To synchronize press: {Winkey + Insert} or {Winkey + Alt + Insert}.
+
+    Gui, Add, Checkbox, xp-15 yp+30 gVerifyTypeOptions Checked%enterErasesLine% venterErasesLine, In "only typing" mode, {Enter} and {Escape} erase text from KeyPress
+    Gui, Add, Checkbox, xp+0 yp+20 gVerifyTypeOptions Checked%alternativeJumps% valternativeJumps, Alternative rules to jump between words with {Ctrl + Left / Right}
+    Gui, Add, text, xp+15 yp+15, Please note, applications have inconsistent rules for this.
 
     Gui, Add, text, xp-15 yp+30, Display time when typing (in seconds)
     Gui, Add, Edit, xp+265 yp+0 w45 r1 limit2 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF1, %DisplayTimeTypingUser%
     Gui, Add, UpDown, vDisplayTimeTypingUser Range2-99, %DisplayTimeTypingUser%
-    Gui, Add, text, xp-265 yp+20, Timer to resume typing with text related keys (in sec.)
+    Gui, Add, text, xp-265 yp+20, Time to resume typing with text related keys (in sec.)
     Gui, Add, Edit, xp+265 yp+0 w45 r1 limit2 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF2, %ReturnToTypingUser%
     Gui, Add, UpDown, vReturnToTypingUser Range2-99, %ReturnToTypingUser%
 
-    Gui, Add, Checkbox, x345 y15 Checked%enableAltGr% venableAltGr, Enable Ctrl+Alt / AltGr support
-    Gui, Add, Checkbox, xp+0 yp+20 gVerifyTypeOptions Checked%pasteOnClick% vpasteOnClick, In alternate typing mode, paste on click
-    Gui, Add, Checkbox, xp+0 yp+20 gVerifyTypeOptions Checked%sendKeysRealTime% vsendKeysRealTime, In alt.type mode, send keystrokes in realtime to host app
-    Gui, Add, text, xp+15 yp+20, This does not work with all appllications.
-    Gui, Add, Checkbox, xp-15 yp+30 gVerifyTypeOptions Checked%enterErasesLine% venterErasesLine, Enter and Escape keys erase texts from the OSD
-    Gui, Add, Checkbox, xp+0 yp+20 gVerifyTypeOptions Checked%alternativeJumps% valternativeJumps, Alternative rules to jump between words with Ctrl+Left/Right
-    Gui, Add, text, xp+15 yp+15, Please note, applications have inconsistent rules for this.
+    Gui, Tab, 2 ; dead keys
+    Gui, Add, Checkbox, x+15 y+15 gVerifyTypeOptions Checked%AltHook2keysUser% vAltHook2keysUser, Alternative hook to keys (applies to the main typing mode)
+    Gui, Add, Text, xp+15 yp+20, This enables full support for dead keys, However, this
+    Gui, Add, Text, xp+0 yp+20, improvement does not apply within Metro / Win 10 apps.
+    Gui, Add, Checkbox, xp-15 yp+30 gVerifyTypeOptions Checked%ShowDeadKeys% vShowDeadKeys, Insert generic dead key symbol when using such a key and typing
+    Gui, SettingsGUIA: font, bold
+    Gui, Add, text, xp+0 yp+30, Troubleshooting:
+    Gui, SettingsGUIA: font, normal
+    Gui, Add, text, xp+15 yp+20, If you cannot use dead keys on supported layouts in host apps,
+    Gui, Add, text, xp+0 yp+20, Increase the multiplier progressively until dead keys work.
+    Gui, Add, text, xp+0 yp+20, Apply settings and then test dead keys in the host app.
+    Gui, Add, text, xp+0 yp+20, If you cannot identify the right delay, activate "Do not bind".
+    Gui, Add, text, xp+0 yp+30, Typing delays scale (1 = no delays)
+    Gui, Add, Edit, xp+180 yp+0 w45 r1 limit2 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF3, %typingDelaysScaleUser%
+    Gui, Add, UpDown, vtypingDelaysScaleUser Range1-40, %typingDelaysScaleUser%
 
-    Gui, Add, Checkbox, xp-15 yp+30 gVerifyTypeOptions Checked%ShowDeadKeys% vShowDeadKeys, Insert the dead key symbol in the OSD when typing
-    Gui, Add, Checkbox, xp+0 yp+20 gVerifyTypeOptions Checked%DoNotBindDeadKeys% vDoNotBindDeadKeys, Do not bind (ignore) known dead keys
+    Gui, Add, Checkbox, xp-180 yp+25 gVerifyTypeOptions Checked%DoNotBindDeadKeys% vDoNotBindDeadKeys, Do not bind (ignore) known dead keys
     Gui, Add, Checkbox, xp+15 yp+20 gVerifyTypeOptions Checked%DoNotBindAltGrDeadKeys% vDoNotBindAltGrDeadKeys, Ignore dead keys associated with AltGr as well
-    Gui, SettingsGUIA: font, bold
-    Gui, Add, text, xp-15 yp+20, Check this if you cannot use dead keys on supported layouts.
-    Gui, SettingsGUIA: font, normal
 
     Gui, SettingsGUIA: font, bold
-    Gui, SettingsGUIA: Add, text, xp+0 yp+30, Keyboard layout status: %deadKstatus%
+    Gui, SettingsGUIA: Add, text, xp-30 yp+30, Keyboard layout status: %deadKstatus%
     Gui, SettingsGUIA: font, normal
-    Gui, Add, text, xp+0 yp+15 w280, %CurrentKBD%.
-    
-    Gui, SettingsGUIA: add, Button, xp+150 yp+30 w70 h30 Default gApplySettings, A&pply
+    Gui, Add, text, xp+0 yp+15 w335, %CurrentKBD%.
+    Gui, Tab
+    Gui, SettingsGUIA: add, Button, xm+10 y+10 w70 h30 Default gApplySettings, A&pply
     Gui, SettingsGUIA: add, Button, xp+75 yp+0 w70 h30 gCloseSettings, C&ancel
+
     Gui, SettingsGUIA: show, autoSize, Typing mode settings: KeyPress OSD
     VerifyTypeOptions()
 }
@@ -3973,7 +3994,9 @@ VerifyTypeOptions() {
     GuiControlGet, DoNotBindDeadKeys
     GuiControlGet, DoNotBindAltGrDeadKeys
     GuiControlGet, alternateTypingMode
+    GuiControlGet, AltHook2keysUser
     GuiControlGet, pasteOnClick
+    GuiControlGet, sendKeysRealTime
 
     if (ShowSingleKey=0)
     {
@@ -3991,6 +4014,7 @@ VerifyTypeOptions() {
        GuiControl, Disable, synchronizeMode
        GuiControl, Disable, pgUDasHE
        GuiControl, Disable, enterErasesLine
+       GuiControl, Disable, AltHook2keysUser
        GuiControl, Disable, editF1
        GuiControl, Disable, editF2
     } else
@@ -4008,6 +4032,7 @@ VerifyTypeOptions() {
        GuiControl, Enable, pgUDasHE
        GuiControl, Enable, UpDownAsHE
        GuiControl, Enable, alternativeJumps
+       GuiControl, Enable, AltHook2keysUser
        GuiControl, Enable, UpDownAsLR
        GuiControl, Enable, editF1
        GuiControl, Enable, editF2
@@ -4028,6 +4053,7 @@ VerifyTypeOptions() {
        GuiControl, Disable, pasteOSDcontent
        GuiControl, Disable, synchronizeMode
        GuiControl, Disable, enterErasesLine
+       GuiControl, Disable, AltHook2keysUser
        GuiControl, Disable, editF1
        GuiControl, Disable, editF2
     } else if (ShowSingleKey!=0)
@@ -4045,6 +4071,7 @@ VerifyTypeOptions() {
        GuiControl, Enable, pgUDasHE
        GuiControl, Enable, UpDownAsHE
        GuiControl, Enable, UpDownAsLR
+       GuiControl, Enable, AltHook2keysUser
        GuiControl, Enable, editF1
        GuiControl, Enable, editF2
     }
@@ -4060,11 +4087,14 @@ VerifyTypeOptions() {
 
     if (DoNotBindDeadKeys=1)
     {
-       GuiControl, Disable, ShowDeadKeys
+          GuiControl, Disable, ShowDeadKeys
     } else if (DisableTypingMode=0) && (ShowSingleKey!=0)
     {
-       GuiControl, Enable, ShowDeadKeys
+          GuiControl, Enable, ShowDeadKeys
     }
+
+    if (AltHook2keysUser=1)
+       GuiControl, Disable, ShowDeadKeys
 
     if (DoNotBindDeadKeys=1)
     {
@@ -4078,7 +4108,17 @@ VerifyTypeOptions() {
        GuiControl, , UpDownAsLR, 0
 
     if (UpDownAsLR=1)
-       GuiControl, , UpDownAsHE, 0      
+       GuiControl, , UpDownAsHE, 0
+
+    if (alternateTypingMode=0)
+    {
+       GuiControl, Disable, pasteOnClick
+       GuiControl, Disable, sendKeysRealTime
+    } Else
+    {
+       GuiControl, Enable, pasteOnClick
+       GuiControl, Enable, sendKeysRealTime     
+    }
 }
 
 ShowSoundsSettings() {
@@ -4330,7 +4370,7 @@ ShowMouseSettings() {
     Gui, Add, Edit, xp+0 yp+25 w60 r1 limit3 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF7, %IdleMouseAlpha%
     Gui, Add, UpDown, vIdleMouseAlpha Range10-240, %IdleMouseAlpha%
 
-    Gui, Add, Checkbox, gVerifyMouseOptions x220 y15 Checked%ShowMouseHalo% vShowMouseHalo, Mouse halo / highlight
+    Gui, Add, Checkbox, gVerifyMouseOptions x230 y15 Checked%ShowMouseHalo% vShowMouseHalo, Mouse halo / highlight
     Gui, Add, text, xp+15 yp+25, Radius:
     Gui, Add, text, xp+0 yp+25, Color:
     Gui, Add, text, xp+0 yp+25, Alpha:
@@ -4541,10 +4581,10 @@ ShowOSDsettings() {
     Gui, Add, UpDown, vDisplayTimeUser Range2-99, %DisplayTimeUser%
     Gui, Add, Edit, xp+60 yp+0 w55 r1 limit2 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF10, %DisplayTimeTypingUser%
     Gui, Add, UpDown, vDisplayTimeTypingUser Range2-99, %DisplayTimeTypingUser%
-    Gui, Add, Edit, xp-60 yp+25 w55 r1 limit3 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF7, %GuiWidth%
-    Gui, Add, UpDown, gVerifyOsdOptions vGuiWidth Range55-990, %GuiWidth%
-    Gui, Add, Edit, xp+60 yp+0 w55 r1 limit3 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF8, %maxGuiWidth%
-    Gui, Add, UpDown, gVerifyOsdOptions vmaxGuiWidth Range55-995, %maxGuiWidth%
+    Gui, Add, Edit, xp-60 yp+25 w55 r1 limit4 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF7, %GuiWidth%
+    Gui, Add, UpDown, gVerifyOsdOptions vGuiWidth Range55-2900, %GuiWidth%
+    Gui, Add, Edit, xp+60 yp+0 w55 r1 limit4 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF8, %maxGuiWidth%
+    Gui, Add, UpDown, gVerifyOsdOptions vmaxGuiWidth Range55-2900, %maxGuiWidth%
     Gui, Add, Edit, xp-60 yp+25 w55 r1 limit3 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF9, %OSDautosizeFactory%
     Gui, Add, UpDown, gVerifyOsdOptions vOSDautosizeFactory Range10-400, %OSDautosizeFactory%
 
@@ -5317,6 +5357,7 @@ ShaveSettings() {
   IniWrite, %hostCaretHighlight%, %inifile%, SavedSettings, hostCaretHighlight
   IniWrite, %AltHook2keysUser%, %inifile%, SavedSettings, AltHook2keysUser
   IniWrite, %sendKeysRealTime%, %inifile%, SavedSettings, sendKeysRealTime
+  IniWrite, %typingDelaysScaleUser%, %inifile%, SavedSettings, typingDelaysScaleUser
 }
 
 LoadSettings() {
@@ -5413,6 +5454,7 @@ LoadSettings() {
   IniRead, hostCaretHighlight, %inifile%, SavedSettings, hostCaretHighlight, %hostCaretHighlight%
   IniRead, sendKeysRealTime, %inifile%, SavedSettings, sendKeysRealTime, %sendKeysRealTime%
   IniRead, AltHook2keysUser, %inifile%, SavedSettings, AltHook2keysUser, %AltHook2keysUser%
+  IniRead, typingDelaysScaleUser, %inifile%, SavedSettings, typingDelaysScaleUser, %typingDelaysScaleUser%
 
   CheckSettings()
 
@@ -5521,6 +5563,9 @@ CheckSettings() {
   if ReturnToTypingUser is not digit
      ReturnToTypingUser := 20
 
+  if typingDelaysScaleUser is not digit
+     typingDelaysScaleUser := 7
+
   if FontSize is not digit
      FontSize := 20
 
@@ -5585,6 +5630,7 @@ CheckSettings() {
     ShowPrevKeyDelay := (ShowPrevKeyDelay < 100) ? 101 : round(ShowPrevKeyDelay)
     MouseRippleThickness := (MouseRippleThickness < 5) ? 5 : round(MouseRippleThickness)
     MouseRippleMaxSize := (MouseRippleMaxSize < 90) ? 91 : round(MouseRippleMaxSize)
+    typingDelaysScaleUser := (typingDelaysScaleUser < 2) ? 1 : round(typingDelaysScaleUser)
 
 ; verify maximum numeric values
     ClickScaleUser := (ClickScaleUser > 91) ? 90 : round(ClickScaleUser)
@@ -5592,8 +5638,8 @@ CheckSettings() {
     DisplayTimeTypingUser := (DisplayTimeTypingUser > 99) ? 98 : round(DisplayTimeTypingUser)
     ReturnToTypingUser := (ReturnToTypingUser > 99) ? 99 : round(ReturnToTypingUser)
     FontSize := (FontSize > 300) ? 290 : round(FontSize)
-    GuiWidth := (GuiWidth > 999) ? 999 : round(GuiWidth)
-    maxGuiWidth := (maxGuiWidth > 999) ? 999 : round(maxGuiWidth)
+    GuiWidth := (GuiWidth > 2995) ? 2990 : round(GuiWidth)
+    maxGuiWidth := (maxGuiWidth > 2995) ? 2990 : round(maxGuiWidth)
     GuiXa := (GuiXa > 9999) ? 9998 : round(GuiXa)
     GuiXb := (GuiXb > 9999) ? 9998 : round(GuiXb)
     GuiYa := (GuiYa > 9999) ? 9998 : round(GuiYa)
@@ -5608,6 +5654,7 @@ CheckSettings() {
     ShowPrevKeyDelay := (ShowPrevKeyDelay > 999) ? 900 : round(ShowPrevKeyDelay)
     MouseRippleMaxSize := (MouseRippleMaxSize > 401) ? 400 : round(MouseRippleMaxSize)
     MouseRippleThickness := (MouseRippleThickness > 51) ? 50 : round(MouseRippleThickness)
+    typingDelaysScaleUser := (typingDelaysScaleUser > 39) ? 40 : round(typingDelaysScaleUser)
 
 ; verify HEX values
 
@@ -5652,6 +5699,14 @@ ToggleSecondaryTypingMode() {
       Return
    }
 
+/*
+   Sleep, 50
+   SetFormat, Integer, H
+      changeLangMain := % DllCall("GetKeyboardLayout", "UInt", DllCall("GetWindowThreadProcessId", "Ptr", WinActive("A"), "Ptr",0))
+   SetFormat, Integer, D
+   IniWrite, %changeLangMain%, %IniFile%, TempSettings, changeLangMain
+   Sleep, 50
+*/
    createTypingWindow()
    SecondaryTypingMode := !SecondaryTypingMode
 
@@ -5662,16 +5717,11 @@ ToggleSecondaryTypingMode() {
        ToolTip, %Window2ActivateFocusedControl%
        toggleWidth := FontSize/2 < 11 ? 11 : FontSize/2 + 10
        typeGuiX := GuiX - toggleWidth -10
-       Gui, TypingWindow: Show, x%typeGuiX% y%GuiY% h%GuiHeight% w%toggleWidth%, KeypressOSDtyping
-       WinSet, AlwaysOnTop, On, KeypressOSDtyping
+       Gui, TypingWindow: Show, x%typeGuiX% y%GuiY% h%GuiHeight% w%toggleWidth%, KeyPressOSDtyping
+       WinSet, AlwaysOnTop, On, KeyPressOSDtyping
        ShowDeadKeys := 0
        ShowSingleKey := 1
        DisableTypingMode := 0
-       if (ConstantAutoDetect=1)
-       {
-          SetTimer, ConstantKBDtimer, off
-          Menu, Tray, unCheck, &Monitor keyboard layout
-       }
        OnlyTypingMode := 1
        typed := (sendKeysRealTime=1) ? backTypeCtrl : ""
        if (sendKeysRealTime=0)
@@ -5680,6 +5730,7 @@ ToggleSecondaryTypingMode() {
            backTypeCtrl := ""
            visibleTextField := " │"
        }
+;       beeperzDefunctions.ahkPostFunction["changeLang2Main", ""]
        CalcVisibleText()
        OnMSGchar := ""
        SetTimer, checkTypingWindow, on, 700, -10
@@ -5691,13 +5742,7 @@ ToggleSecondaryTypingMode() {
        IniRead, ShowDeadKeys, %inifile%, SavedSettings, ShowDeadKeys, %ShowDeadKeys%
        IniRead, ShowSingleKey, %inifile%, SavedSettings, ShowSingleKey, %ShowSingleKey%
        IniRead, OnlyTypingMode, %inifile%, SavedSettings, OnlyTypingMode, %OnlyTypingMode%
-       IniRead, ConstantAutoDetect, %inifile%, SavedSettings, ConstantAutoDetect, %ConstantAutoDetect%
        IniRead, DisableTypingMode, %inifile%, SavedSettings, DisableTypingMode, %DisableTypingMode%
-       if (ConstantAutoDetect=1)
-       {
-          SetTimer, ConstantKBDtimer, 950, -25
-          Menu, Tray, Check, &Monitor keyboard layout
-       }
        CalcVisibleText()
        SetTimer, checkTypingWindow, off
    }
@@ -5709,7 +5754,7 @@ ToggleSecondaryTypingMode() {
 }
 
 checkTypingWindow() {
-   IfWinNotActive, KeypressOSDtyping
+   IfWinNotActive, KeyPressOSDtyping
    {
        backTypeCtrl := typed || (A_TickCount-lastTypedSince > DisplayTimeTyping) ? typed : backTypeCtrl
        backTypedAltGr := typed
@@ -5730,7 +5775,7 @@ CharMSG(wParam, lParam) {
     {
        InsertChar2caret(OnMSGchar)
        if (sendKeysRealTime=1)
-          ControlSend, , {text}%OnMSGchar%, %Window2Activate%
+          ControlSend, , {raw}%OnMSGchar%, %Window2Activate%
     }
     global deadKeyPressed := 9900
     global lastTypedSince := A_TickCount
@@ -5777,9 +5822,9 @@ MouseMove(wP, lP, msg, hwnd) {
   SetFormat, IntegerFast, D
   if hwnd in %OSDhandles%
   {
-    if (DragOSDmode=0 && JumpHover=0 && prefOpen=0)  ; fixed mode is enabled
+    if (DragOSDmode=0 && JumpHover=0 && prefOpen=0) && (A_TickCount - lastTypedSince > 1000)
         HideGUI()
-    else if (DragOSDmode=1 || prefOpen=1)  ; drag mode is enabled
+    else if (DragOSDmode=1 || prefOpen=1)
     {
         DllCall("SetCursor", "Ptr", hCursM)
         if !(wP&0x13)    ; no LMR mouse button is down, we hover
@@ -5946,4 +5991,26 @@ KeyStrokeReceiver(wParam, lParam) {
           externalKeyStrokeReceived := testKey
     }
     return true
+}
+
+
+modsTimer() {
+    Critical, Off
+    Thread, Priority, -50
+    static modifiers := ["LCtrl", "RCtrl", "LAlt", "RAlt", "LShift", "RShift", "LWin", "RWin"]
+
+    for i, mod in modifiers
+    {
+        if GetKeyState(mod)
+        {
+           Prefix .= mod " | "
+           Prefix := CompactModifiers(Prefix)
+        }
+    }
+        if (globalPrefix!=Prefix && !typed && Prefix)
+        {
+           ShowHotkey(Prefix)
+           SetTimer, HideGUI, % -DisplayTime
+        }
+        globalPrefix := Prefix
 }
