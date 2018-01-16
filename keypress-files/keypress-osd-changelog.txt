@@ -7,6 +7,17 @@ http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd.ahk
 Please use AHK_H v1.1.27 [unicode] to execute this script.
 
 by Marius Sucan (robodesign.ro)
+
+  v3.99 (2018-01-16)
+  - reduced [by about 7 kilobytes] and optimized code for handling modifiers [Ctrl, Shift, AltGr and so on]
+  - as a consequence, I removed the option for Sticky Keys
+  - [bug fixed] the bug with Shift + VKdc reported by burque505
+  - bug fixes from drugwash regarding setColors()
+  - and other, various fixe
+
+  v3.98.7 (2018-01-15)
+  - [bug fixed] the "too many fonts" error is fixed now. AHK is limited to 200 fonts, but using Font Library, I managed to circumvent this problem. This error apeared at Preferences when changing/previewing many fonts.
+
   v3.98.5 (2018-01-13) - final
   - [new] reorganized Typing mode settings window. Made it more informative and better organized and clean.
   - [new] option to change typing delays required internally to allow host apps to receive dead keys properly.... by changing this multiplier, you can make dead keys work well, even if "Do not bind dead keys" is activated.
@@ -585,25 +596,19 @@ Features to implement:
   - download latest AHK_H
   - make a github release
 
-- jumpy text.... ? wtf?
+
+- regressions with sticky keys ; hold has a global the prefix?
+- check new ahk version
 
 - [bug; ahk bug?] set the same keyboard layout to AHK script window as the host app; i tried it over and over, I was unable to do so
   -- any idea how to set kbd layout to an ahk window?
   -- this doesn't work for script windows:
   PostMessage, 0x50, 0, 0x40A0409,, A
+https://autohotkey.com/docs/misc/SendMessageList.htm
 
 - [add?] Customize keyboard shortcuts? 
-- make displaying of modifiers more reliable? with a timer
 - test on winXP [vm]
-
-- dynamic font size? shrink to fit
-- [AHK bug] error: too many fonts
-  -- use FNT library
-
-- speak text line
 - with long timers, dead keys do not work reliably
-- reduce flickering with Ctrl+A/Z/X/C/V/Left/Right
-
 - Update troubleshooting.
   - I do not see letters with accents when I use dead keys. 
   - why do you claim dead keys support?

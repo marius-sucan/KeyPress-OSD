@@ -66,7 +66,6 @@
  , ShowSingleKey         := 1     ; show only key combinations ; it disables typing mode
  , HideAnnoyingKeys      := 1     ; Left click and PrintScreen can easily get in the way.
  , ShowMouseButton       := 1     ; in the OSD
- , StickyKeys            := 0     ; how modifiers behave; set it to 1 if you use StickyKeys in Windows
  , ShowSingleModifierKey := 1     ; make it display Ctrl, Alt, Shift when pressed alone
  , DifferModifiers       := 0     ; differentiate between left and right modifiers
  , ShowPrevKey           := 1     ; show previously pressed key, if pressed quickly in succession
@@ -140,9 +139,9 @@
 
  , UseINIfile            := 1
  , IniFile               := "keypress-osd.ini"
- , version               := "3.98.6"
- , releaseDate := "2018 / 01 / 14"
- 
+ , version               := "3.99"
+ , releaseDate := "2018 / 01 / 16"
+
 ; Initialization variables. Altering these may lead to undesired results.
 
     checkIfRunning()
@@ -163,21 +162,19 @@ global typed := "" ; hack used to determine if user is writing
  , DisplayTime := DisplayTimeUser*1000
  , DisplayTimeTyping := DisplayTimeTypingUser*1000
  , ReturnToTypingDelay := ReturnToTypingUser*1000
- , prefixed := 0 ; hack used to determine if last keypress had a modifier
+ , prefixed := 0                      ; hack used to determine if last keypress had a modifier
  , Capture2Text := 0
- , tickcount_start2 := A_TickCount
- , tickcount_start := 0 ; timer to count repeated key presses
+ , tickcount_start2 := A_TickCount    ; timer to keep track of OSD redraws
+ , tickcount_start := 0               ; timer to count repeated key presses
  , keyCount := 0
  , modifiers_temp := 0
  , GuiX := GuiX ? GuiX : GuiXa
  , GuiY := GuiY ? GuiY : GuiYa
- , GuiHeight := 50
+ , GuiHeight := 50                    ; a default, later overriden
  , maxAllowedGuiWidth := A_ScreenWidth
  , prefOpen := 0
  , MouseClickCounter := 0
- , shiftPressed := 0
- , AltGrPressed := 0
- , externalKeyStrokeReceived := ""
+ , externalKeyStrokeReceived := ""    ; for alternative hooks
  , visibleTextField := ""
  , text_width := 60
  , CaretPos := "1"
@@ -188,7 +185,6 @@ global typed := "" ; hack used to determine if user is writing
  , editField1 := " "
  , editField2 := " "
  , editField3 := " "
- , backTypedAltGr := ""
  , backTypeCtrl := ""
  , backTypdUndo := ""
  , CurrentKBD := "Default: English US"
@@ -209,9 +205,8 @@ global typed := "" ; hack used to determine if user is writing
  , missingAudios := 1
  , deadKeyPressed := "9500"
  , TrueRmDkSymbol := ""
- , globalPrefix := ""
- , previewWindowText := "Preview window..."
  , showPreview := 0
+ , previewWindowText := "Preview window..."
  , hOSD, OSDhandles, nowDraggable
  , cclvo := "-E0x200 +Border -Hdr -Multi +ReadOnly Report -Hidden AltSubmit gsetColors"
 
@@ -275,22 +270,24 @@ TypedLetter(key) {
       Return
    }
 
-   if (enableAltGr=1) && (StickyKeys=1) && (AltGrPressed>0) ; || (enableAltGr=1) && (AltGrPressed=2)
-      typed := backTypedAltGr
-
    if (SecondaryTypingMode=0)
    {
+      if InStr(A_ThisHotkey, "+")
+         shiftPressed := 1
+
+      if InStr(A_ThisHotkey, "^!") && (enableAltGr=1) || InStr(A_ThisHotkey, "<^>") && (enableAltGr=1)
+         AltGrPressed := 1
+
       lola := "│"
       if (AlternativeHook2keys=1) && (DeadKeys=0)
          Sleep, 30
 
       vk := "0x0" SubStr(key, InStr(key, "vk", 0, 0)+2)
       sc := "0x0" GetKeySc("vk" vk)
-      key := toUnicodeExtended(vk, sc)
+      key := toUnicodeExtended(vk, sc, shiftPressed, AltGrPressed)
 
       if (AlternativeHook2keys=1) && TrueRmDkSymbol && (A_TickCount-deadKeyPressed < 9000) || (AlternativeHook2keys=1) && (DeadKeys=0) && (A_TickCount-deadKeyPressed < 9000) || (AlternativeHook2keys=1) && (DoNotBindDeadKeys=1) && (A_TickCount - lastTypedSince > 200)
       {
-        ; SoundBeep
          Sleep, 30
          if (externalKeyStrokeReceived=TrueRmDkSymbol) && (DoNotBindDeadKeys=0)
             externalKeyStrokeReceived .= key
@@ -306,10 +303,6 @@ TypedLetter(key) {
       TrueRmDkSymbol := ""
       global lastTypedSince := A_TickCount
    }
-   if (enableAltGr=1) && (StickyKeys=1) && (AltGrPressed>0)
-      backTypedAltGr := typed
-
-   AltGrPressed := 0
    return typed
 }
 
@@ -398,7 +391,6 @@ CalcVisibleText() {
    }
 
    visibleTextField := typed
-
    maxTextLimit := 0
    text_width0 := GetTextExtentPoint(typed, FontName, FontSize) / (OSDautosizeFactory/100)
    if (text_width0 > maxAllowedGuiWidth) && typed
@@ -659,7 +651,7 @@ st_delete(string, start=1, length=1) {
       return substr(string " ", 1, start-length-1) SubStr(string " ", ((start<0) ? start : 0), -1)
 }
 
-toUnicodeExtended(uVirtKey,uScanCode,wFlags:=0) {
+toUnicodeExtended(uVirtKey,uScanCode,shiftPressed:=0,AltGrPressed:=0,wFlags:=0) {
 ; Many thanks to Helgef:
 ; https://autohotkey.com/boards/viewtopic.php?f=5&t=41065&p=187582#p187582
 
@@ -695,36 +687,15 @@ toUnicodeExtended(uVirtKey,uScanCode,wFlags:=0) {
   VarSetCapacity(lpKeyState,256,0)
   VarSetCapacity(pwszBuff, (cchBuff+1) * (A_IsUnicode ? 2 : 1), 0)  ; this will hold cchBuff (3) characters and the null terminator on both unicode and ansi builds.
 
-  if (shiftPressed=2)
-  {
-     shiftPressed := 1
+  if (shiftPressed=1)
      NumPut(128*shiftPressed, lpKeyState, 0x10, "Uchar")
-  }
 
-  if (AltGrPressed=2)
+  if (AltGrPressed=1)
   {
-     AltGrPressed := 1
      NumPut(128*AltGrPressed, lpKeyState, 0x12, "Uchar")
      NumPut(128*AltGrPressed, lpKeyState, 0x11, "Uchar")
   }
-
-  if (StickyKeys=1)
-  {
-     if (shiftPressed=1)
-        NumPut(128*shiftPressed, lpKeyState, 0x10, "Uchar")
-
-     if (AltGrPressed=1)
-     {
-        NumPut(128*AltGrPressed, lpKeyState, 0x12, "Uchar")
-        NumPut(128*AltGrPressed, lpKeyState, 0x11, "Uchar")
-     }
-  }
-
-  if NumGet(lpKeyState, 0x11, "Uchar") && NumGet(lpKeyState, 0x11, "Uchar") && (StickyKeys=0)
-     AltGrPressed := 1
-
   NumPut(GetKeyState("CapsLock", "T") , &lpKeyState+0, 0x14, "Uchar")
-
   n := DllCall("ToUnicodeEx", "Uint", uVirtKey, "Uint", uScanCode, "UPtr", &lpKeyState, "ptr", &pwszBuff, "Int", cchBuff, "Uint", wFlags, "ptr", hkl)
   n := DllCall("ToUnicodeEx", "Uint", uVirtKey, "Uint", uScanCode, "UPtr", &lpKeyState, "ptr", &pwszBuff, "Int", cchBuff, "Uint", wFlags, "ptr", hkl)
   return StrGet(&pwszBuff, n, "utf-16")
@@ -736,9 +707,6 @@ OnMousePressed() {
 
     if (Visible=1)
        tickcount_start := A_TickCount-500
-
-    shiftPressed := 0
-    AltGrPressed := 0
 
     try {
         key := GetKeyStr()
@@ -812,8 +780,6 @@ OnRLeftPressed() {
         if (DisableTypingMode=1) || prefixed && !((key ~= "i)^(.?Shift \+)"))
            typed := (OnlyTypingMode=1) ? typed : ""
     }
-    shiftPressed := 0
-    AltGrPressed := 0
 }
 
 OnUpDownPressed() {
@@ -893,8 +859,6 @@ OnUpDownPressed() {
         if (DisableTypingMode=1) || prefixed && !((key ~= "i)^(.?Shift \+)"))
            typed := (OnlyTypingMode=1) ? typed : ""
     }
-    shiftPressed := 0
-    AltGrPressed := 0
 }
 
 OnHomeEndPressed() {
@@ -963,8 +927,6 @@ OnHomeEndPressed() {
         if (DisableTypingMode=1) || prefixed && !((key ~= "i)^(.?Shift \+)"))
            typed := (OnlyTypingMode=1) ? typed : ""
     }
-    shiftPressed := 0
-    AltGrPressed := 0
 }
 
 SelectHomeEnd(direction) {
@@ -1037,7 +999,7 @@ OnPGupDnPressed() {
                 if (key ~= "i)^(Page Up)")
                 {
                    if (editingField=3)
-                      backTypedAltGr := typed
+                      backTypeCtrl := typed
                    editingField := (editingField<=1) ? 1 : editingField-1
                    typed := editField%editingField%
                 }
@@ -1045,9 +1007,9 @@ OnPGupDnPressed() {
                 if (key ~= "i)^(Page Down)")
                 {
                    if (editingField=3)
-                      backTypedAltGr := typed
+                      backTypeCtrl := typed
                    editingField := (editingField>=3) ? 3 : editingField+1
-                   typed := (editingField=3) ? backTypedAltGr : editField%editingField%
+                   typed := (editingField=3) ? backTypeCtrl : editField%editingField%
                 }
 
                 CaretPos := (typed=" ") ? StrLen(typed) : StrLen(typed)+1
@@ -1094,8 +1056,6 @@ OnPGupDnPressed() {
         if (StrLen(typed)>1) && (DisableTypingMode=0) && (A_TickCount-lastTypedSince < ReturnToTypingDelay) && (keyCount<10)
            SetTimer, returnToTyped, % -DisplayTime/4.5
     }
-    shiftPressed := 0
-    AltGrPressed := 0
 }
 
 OnKeyPressed() {
@@ -1103,9 +1063,7 @@ OnKeyPressed() {
 
     try {
         backTypeCtrl := typed || (A_TickCount-lastTypedSince > DisplayTimeTyping) ? typed : backTypeCtrl
-        backTypedAltGr := typed ? typed : backTypedAltGr
         key := GetKeyStr()
-        AltGrPressed := 0
         TypingFriendlyKeys := "i)^((.?shift \+ )?(Num|Caps|Scroll|Insert|Tab)|\{|AppsKey|Volume |Media_|Wheel |◐)"
 
         if (enterErasesLine=1) && (SecondaryTypingMode=1) && (key ~= "i)(enter|esc)")
@@ -1150,16 +1108,8 @@ OnKeyPressed() {
         if (A_TickCount-tickcount_start2 < 50) && StrLen(typed)>2 && prefixed
            Return
 
-        AltGrMatcher := "i)^((.?ctrl \+ )?(AltGr|.?Ctrl \+ Alt) \+ (.?shift \+ )?((.)$|(.)[\r\n \,]))|^(altgr .?|.?ctrl \+ (alt|altgr) \+ )"
         if (!(key ~= TypingFriendlyKeys)) && (DisableTypingMode=0)
         {
-           if (key ~= AltGrMatcher) && (DisableTypingMode=0) && (enableAltGr=1)
-           {
-             test := SubStr(key, InStr(key, "+", 0, 0)+2)
-             if (!test)
-                AltGrPressed := 1
-           }
-           backTypedAltGr := !typed && (AltGrPressed=1) && (enableAltGr=1) ? backTypedAltGr : typed
            typed := (OnlyTypingMode=1 || skipRest=1) ? typed : ""
         } else if ((key ~= "i)^((.?Shift \+ )?Tab)") && typed && (DisableTypingMode=0))
         {
@@ -1187,18 +1137,6 @@ OnLetterPressed() {
     if (A_TickCount-lastTypedSince > 2000*strlen(typed)) && strlen(typed)<5 && (OnlyTypingMode=0)
        typed := ""
 
-    if (DisableTypingMode=0)
-    {
-        if InStr(A_ThisHotkey, "+")
-           shiftPressed := 2
-
-        if InStr(A_ThisHotkey, "^!") || InStr(A_ThisHotkey, "<^>")
-        {
-           AltGrPressed := 2
-           backTypedAltGr := !typed ? backTypedAltGr : typed
-        }
-    }
-
     if (A_TickCount-lastTypedSince > ReturnToTypingDelay*1.75) && strlen(typed)>4
        InsertChar2caret(" ")
 
@@ -1213,21 +1151,25 @@ OnLetterPressed() {
         if (typed && DeadKeys=1 && DoNotBindDeadKeys=1)
             sleep, % 20 * typingDelaysScale
 
-        AltGrMatcher := "i)^((.?ctrl \+ )?(AltGr|.?Ctrl \+ Alt) \+ (.?shift \+ )?((.)$|(.)[\r\n \,]))"
-        key := GetKeyStr(1)     ; consider it a letter
+        AltGrMatcher := "i)^((AltGr|.?Alt \+ .?Ctrl|.?Ctrl \+ .?Alt) \+ (.?shift \+ )?((.)$|(.)[\r\n \,]))"
+        ShiftMatcher := "i)^(.?Shift \+ ((.)$|(.)[\r\n \,]))"
+        key := GetKeyStr()
 
         if (prefixed || DisableTypingMode=1)
         {
-            if (key ~= AltGrMatcher) && (DisableTypingMode=0) && (enableAltGr=1) || ((AltGrPressed=1) && (DisableTypingMode=0) && (StrLen(key)<2) && (ShowSingleKey=1) && (StickyKeys=1)) && (enableAltGr=1)
+            typingValidation := (SecondaryTypingMode=0) && (DisableTypingMode=0) ? 1 : 0
+            if ((key ~= AltGrMatcher) && (typingValidation=1) && (enableAltGr=1)) || ((key ~= ShiftMatcher) && (typingValidation=1))
             {
-               typed := (enableAltGr=1) ? TypedLetter(A_ThisHotkey) : ""
-               if ((StrLen(typed)>2) && (OnlyTypingMode=0)) || ((StrLen(typed)>2) && (OnlyTypingMode=1))
+               (enableAltGr=1) && (key ~= AltGrMatcher) ? typed := TypedLetter(A_ThisHotkey)
+               (key ~= ShiftMatcher) ? typed := TypedLetter(A_ThisHotkey)
+               hasTypedNow := 1
+               if ((StrLen(typed)>1) && (OnlyTypingMode=0)) || ((StrLen(typed)>2) && (OnlyTypingMode=1))
                {
                   ShowHotkey(visibleTextField)
                   SetTimer, HideGUI, % -DisplayTimeTyping
                } else
                {
-                  typed := (key ~= AltGrMatcher) && (DisableTypingMode=0) && (enableAltGr=1) ? typed : ""
+                  typed := (hasTypedNow=1) ? typed : ""
                   ShowHotkey(key)
                }
             } else
@@ -1236,32 +1178,23 @@ OnLetterPressed() {
                ShowHotkey(key)
             }
 
-            if (ShowSingleKey=1) && (DisableTypingMode=0)
-            {
-                if (key ~= "i)^(.?Shift \+ ((.)$|(.)[\r\n \,]))")
-                {
-                   TypedLetter(A_ThisHotkey)
-                   ShowHotkey(visibleTextField)
-                }
-            }
             SetTimer, HideGUI, % -DisplayTime
         } else if (SecondaryTypingMode=0)
         {
             TypedLetter(A_ThisHotkey)
             ShowHotkey(visibleTextField)
             SetTimer, HideGUI, % -DisplayTimeTyping
-            shiftPressed := 0
-            AltGrPressed := 0
-            if (beepFiringKeys=1) && (SilentMode=0) && (A_TickCount-tickcount_start > 600) && (keyBeeper=1) || (beepFiringKeys=1) && (SilentMode=0) && (keyBeeper=0)
-               beeperzDefunctions.ahkPostFunction["OnKeyPressed", ""]
         }
+    }
+
+    if (beepFiringKeys=1) && (SilentMode=0) && (A_TickCount-tickcount_start > 600) && (keyBeeper=1) || (beepFiringKeys=1) && (SilentMode=0) && (keyBeeper=0)
+    {
+       if (SecondaryTypingMode=0)
+          beeperzDefunctions.ahkPostFunction["OnKeyPressed", ""]
     }
 }
 
 OnCtrlAction() {
-  if (StickyKeys=1)
-     typed := backTypeCtrl
-
   try {
          key := GetKeyStr()
          ShowHotkey(key)
@@ -1286,8 +1219,6 @@ selectAllText() {
 }
 
 OnCtrlAup() {
-  if (StickyKeys=1)
-     typed := backTypeCtrl
 
   if (ShowSingleKey=1) && (DisableTypingMode=0) && (StrLen(typed)>1)
      selectAllText()
@@ -1304,9 +1235,6 @@ OnCtrlRLeft() {
   Try {
       key := GetKeyStr()
   }
-
-  if (StickyKeys=1)
-     typed := backTypeCtrl
 
   if (StrLen(typed)<3)
   {
@@ -1358,9 +1286,6 @@ OnCtrlDelBack() {
       key := GetKeyStr()
   }
 
-  if (StickyKeys=1)
-     typed := backTypeCtrl
-
   if (StrLen(typed)<3)
   {
       ShowHotkey(key)
@@ -1411,8 +1336,6 @@ OnCtrlDelBack() {
 }
 
 OnCtrlVup() {
-  if (StickyKeys=1)
-     typed := backTypeCtrl
   toPaste := Clipboard
   if (ShowSingleKey=1) && (DisableTypingMode=0) && (StrLen(toPaste)>0)
   {
@@ -1436,9 +1359,6 @@ OnCtrlVup() {
 }
 
 OnCtrlCup() {
-  if (StickyKeys=1)
-     typed := backTypeCtrl
-
   if (StrLen(typed)>3) && (SecondaryTypingMode=1)
   {
      lola2 := "║"
@@ -1462,8 +1382,6 @@ OnCtrlCup() {
 }
 
 OnCtrlXup() {
-  if (StickyKeys=1)
-     typed := backTypeCtrl
 
   if (StrLen(typed)>3)
   {
@@ -1488,8 +1406,6 @@ OnCtrlXup() {
 }
 
 OnCtrlZup() {
-  if (StickyKeys=1)
-     typed := backTypeCtrl
 
   if (StrLen(typed)>0) && (ShowSingleKey=1) && (DisableTypingMode=0)
   {
@@ -1572,9 +1488,6 @@ OnSpacePressed() {
        ShowHotkey(visibleTextField)
        SetTimer, HideGUI, % -DisplayTimeTyping
     }
-
-    shiftPressed := 0
-    AltGrPressed := 0
     OnMSGchar := ""
     OnMSGdeadChar := ""
     TrueRmDkSymbol := ""
@@ -1657,8 +1570,6 @@ OnBspPressed() {
         if (DisableTypingMode=1) ||  (prefixed && !(key ~= "i)^(.?Shift \+ )"))
            typed := (OnlyTypingMode=1) ? typed : ""
     }
-    shiftPressed := 0
-    AltGrPressed := 0
     OnMSGchar := ""
 }
 
@@ -1748,8 +1659,6 @@ OnDelPressed() {
         if (DisableTypingMode=1) ||  (prefixed && !(key ~= "i)^(.?Shift \+ )"))
            typed := (OnlyTypingMode=1) ? typed : ""
     }
-    shiftPressed := 0
-    AltGrPressed := 0
 }
 
 OnNumpadsPressed() {
@@ -1761,7 +1670,7 @@ OnNumpadsPressed() {
        InsertChar2caret(" ")
 
     try {
-        key := GetKeyStr(1)     ; consider it a letter
+        key := GetKeyStr()
         if ((prefixed && !(key ~= "i)^(.?Shift \+ )")) || DisableTypingMode=1)
         {
             typed := (OnlyTypingMode=1) ? typed : ""
@@ -1776,15 +1685,11 @@ OnNumpadsPressed() {
             SetTimer, HideGUI, % -DisplayTimeTyping
         }
     }
-    shiftPressed := 0
-    AltGrPressed := 0
     TrueRmDkSymbol := ¨¨
 }
 
 OnKeyUp() {
     global tickcount_start := A_TickCount
-    shiftPressed := 0
-    AltGrPressed := 0
     SetTimer, capsHighlightDummy, 100, -20
 }
 
@@ -1798,19 +1703,17 @@ OnLetterUp() {
 capsHighlightDummy() {
 
     GetKeyState, CapsState, CapsLock, T
-    If CapsState = D
+    If (CapsState = "D")
        GuiControl, OSD:, CapsDummy, 100
 
-    If CapsState != D
+    If (CapsState != "D")
        GuiControl, OSD:, CapsDummy, 0
 
     SetTimer,, off
 }
 
-OnModPressed() {
+OnMudPressed() {
     backTypeCtrl := typed
-    if (A_TickCount-tickcount_start2 < 40) || (A_TickCount-lastTypedSince < 35)
-       Return
 
     static modifierz := ["LCtrl", "RCtrl", "LAlt", "RAlt", "LShift", "RShift", "LWin", "RWin"]
     static repeatCount := 1
@@ -1818,41 +1721,29 @@ OnModPressed() {
     for i, mod in modifierz
     {
         if GetKeyState(mod)
-           fl_prefix .= mod " + "
+           fl_prefix .= mod "+"
     }
+    StringReplace, keya, A_ThisHotkey, ~*,
+    fl_prefix .= keya "+"
 
-    if GetKeyState("Shift")
+    if InStr(fl_prefix, "Shift")
     {
-       shiftPressed := (shiftPressed=0) ? 1 : shiftPressed
-
        If (StrLen(typed)>1) && (DisableTypingMode=0)
           GuiControl, OSD:, CapsDummy, 60
-
-       if (ShowKeyCountFired=0) && (ShowKeyCount=1) && (A_TickCount-tickcount_start2 > 150)
-          repeatCount := (A_TickCount-tickcount_start2 > 5) ? repeatCount+1 : repeatCount
 
        if (ShiftDisableCaps=1)
           SetCapsLockState, off
     }
 
-    if (StickyKeys=0)
-       fl_prefix := RTrim(fl_prefix, "+ ")
+    if (A_TickCount-tickcount_start2 < 40) || (A_TickCount-lastTypedSince < 35) || (ShowSingleModifierKey=0)
+       Return
 
     fl_prefix := CompactModifiers(fl_prefix)
+    Sort, fl_prefix, U D+
+    fl_prefix := RTrim(fl_prefix, "+")
+    StringReplace, fl_prefix, fl_prefix, +, %A_Space%+%A_Space%, All
 
-    if !fl_prefix {
-       StringReplace, keya, A_ThisHotkey, ~*,
-       fl_prefix := keya ? keya : "Unknown key"
-       fl_prefix := CompactModifiers(fl_prefix)
-       keyCount := 0.1
-       if (DisableTypingMode=0)
-       {
-          shiftPressed := InStr(fl_prefix, "shift") ? 2 : 0
-          AltGrPressed := InStr(fl_prefix, "altgr") ? 2 : 0
-       }
-    }
-
-    if InStr(fl_prefix, modifiers_temp)
+    if InStr(fl_prefix, modifiers_temp) && !typed
     {
         valid_count := 1
         if (repeatCount>1)
@@ -1861,7 +1752,7 @@ OnModPressed() {
     {
         valid_count := 0
         modifiers_temp := fl_prefix
-        if (StickyKeys=0 && !prefixed)
+        if !prefixed
            keyCount := 0.1
     }
 
@@ -1884,7 +1775,7 @@ OnModPressed() {
        ShowKeyCountValid := 0
     }
 
-    if (ShowKeyCountValid=1) && (StickyKeys=0)
+    if (ShowKeyCountValid=1)
     {
         if !InStr(fl_prefix, "+") {
             modifiers_temp := fl_prefix
@@ -1895,9 +1786,9 @@ OnModPressed() {
         }
    }
 
-   if ((strLen(typed)>1) && (fl_prefix ~= "i)^(.?Shift.?.?.?)$") && (visible=1) && (A_TickCount-lastTypedSince < DisplayTimeTyping)) || (ShowSingleKey = 0) || ((A_TickCount-tickcount_start > 1800) && visible && !typed && keycount>7) || (OnlyTypingMode=1)
+   if ((strLen(typed)>1) && (visible=1) && (A_TickCount-lastTypedSince < 5000)) || (ShowSingleKey = 0) || ((A_TickCount-tickcount_start > 1800) && visible && !typed && keycount>7) || (OnlyTypingMode=1)
    {
-      sleep, 5
+      sleep, 0
    } else
    {
       if (ShowSingleModifierKey=1)
@@ -1905,16 +1796,13 @@ OnModPressed() {
          ShowHotkey(fl_prefix)
          SetTimer, HideGUI, % -DisplayTime/2
       }
-      if !InStr(fl_prefix, " + ")
-         SetTimer, returnToTyped, % -DisplayTime/4.5
+      SetTimer, returnToTyped, % -DisplayTime/4
    }
 }
 
-OnModUp() {
-
+OnMudUp() {
     global tickcount_start := A_TickCount
-
-    if (StickyKeys=0) && StrLen(typed)>1
+    if (StrLen(typed)>1)
        SetTimer, returnToTyped, % -DisplayTime/4.5
 }
 
@@ -1961,9 +1849,6 @@ OnDeadKeyPressed() {
      CalcVisibleText()
   }
   SetTimer, returnToTyped, 950, -10
-
-  shiftPressed := 0
-  AltGrPressed := 0
   keyCount := 0.1
 
   if (StrLen(typed)<2)
@@ -2009,9 +1894,6 @@ OnAltGrDeadKeyPressed() {
   if (SecondaryTypingMode=1)
      Return
 
-  if (DisableTypingMode=0) && (ShowSingleKey=1) && (StickyKeys=1)
-     typed := backTypedAltGr
-
   if (AlternativeHook2keys=0)
      sleep, % 85 * typingDelaysScale
   RmDkSymbol := "▫"
@@ -2036,11 +1918,8 @@ OnAltGrDeadKeyPressed() {
 
   if ((ShowDeadKeys=1) && typed && (DisableTypingMode=0) && (ShowSingleKey=1) && AlternativeHook2keys=0)
   {
-       if (StickyKeys=1)
-          typed := backTypedAltGr
        if (typed ~= "i)(▫│)")
        {
-           StringReplace, backTypedAltGr, backTypedAltGr,▫%lola%, %TrueRmDkSymbol%%TrueRmDkSymbol%%lola%
            StringReplace, typed, typed,▫%lola%, %TrueRmDkSymbol%%TrueRmDkSymbol%%lola%
            CalcVisibleText()
            TrueRmDkSymbol := ""
@@ -2051,10 +1930,7 @@ OnAltGrDeadKeyPressed() {
        SetTimer, returnToTyped, 800, -10
   }
 
-  AltGrPressed := 0
-  shiftPressed := 0
   keyCount := 0.1
-
   if ((StrLen(typed)>1) && (DisableTypingMode=0) && TrueRmDkSymbol2 )
   {
      StringReplace, visibleTextField, visibleTextField, %lola%, %TrueRmDkSymbol2%
@@ -2080,8 +1956,6 @@ OnAltGrDeadKeyPressed() {
      ShowHotkey(DeadKeyMods " [dead key]")
      SetTimer, HideGUI, % -DisplayTime
   }
-  if (StickyKeys=1)
-     typed := backTypedAltGr ? typed : backTypedAltGr
 
   if (deadKeyBeeper=1)
      beeperzDefunctions.ahkPostFunction["OnDeathKeyPressed", ""]
@@ -2119,7 +1993,10 @@ CreateOSDGUI() {
     Gui, OSD: +AlwaysOnTop -Caption +Owner +LastFound +ToolWindow +HwndhOSD
     Gui, OSD: Margin, 20, 10
     Gui, OSD: Color, %OSDbgrColor%
-    Gui, OSD: Font, c%OSDtextColor% s%FontSize% bold, %FontName%, -wrap
+    if (showPreview=0)
+       Gui, OSD: Font, c%OSDtextColor% s%FontSize% bold, %FontName%, -wrap
+    else
+       Gui, OSD: Font, c%OSDtextColor%, -wrap
 
     textAlign := "left"
     widtha := A_ScreenWidth - 50
@@ -2157,16 +2034,37 @@ CreateHotkey() {
     if (AutoDetectKBD=1)
        IdentifyKBDlayout()
 
-    static mods_noShift := ["!", "!#", "!#^", "!#^+", "!+", "!+^", "!^", "#", "#!", "#!+", "#!^", "#+^", "#^", "+#", "+^", "^"]
+    static mods_noShift := ["!", "!#", "!#^", "!#^+", "!+", "!+^", "^!", "#", "#!", "#!+", "#!^", "#+^", "#^", "+#", "+^", "^"]
     static mods_list := ["!", "!#", "!#^", "!#^+", "!+", "#", "#!", "#!+", "#!^", "#+^", "#^", "+#", "+^", "^"]
     megaDeadKeysList := DKaltGR_list "." DKshift_list "." DKnotShifted_list
 
-; bind to the lisst of possible letters/chars
+
+    if (DisableTypingMode=0)
+    {
+       Hotkey, ~^vk41, OnCtrlAction, useErrorLevel
+       Hotkey, ~^vk41 Up, OnCtrlAup, useErrorLevel
+       Hotkey, ~^vk43, OnCtrlAction, useErrorLevel   ; ctrl+c
+       Hotkey, ~^vk43 Up, OnCtrlCup, useErrorLevel   ; ctrl+c
+       Hotkey, ~^vk56, OnCtrlAction, useErrorLevel
+       Hotkey, ~^vk56 Up, OnCtrlVup, useErrorLevel
+       Hotkey, ~^vk58, OnCtrlAction, useErrorLevel
+       Hotkey, ~^vk58 Up, OnCtrlXup, useErrorLevel
+       Hotkey, ~^vk5A, OnCtrlAction, useErrorLevel
+       Hotkey, ~^vk5A Up, OnCtrlZup, useErrorLevel
+
+       Hotkey, ~^BackSpace, OnCtrlDelBack, useErrorLevel
+       Hotkey, ~^Del, OnCtrlDelBack, useErrorLevel
+       Hotkey, ~^Left, OnCtrlRLeft, useErrorLevel
+       Hotkey, ~^Right, OnCtrlRLeft, useErrorLevel
+       Hotkey, ~+^Left, OnCtrlRLeft, useErrorLevel
+       Hotkey, ~+^Right, OnCtrlRLeft, useErrorLevel
+    }
+
+; bind to the list of possible letters/chars
     Loop, 256
     {
         k := A_Index
         code := Format("{:x}", k)
-
         n := GetKeyName("vk" code)
 
         if (n = "")
@@ -2307,8 +2205,6 @@ CreateHotkey() {
 
     if (DeadKeys=1) && (DoNotBindDeadKeys=0)
     {
-       StickyKeys := 1
-
        Loop, parse, DKnotShifted_list, .
        {
                backupSymbol := SubStr(A_LoopField, InStr(A_LoopField, "vk")+2, 2)
@@ -2325,27 +2221,22 @@ CreateHotkey() {
 
        Loop, parse, DKShift_list, .
        {
-               shiftPressed := 1
                vk := "0x0" SubStr(A_LoopField, InStr(A_LoopField, "vk", 0, 0)+2)
                sc := "0x0" GetKeySc("vk" vk)
-               if toUnicodeExtended(vk, sc)
-                  SCnames2 .= toUnicodeExtended(vk, sc) "~+" A_LoopField
-               shiftPressed := 0
+               if toUnicodeExtended(vk, sc, 1)
+                  SCnames2 .= toUnicodeExtended(vk, sc, 1) "~+" A_LoopField
        }
        Loop, parse, DKaltGR_list, .
        {
-               AltGrPressed := 1
                vk := "0x0" SubStr(A_LoopField, InStr(A_LoopField, "vk", 0, 0)+2)
                sc := "0x0" GetKeySc("vk" vk)
-               if toUnicodeExtended(vk, sc)
+               if toUnicodeExtended(vk, sc, 0, 1)
                {
-                  SCnames2 .= toUnicodeExtended(vk, sc) "~^!" A_LoopField
-                  SCnames2 .= toUnicodeExtended(vk, sc) "~+^!" A_LoopField
-                  SCnames2 .= toUnicodeExtended(vk, sc) "~<^>!" A_LoopField
+                  SCnames2 .= toUnicodeExtended(vk, sc, 0, 1) "~^!" A_LoopField
+                  SCnames2 .= toUnicodeExtended(vk, sc, 0, 1) "~+^!" A_LoopField
+                  SCnames2 .= toUnicodeExtended(vk, sc, 0, 1) "~<^>!" A_LoopField
                }
-               AltGrPressed := 0
        }
-       IniRead, StickyKeys, %inifile%, SavedSettings, StickyKeys, %StickyKeys%
     }
 
     Hotkey, ~*Left, OnRLeftPressed, useErrorLevel
@@ -2372,27 +2263,6 @@ CreateHotkey() {
     Hotkey, ~*BackSpace Up, OnKeyUp, useErrorLevel
     Hotkey, ~*Space, OnSpacePressed, useErrorLevel
     Hotkey, ~*Space Up, OnKeyUp, useErrorLevel
-
-    if (DisableTypingMode=0)
-    {
-       Hotkey, ~^vk41, OnCtrlAction, useErrorLevel
-       Hotkey, ~^vk41 Up, OnCtrlAup, useErrorLevel
-       Hotkey, ~^vk43, OnCtrlAction, useErrorLevel   ; ctrl+c
-       Hotkey, ~^vk43 Up, OnCtrlCup, useErrorLevel   ; ctrl+c
-       Hotkey, ~^vk56, OnCtrlAction, useErrorLevel
-       Hotkey, ~^vk56 Up, OnCtrlVup, useErrorLevel
-       Hotkey, ~^vk58, OnCtrlAction, useErrorLevel
-       Hotkey, ~^vk58 Up, OnCtrlXup, useErrorLevel
-       Hotkey, ~^vk5A, OnCtrlAction, useErrorLevel
-       Hotkey, ~^vk5A Up, OnCtrlZup, useErrorLevel
-
-       Hotkey, ~^BackSpace, OnCtrlDelBack, useErrorLevel
-       Hotkey, ~^Del, OnCtrlDelBack, useErrorLevel
-       Hotkey, ~^Left, OnCtrlRLeft, useErrorLevel
-       Hotkey, ~^Right, OnCtrlRLeft, useErrorLevel
-       Hotkey, ~+^Left, OnCtrlRLeft, useErrorLevel
-       Hotkey, ~+^Right, OnCtrlRLeft, useErrorLevel
-    }
 
     if (OnlyTypingMode!=1)
     {
@@ -2433,7 +2303,7 @@ CreateHotkey() {
     }
 
     Otherkeys := "WheelDown|WheelUp|WheelLeft|WheelRight|XButton1|XButton2|Browser_Forward|Browser_Back|Browser_Refresh|Browser_Stop|Browser_Search|Browser_Favorites|Browser_Home|Volume_Mute|Volume_Down|Volume_Up|Media_Next|Media_Prev|Media_Stop|Media_Play_Pause|Launch_Mail|Launch_Media|Launch_App1|Launch_App2|Help|Sleep|PrintScreen|CtrlBreak|Break|AppsKey|Tab|Enter|Esc"
-               . "|Insert|CapsLock|ScrollLock|NumLock|Pause|sc146|sc123|sc11d"
+               . "|Insert|CapsLock|ScrollLock|NumLock|Pause|sc146|sc123"
     Loop, parse, Otherkeys, |
     {
         Hotkey, % "~*" A_LoopField, OnKeyPressed, useErrorLevel
@@ -2450,48 +2320,19 @@ CreateHotkey() {
            soundbeep, 1900, 50
     }
 
-    If (StickyKeys=0)
+    for i, mod in ["LShift", "RShift", "LCtrl", "RCtrl", "LAlt", "RAlt", "LWin", "RWin"]
     {
-        for i, mod in ["LShift", "RShift", "LCtrl", "RCtrl", "LAlt", "RAlt", "LWin", "RWin"]
-        {
-           Hotkey, % "~*" mod, OnModPressed, useErrorLevel
-           Hotkey, % "~*" mod " Up", OnModUp, useErrorLevel
-           if (errorlevel!=0) && (audioAlerts=1)
-              soundbeep, 1900, 50
-        }
+       Hotkey, % "~*" mod, OnMudPressed, useErrorLevel
+       Hotkey, % "~*" mod " Up", OnMudUp, useErrorLevel
+       if (errorlevel!=0) && (audioAlerts=1)
+          soundbeep, 1900, 50
     }
-
-    if (StickyKeys=1)
-    {
-        for i, mod in ["LCtrl", "RCtrl", "LAlt", "RAlt", "LWin", "RWin"]
-        {
-            Hotkey, % "~*" mod, OnKeyPressed, useErrorLevel
-            Hotkey, % "~*" mod " Up", OnModUp, useErrorLevel
-            if (errorlevel!=0) && (audioAlerts=1)
-               soundbeep, 1900, 50
-        }
-
-        for i, mod in ["LShift", "RShift"]
-        {
-            Hotkey, % "~*" mod, OnModPressed, useErrorLevel
-            Hotkey, % "~*" mod " Up", OnModUp, useErrorLevel
-            if (errorlevel!=0) && (audioAlerts=1)
-               soundbeep, 1900, 50
-        }
-    }
-    
 }
 
 ShowHotkey(HotkeyStr) {
 ; Sleep, 30 ; megatest
 
     if (HotkeyStr ~= "i)^(\s+)$")
-       Return
-
-    if (HotkeyStr ~= "i)( \+ )$") && !typed && (ShowSingleModifierKey=0) && (StickyKeys=1) || (NeverDisplayOSD=1) ; || (OnlyTypingMode=1)
-       Return
-
-    if (HotkeyStr ~= "i)(Shift \+ )$") && (ShowSingleModifierKey=0) && (StickyKeys=1)
        Return
 
     if (HotkeyStr ~= "i)( \+ )") && !(typed ~= "i)( \+ )") && (OnlyTypingMode=1)
@@ -2605,20 +2446,17 @@ GuiGetSize( ByRef W, ByRef H, vindov) {          ; function by VxE from https://
   H := round(NumGet(rect, 12, "uint" ))
 }
 
-GetKeyStr(letter := 0) {
+GetKeyStr() {
 ; Sleep, 30 ; megatest
 
     modifiers_temp := 0
     static modifiers := ["LCtrl", "RCtrl", "LAlt", "RAlt", "LShift", "RShift", "LWin", "RWin"]
     FriendlyKeyNames := {NumpadDot:"[ . ]", NumpadDiv:"[ / ]", NumpadMult:"[ * ]", NumpadAdd:"[ + ]", NumpadSub:"[ - ]", numpad0:"[ 0 ]", numpad1:"[ 1 ]", numpad2:"[ 2 ]", numpad3:"[ 3 ]", numpad4:"[ 4 ]", numpad5:"[ 5 ]", numpad6:"[ 6 ]", numpad7:"[ 7 ]", numpad8:"[ 8 ]", numpad9:"[ 9 ]", NumpadEnter:"[Enter]", NumpadDel:"[Delete]", NumpadIns:"[Insert]", NumpadHome:"[Home]", NumpadEnd:"[End]", NumpadUp:"[Up]", NumpadDown:"[Down]", NumpadPgdn:"[Page Down]", NumpadPgup:"[Page Up]", NumpadLeft:"[Left]", NumpadRight:"[Right]", NumpadClear:"[Clear]", Media_Play_Pause:"Media_Play/Pause", MButton:"Middle Click", RButton:"Right Click", Del:"Delete", PgUp:"Page Up", PgDn:"Page Down"}
 
-    ; If any mod but Shift, go ; If shift, check if not letter
-
     for i, mod in modifiers
     {
-        if ((InStr(mod, "Shift", true) && typed) ? (!letter && GetKeyState(mod)) : GetKeyState(mod))
-    ;    if GetKeyState(mod)
-            prefix .= mod " + "
+        if GetKeyState(mod)
+           prefix .= mod "+"
     }
 
     if (!prefix && !ShowSingleKey)
@@ -2626,42 +2464,13 @@ GetKeyStr(letter := 0) {
 
     key := A_ThisHotkey
     StringRight, backupKey, key, 1
-    key := RegExReplace(key, "i)^(~\+\$.?)$", "[ ▪ ]")
+    key := RegExReplace(key, "i)^(~\+\$vk)", "vk")
     key := RegExReplace(key, "i)^(~\+\^!|~\+<!<\^|~\+<!>\^|~\+<\^>!|~<\^>!|~!#\^\+|~<\^<!|~>\^>!|~\^!|~#!\+|~#!\^|~#\+\^|~\+!\^|~!#\^|~!\+\^|~!#|~\+#|~#\^|~!\+|~!\^|~\+\^|~#!|~\*|~\^|~!|~#|~\+)")
     StringReplace, key, key, ~,
 
-    if (GetKeyState("Shift") && (ShiftDisableCaps=1))
-       SetCapsLockState, off
-
     if (key ~= "i)^(LCtrl|RCtrl|LShift|RShift|LAlt|RAlt|LWin|RWin)$")
     {
-        if (ShowSingleKey = 0) || ((A_TickCount-tickcount_start > 1800) && visible && !typed && keycount>5)
-        {
-            throw
-        } else
-        {
-            backupKey := key
-            key := ""
-            if (StickyKeys=0)
-               throw
-        }
-
-        prefix := CompactModifiers(prefix)
-        if (!prefix && !key)
-        {
-           if backupKey
-              prefix := backupKey ? "{" backupKey "}" : "{unknown key}"
-           keyCount := 0.1
-           prefix := CompactModifiers(prefix)
-           if InStr(prefix, "altgr")
-           {
-              prefix :=  "AltGr +"
-              AltGrPressed := 2
-              backTypedAltGr := !typed ? backTypedAltGr : typed
-           }
-           if (ShowSingleModifierKey=0) && !InStr(prefix, " +")
-              prefix := ""
-        }
+        throw
     } else
     {
         backupKey := !key ? backupKey : key
@@ -2719,11 +2528,10 @@ GetKeyStr(letter := 0) {
             }
             key := "Left Click"
         }
-
         _key := key        ; what's this for? :)
-
         prefix := CompactModifiers(prefix)
-
+        Sort, prefix, U D+
+        StringReplace, prefix, prefix, +, %A_Space%+%A_Space%, All
         static pre_prefix, pre_key
         StringUpper, key, key, T
         if InStr(key, "lock on")
@@ -2767,7 +2575,7 @@ GetKeyStr(letter := 0) {
            ShowKeyCountValid := 0
         }
         
-        if (InStr(prefix, "+")) || ((!letter) && DisableTypingMode=0) || (DisableTypingMode=1)
+        if (!typed && visible=1)
         {
             if (prefix != pre_prefix)
             {
@@ -2786,36 +2594,26 @@ GetKeyStr(letter := 0) {
         pre_prefix := prefix
         pre_key := _key
     }
-
     prefixed := prefix ? 1 : 0
     return result ? result : prefix . key
 }
 
-CompactModifiers(stringy) {
-
-    if (DifferModifiers = 1)
+CompactModifiers(ztr) {
+    if (DifferModifiers = 0)
     {
-        StringReplace, stringy, stringy, LCtrl + RAlt, AltGr, All
-        StringReplace, stringy, stringy, LCtrl + RCtrl + RAlt, RCtrl + AltGr, All
-        StringReplace, stringy, stringy, RAlt, AltGr, All
-        StringReplace, stringy, stringy, LAlt, Alt, All
-    } else if (DifferModifiers = 0)
-    {
-        StringReplace, stringy, stringy, LCtrl + RAlt, AltGr, All
-        ; StringReplace, stringy, stringy, LCtrl + RCtrl + RAlt, RCtrl + AltGr, All
-        StringReplace, stringy, stringy, LCtrl, Ctrl, All
-        StringReplace, stringy, stringy, RCtrl, Ctrl, All
-        StringReplace, stringy, stringy, LShift, Shift, All
-        StringReplace, stringy, stringy, RShift, Shift, All
-        StringReplace, stringy, stringy, LAlt, Alt, All
-        StringReplace, stringy, stringy, LWin, WinKey, All
-        StringReplace, stringy, stringy, RWin, WinKey, All
-        StringReplace, stringy, stringy, Ctrl + Ctrl, Ctrl, All
-        StringReplace, stringy, stringy, Shift + Shift, Shift, All
-        StringReplace, stringy, stringy, WinKey + WinKey, WinKey, All
-        StringReplace, stringy, stringy, RAlt, AltGr, All
+        StringReplace, ztr, ztr, LCtrl+RAlt, AltGr, All
+        StringReplace, ztr, ztr, AltGr+RAlt, AltGr, All
+        StringReplace, ztr, ztr, AltGr+LCtrl, AltGr, All
+        StringReplace, ztr, ztr, LCtrl, Ctrl, All
+        StringReplace, ztr, ztr, RCtrl, Ctrl, All
+        StringReplace, ztr, ztr, LShift, Shift, All
+        StringReplace, ztr, ztr, RShift, Shift, All
+        StringReplace, ztr, ztr, LAlt, Alt, All
+        StringReplace, ztr, ztr, LWin, WinKey, All
+        StringReplace, ztr, ztr, RWin, WinKey, All
+        StringReplace, ztr, ztr, RAlt, AltGr, All
     }
-    return stringy
+    return ztr
 }
 
 GetCrayCrayState(key) {
@@ -3363,7 +3161,7 @@ sendOSDcontent2() {
 }
 
 sendOSDcontent() {
-  typed := backTypeCtrl ? backtypeCtrl : backtypedAltGr
+  typed := backtypeCtrl
 
   if (StrLen(typed)>2)
   {
@@ -3377,7 +3175,11 @@ sendOSDcontent() {
         Sendinput ^a
         sleep, 25
      }
-     Sendinput {raw}%typed%
+     (substr(A_OSVersion, 1, 2) = 10) ? textPaste := 1
+     if (textPaste=1)
+         Sendinput {text}%typed%
+     else
+         Sendinput {raw}%typed%
      sleep, 25
      CaretPos := StrLen(typed)+1
      typed := ST_Insert(lola, typed, CaretPos)
@@ -4216,9 +4018,6 @@ ShowKBDsettings() {
     Gui, SettingsGUIA: add, text, x260 y15, Display behavior:
     Gui, Add, Checkbox, xp+10 yp+20 gVerifyKeybdOptions Checked%ShowSingleKey% vShowSingleKey, Show single keys
     Gui, Add, Checkbox, xp+0 yp+20 Checked%HideAnnoyingKeys% vHideAnnoyingKeys, Hide Left Click and PrintScreen
-    Gui, Font, Bold
-    Gui, Add, Checkbox, xp+0 yp+20 Checked%StickyKeys% vStickyKeys, Sticky keys mode
-    Gui, Font, Normal
     Gui, Add, Checkbox, xp+0 yp+20 gVerifyKeybdOptions Checked%ShowSingleModifierKey% vShowSingleModifierKey, Display modifiers
     Gui, Add, Checkbox, xp+0 yp+20 Checked%DifferModifiers% vDifferModifiers, Differ left and right modifiers
     Gui, Add, Checkbox, xp+0 yp+20 gVerifyKeybdOptions Checked%ShowKeyCount% vShowKeyCount, Show key count
@@ -4232,7 +4031,7 @@ ShowKBDsettings() {
     Gui, Add, Checkbox, xp+0 yp+20 Checked%ClipMonitor% vClipMonitor, Monitor clipboard changes
     Gui, Add, Checkbox, xp+0 yp+20 w190 gVerifyKeybdOptions Checked%hostCaretHighlight% vhostCaretHighlight, Highlight text cursor in host app (if detectable)
 
-    Gui, SettingsGUIA: add, Button, x15 yp+0 w70 h30 Default gApplySettings, A&pply
+    Gui, SettingsGUIA: add, Button, x15 yp+10 w70 h30 Default gApplySettings, A&pply
     Gui, SettingsGUIA: add, Button, xp+75 yp+0 w70 h30 gCloseSettings, C&ancel
     Gui, SettingsGUIA: show, autoSize, Keyboard settings: KeyPress OSD
     VerifyKeybdOptions()
@@ -4395,20 +4194,18 @@ setColors(hC, event, c, err=0) {
   if (event != "Normal")
     return
   g := A_Gui, ctrl := A_GuiControl
-  r := Dlg_Color(%ctrl%, hC)
+  r := %ctrl% := hexRGB(Dlg_Color(%ctrl%, hC))
   Critical, %oc%
-  if ErrorLevel
-    return
-  r := %ctrl% := SubStr(hexRGB(r), 3)
   GuiControl, %g%:+Background%r%, %ctrl%
   Sleep, 100
-  OSDpreview()
+  if %ctrl% not in MouseHaloColor
+     OSDpreview()
 }
 
 hexRGB(c) {
-  setformat, IntegerFast, H
-  r := ((c&255)<<16)+(c&65280)+((c&0xFF0000)>>16),c:=SubStr(r,1)
-  SetFormat, IntegerFast, D
+  r := ((c&255)<<16)+(c&65280)+((c&0xFF0000)>>16)
+  c := "000000"
+  DllCall("msvcrt\sprintf", "AStr", c, "AStr", "%06X", "UInt", r, "CDecl")
   return c
 }
 
@@ -4515,6 +4312,16 @@ VerifyMouseOptions() {
     }
 }
 
+
+UpdateFntNow() {
+  global
+  Fnt_DeleteFont(hfont)
+  fntNamus := FontName
+  fntOptions := "s" FontSize " bold"
+  hFont := Fnt_CreateFont(fntNamus,fntOptions)
+  Fnt_SetFont(hOSDctrl,hfont,true)
+}
+
 OSDpreview() {
     Gui, SettingsGUIA: Submit, NoHide
     if (A_TickCount-tickcount_start2 < 150)
@@ -4541,9 +4348,11 @@ OSDpreview() {
 
     GuiX := GuiX ? GuiX : GuiXa
     GuiY := GuiY ? GuiY : GuiYa
-
     CreateOSDGUI()
+    UpdateFntNow()
     GuiControl, OSD:, CapsDummy, 100
+    TextHeight := FontSize*2
+    GuiControl, OSD: Move, HotkeyText, h%TextHeight%
     ShowHotkey(previewWindowText)
 }
 
@@ -4578,7 +4387,7 @@ ShowOSDsettings() {
     Gui, Add, ListView, xp-60 yp+25 w55 h20 %cclvo% Background%CapsColorHighlight% vCapsColorHighlight hwndhLV3,
     Gui, Add, ListView, xp+60 yp+0 w55 h20 %cclvo% Background%TypingColorHighlight% vTypingColorHighlight hwndhLV5,
     Gui, Add, Edit, xp-60 yp+25 w55 r1 limit2 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF6, %DisplayTimeUser%
-    Gui, Add, UpDown, vDisplayTimeUser Range2-99, %DisplayTimeUser%
+    Gui, Add, UpDown, vDisplayTimeUser Range1-99, %DisplayTimeUser%
     Gui, Add, Edit, xp+60 yp+0 w55 r1 limit2 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF10, %DisplayTimeTypingUser%
     Gui, Add, UpDown, vDisplayTimeTypingUser Range2-99, %DisplayTimeTypingUser%
     Gui, Add, Edit, xp-60 yp+25 w55 r1 limit4 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF7, %GuiWidth%
@@ -4681,7 +4490,6 @@ VerifyOsdOptions() {
         GuiControl, Enable, maxGuiWidth
         GuiControl, Enable, editF8
     }
-
     OSDpreview()
 }
 
@@ -4716,46 +4524,6 @@ LocatePositionB() {
     {
         Return
     }
-}
-
-Fnt_GetListOfFonts() {
-; function stripped down from Font Library 3.0 by jballi
-; from https://autohotkey.com/boards/viewtopic.php?t=4379
-
-    Static Dummy65612414
-          ,HWND_DESKTOP := 0  ;-- Device constants
-          ,LF_FACESIZE := 32  ;-- In TCHARS - LOGFONT constants
-
-    ;-- Initialize and populate LOGFONT structure
-    Fnt_EnumFontFamExProc_List := ""
-    p_CharSet := 1
-    p_Flags := 0x800
-    VarSetCapacity(LOGFONT,A_IsUnicode ? 92:60,0)
-    NumPut(p_CharSet,LOGFONT,23,"UChar")                ;-- lfCharSet
-
-    ;-- Enumerate fonts
-    hDC := DllCall("GetDC","Ptr",HWND_DESKTOP)
-    DllCall("EnumFontFamiliesEx"
-        ,"Ptr",hDC                                      ;-- hdc
-        ,"Ptr",&LOGFONT                                 ;-- lpLogfont
-        ,"Ptr",RegisterCallback("Fnt_EnumFontFamExProc","Fast")
-            ;-- lpEnumFontFamExProc
-        ,"Ptr",p_Flags                                  ;-- lParam
-        ,"UInt",0)                                      ;-- dwFlags (must be 0)
-
-    DllCall("ReleaseDC","Ptr",HWND_DESKTOP,"Ptr",hDC)
-    Return Fnt_EnumFontFamExProc_List
-}
-
-Fnt_EnumFontFamExProc(lpelfe,lpntme,FontType,p_Flags) {
-    Fnt_EnumFontFamExProc_List := 0
-    Static Dummy62479817
-           ;-- LOGFONT constants
-           ,LF_FACESIZE := 32  ;-- In TCHARS
-
-    l_FaceName := StrGet(lpelfe+28,LF_FACESIZE)
-    FontList.Push(l_FaceName)    ;-- Append the font name to the list
-    Return True  ;-- Continue enumeration
 }
 
 trimArray(arr) { ; Hash O(n) 
@@ -5337,7 +5105,6 @@ ShaveSettings() {
   IniWrite, %ShowSingleKey%, %inifile%, SavedSettings, ShowSingleKey
   IniWrite, %ShowSingleModifierKey%, %inifile%, SavedSettings, ShowSingleModifierKey
   IniWrite, %SilentDetection%, %inifile%, SavedSettings, SilentDetection
-  IniWrite, %StickyKeys%, %inifile%, SavedSettings, StickyKeys
   IniWrite, %synchronizeMode%, %inifile%, SavedSettings, synchronizeMode
   IniWrite, %UpDownAsHE%, %inifile%, SavedSettings, UpDownAsHE
   IniWrite, %UpDownAsLR%, %inifile%, SavedSettings, UpDownAsLR
@@ -5435,7 +5202,6 @@ LoadSettings() {
   IniRead, ShowSingleKey, %inifile%, SavedSettings, ShowSingleKey, %ShowSingleKey%
   IniRead, ShowSingleModifierKey, %inifile%, SavedSettings, ShowSingleModifierKey, %ShowSingleModifierKey%
   IniRead, SilentDetection, %inifile%, SavedSettings, SilentDetection, %SilentDetection%
-  IniRead, StickyKeys, %inifile%, SavedSettings, StickyKeys, %StickyKeys%
   IniRead, synchronizeMode, %inifile%, SavedSettings, synchronizeMode, %synchronizeMode%
   IniRead, UpDownAsHE, %inifile%, SavedSettings, UpDownAsHE, %UpDownAsHE%
   IniRead, UpDownAsLR, %inifile%, SavedSettings, UpDownAsLR, %UpDownAsLR%
@@ -5517,7 +5283,6 @@ CheckSettings() {
     ShowSingleKey := (ShowSingleKey=0 || ShowSingleKey=1) ? ShowSingleKey : 1
     ShowSingleModifierKey := (ShowSingleModifierKey=0 || ShowSingleModifierKey=1) ? ShowSingleModifierKey : 1
     SilentDetection := (SilentDetection=0 || SilentDetection=1) ? SilentDetection : 1
-    StickyKeys := (StickyKeys=0 || StickyKeys=1) ? StickyKeys : 0
     synchronizeMode := (synchronizeMode=0 || synchronizeMode=1) ? synchronizeMode : 0
     UpDownAsHE := (UpDownAsHE=0 || UpDownAsHE=1) ? UpDownAsHE : 0
     UpDownAsLR := (UpDownAsLR=0 || UpDownAsLR=1) ? UpDownAsLR : 0
@@ -5608,7 +5373,7 @@ CheckSettings() {
 
 ; verify minimum numeric values
     ClickScaleUser := (ClickScaleUser < 3) ? 3 : round(ClickScaleUser)
-    DisplayTimeUser := (DisplayTimeUser < 2) ? 2 : round(DisplayTimeUser)
+    DisplayTimeUser := (DisplayTimeUser < 1) ? 1 : round(DisplayTimeUser)
     DisplayTimeTypingUser := (DisplayTimeTypingUser < 3) ? 3 : round(DisplayTimeTypingUser)
     ReturnToTypingUser := (ReturnToTypingUser < DisplayTimeTypingUser) ? DisplayTimeTypingUser+1 : round(ReturnToTypingUser)
     FontSize := (FontSize < 6) ? 7 : round(FontSize)
@@ -5658,29 +5423,28 @@ CheckSettings() {
 
 ; verify HEX values
 
-   if (forcedKBDlayout1 ~= "[^[:xdigit:]]") || (strLen(forcedKBDlayout1) < 8) || (strLen(forcedKBDlayout1) > 8)
+   if (forcedKBDlayout1 ~= "[^[:xdigit:]]") || (strLen(forcedKBDlayout1)!=6)
       ForcedKBDlayout1 := "00010418"
 
-   if (forcedKBDlayout2 ~= "[^[:xdigit:]]") || (strLen(forcedKBDlayout2) < 8) || (strLen(forcedKBDlayout2) > 8)
+   if (forcedKBDlayout2 ~= "[^[:xdigit:]]") || (strLen(forcedKBDlayout2)!=6)
       ForcedKBDlayout2 := "0000040c"
 
-   if (OSDbgrColor ~= "[^[:xdigit:]]") || (strLen(OSDbgrColor) < 6) || (strLen(OSDbgrColor) > 6)
+   if (OSDbgrColor ~= "[^[:xdigit:]]") || (strLen(OSDbgrColor)!=6)
       OSDbgrColor := "131209"
 
-   if (CapsColorHighlight ~= "[^[:xdigit:]]") || (strLen(CapsColorHighlight) < 6) || (strLen(CapsColorHighlight) > 6)
+   if (CapsColorHighlight ~= "[^[:xdigit:]]") || (strLen(CapsColorHighlight)!=6)
       CapsColorHighlight := "88AAff"
 
-   if (MouseHaloColor ~= "[^[:xdigit:]]") || (strLen(MouseHaloColor) < 6) || (strLen(MouseHaloColor) > 6)
+   if (MouseHaloColor ~= "[^[:xdigit:]]") || (strLen(MouseHaloColor)!=6)
       MouseHaloColor := "eedd00"
 
-   if (TypingColorHighlight ~= "[^[:xdigit:]]") || (strLen(TypingColorHighlight) < 6) || (strLen(TypingColorHighlight) > 6)
+   if (TypingColorHighlight ~= "[^[:xdigit:]]") || (strLen(TypingColorHighlight)!=6)
       TypingColorHighlight := "12E217"
 ;
-   if (OSDtextColor ~= "[^[:xdigit:]]") || (strLen(OSDtextColor) < 6) || (strLen(OSDtextColor) > 6)
+   if (OSDtextColor ~= "[^[:xdigit:]]") || (strLen(OSDtextColor)!=6)
       OSDtextColor := "FFFEFA"
 
    FontName := (StrLen(FontName)>2) ? FontName : "Arial"
-
 }
 
 createTypingWindow() {
@@ -5726,7 +5490,6 @@ ToggleSecondaryTypingMode() {
        typed := (sendKeysRealTime=1) ? backTypeCtrl : ""
        if (sendKeysRealTime=0)
        {
-           backTypedAltGr := ""
            backTypeCtrl := ""
            visibleTextField := " │"
        }
@@ -5757,7 +5520,6 @@ checkTypingWindow() {
    IfWinNotActive, KeyPressOSDtyping
    {
        backTypeCtrl := typed || (A_TickCount-lastTypedSince > DisplayTimeTyping) ? typed : backTypeCtrl
-       backTypedAltGr := typed
        Sleep, 200
        if (pasteOnClick=1) && (sendKeysRealTime=0)
           sendOSDcontent()
@@ -5771,7 +5533,7 @@ CharMSG(wParam, lParam) {
        Return
 
     OnMSGchar := chr(wParam)
-    if RegExMatch(OnMSGchar, "[\p{L}\p{Mn}\p{Mc}\p{N}\p{P}\p{Sm}\p{Sc}\p{Sk}]")
+    if RegExMatch(OnMSGchar, "[\p{L}\p{Mn}\p{Mc}\p{N}\p{P}\p{S}]")
     {
        InsertChar2caret(OnMSGchar)
        if (sendKeysRealTime=1)
@@ -5779,8 +5541,6 @@ CharMSG(wParam, lParam) {
     }
     global deadKeyPressed := 9900
     global lastTypedSince := A_TickCount
-    shiftPressed := 0
-    AltGrPressed := 0
     OnMSGchar := ""
     OnMSGdeadChar := ""
     CalcVisibleText()
@@ -5802,10 +5562,7 @@ deadCharMSG(wParam, lParam) {
   OnMSGdeadChar := chr(wParam) ; & 0xFFFF
   lola := "│"
   StringReplace, visibleTextField, visibleTextField, %lola%, %OnMSGdeadChar%
-  backTypedAltGr := typed
   ShowHotkey(visibleTextField)
-  shiftPressed := 0
-  AltGrPressed := 0
   global deadKeyPressed := A_TickCount
   if (deadKeyBeeper=1)
      beeperzDefunctions.ahkPostFunction["OnDeathKeyPressed", ""]
@@ -5977,40 +5734,298 @@ checkIfRunning() {
     }
 }
 
-/*
-#SPACE::
-Return
-*/
-
 KeyStrokeReceiver(wParam, lParam) {
     if TrueRmDkSymbol && (A_TickCount-deadKeyPressed < 9000) && (SecondaryTypingMode=0) && (prefOpen=0) || (DeadKeys=0) && (A_TickCount-deadKeyPressed < 9000) && (SecondaryTypingMode=0) && (prefOpen=0) || (DoNotBindDeadKeys=1) && (SecondaryTypingMode=0) && (prefOpen=0)
     {
        StringAddress := NumGet(lParam + 2*A_PtrSize)  ; Retrieves the CopyDataStruct's lpData member.
        testKey := StrGet(StringAddress)  ; Copy the string out of the structure.
-       if RegExMatch(testKey, "[\p{L}\p{Mn}\p{Mc}\p{N}\p{P}\p{Sm}\p{Sc}\p{Sk}]")
+       if RegExMatch(testKey, "[\p{L}\p{Mn}\p{Mc}\p{N}\p{P}\p{S}]")
           externalKeyStrokeReceived := testKey
     }
     return true
 }
 
+; The following functions were extracted from Font Library 3.0 for AHK -------------------------------
+; -----------------------------------------------------------------------------------------------------
+Fnt_SetFont(hControl,hFont:="",p_Redraw:=False) {
+    Static Dummy30050039
+          ,DEFAULT_GUI_FONT:=17
+          ,OBJ_FONT        :=6
+          ,WM_SETFONT      := 0x30
 
-modsTimer() {
-    Critical, Off
-    Thread, Priority, -50
-    static modifiers := ["LCtrl", "RCtrl", "LAlt", "RAlt", "LShift", "RShift", "LWin", "RWin"]
+    ;-- If needed, get the handle to the default GUI font
+    if (DllCall("GetObjectType","Ptr",hFont)<>OBJ_FONT)
+        hFont:=DllCall("GetStockObject","Int",DEFAULT_GUI_FONT)
 
-    for i, mod in modifiers
-    {
-        if GetKeyState(mod)
-        {
-           Prefix .= mod " | "
-           Prefix := CompactModifiers(Prefix)
-        }
-    }
-        if (globalPrefix!=Prefix && !typed && Prefix)
-        {
-           ShowHotkey(Prefix)
-           SetTimer, HideGUI, % -DisplayTime
-        }
-        globalPrefix := Prefix
+    ;-- Set font
+    l_DetectHiddenWindows:=A_DetectHiddenWindows
+    DetectHiddenWindows On
+    SendMessage WM_SETFONT,hFont,p_Redraw,,ahk_id %hControl%
+    DetectHiddenWindows %l_DetectHiddenWindows%
 }
+
+Fnt_CreateFont(p_Name:="",p_Options:="") {
+    Static Dummy34361446
+
+          ;-- Misc. font constants
+          ,LOGPIXELSY:=90
+          ,CLIP_DEFAULT_PRECIS:=0
+          ,DEFAULT_CHARSET    :=1
+          ,DEFAULT_GUI_FONT   :=17
+          ,OUT_TT_PRECIS      :=4
+
+          ;-- Font family
+          ,FF_DONTCARE  :=0x0
+          ,FF_ROMAN     :=0x1
+          ,FF_SWISS     :=0x2
+          ,FF_MODERN    :=0x3
+          ,FF_SCRIPT    :=0x4
+          ,FF_DECORATIVE:=0x5
+
+          ;-- Font pitch
+          ,DEFAULT_PITCH :=0
+          ,FIXED_PITCH   :=1
+          ,VARIABLE_PITCH:=2
+
+          ;-- Font quality
+          ,DEFAULT_QUALITY       :=0
+          ,DRAFT_QUALITY         :=1
+          ,PROOF_QUALITY         :=2  ;-- AutoHotkey default
+          ,NONANTIALIASED_QUALITY:=3
+          ,ANTIALIASED_QUALITY   :=4
+          ,CLEARTYPE_QUALITY     :=5
+
+          ;-- Font weight
+          ,FW_DONTCARE:=0
+          ,FW_NORMAL  :=400
+          ,FW_BOLD    :=700
+
+    ;-- Parameters
+    ;   Remove all leading/trailing white space
+    p_Name   :=Trim(p_Name," `f`n`r`t`v")
+    p_Options:=Trim(p_Options," `f`n`r`t`v")
+
+    ;-- If both parameters are null or unspecified, return the handle to the
+    ;   default GUI font.
+    if (p_Name="" and p_Options="")
+        Return DllCall("GetStockObject","Int",DEFAULT_GUI_FONT)
+
+    ;-- Initialize options
+    o_Height   :=""             ;-- Undefined
+    o_Italic   :=False
+    o_Quality  :=PROOF_QUALITY  ;-- AutoHotkey default
+    o_Size     :=""             ;-- Undefined
+    o_Strikeout:=False
+    o_Underline:=False
+    o_Weight   :=FW_DONTCARE
+
+    ;-- Extract options (if any) from p_Options
+    Loop Parse,p_Options,%A_Space%
+        {
+        if A_LoopField is Space
+            Continue
+
+        if (SubStr(A_LoopField,1,4)="bold")
+            o_Weight:=1000
+        else if (SubStr(A_LoopField,1,6)="italic")
+            o_Italic:=True
+        else if (SubStr(A_LoopField,1,4)="norm")
+            {
+            o_Italic   :=False
+            o_Strikeout:=False
+            o_Underline:=False
+            o_Weight   :=FW_DONTCARE
+            }
+        else if (A_LoopField="-s")
+            o_Size:=0
+        else if (SubStr(A_LoopField,1,6)="strike")
+            o_Strikeout:=True
+        else if (SubStr(A_LoopField,1,9)="underline")
+            o_Underline:=True
+        else if (SubStr(A_LoopField,1,1)="h")
+            {
+            o_Height:=SubStr(A_LoopField,2)
+            o_Size  :=""  ;-- Undefined
+            }
+        else if (SubStr(A_LoopField,1,1)="q")
+            o_Quality:=SubStr(A_LoopField,2)
+        else if (SubStr(A_LoopField,1,1)="s")
+            {
+            o_Size  :=SubStr(A_LoopField,2)
+            o_Height:=""  ;-- Undefined
+            }
+        else if (SubStr(A_LoopField,1,1)="w")
+            o_Weight:=SubStr(A_LoopField,2)
+        }
+
+    ;-- Convert/Fix invalid or
+    ;-- unspecified parameters/options
+    if p_Name is Space
+        p_Name:=Fnt_GetFontName()   ;-- Font name of the default GUI font
+
+    if o_Height is not Integer
+        o_Height:=""                ;-- Undefined
+
+    if o_Quality is not Integer
+        o_Quality:=PROOF_QUALITY    ;-- AutoHotkey default
+
+    if o_Size is Space              ;-- Undefined
+        o_Size:=Fnt_GetFontSize()   ;-- Font size of the default GUI font
+     else
+        if o_Size is not Integer
+            o_Size:=""              ;-- Undefined
+         else
+            if (o_Size=0)
+                o_Size:=""          ;-- Undefined
+
+    if o_Weight is not Integer
+        o_Weight:=FW_DONTCARE       ;-- A font with a default weight is created
+
+    ;-- If needed, convert point size to em height
+    if o_Height is Space        ;-- Undefined
+        if o_Size is Integer    ;-- Allows for a negative size (emulates AutoHotkey)
+            {
+            hDC:=DllCall("CreateDC","Str","DISPLAY","Ptr",0,"Ptr",0,"Ptr",0)
+            o_Height:=-Round(o_Size*DllCall("GetDeviceCaps","Ptr",hDC,"Int",LOGPIXELSY)/72)
+            DllCall("DeleteDC","Ptr",hDC)
+            }
+
+    if o_Height is not Integer
+        o_Height:=0                 ;-- A font with a default height is created
+
+    ;-- Create font
+    hFont:=DllCall("CreateFont"
+        ,"Int",o_Height                                 ;-- nHeight
+        ,"Int",0                                        ;-- nWidth
+        ,"Int",0                                        ;-- nEscapement (0=normal horizontal)
+        ,"Int",0                                        ;-- nOrientation
+        ,"Int",o_Weight                                 ;-- fnWeight
+        ,"UInt",o_Italic                                ;-- fdwItalic
+        ,"UInt",o_Underline                             ;-- fdwUnderline
+        ,"UInt",o_Strikeout                             ;-- fdwStrikeOut
+        ,"UInt",DEFAULT_CHARSET                         ;-- fdwCharSet
+        ,"UInt",OUT_TT_PRECIS                           ;-- fdwOutputPrecision
+        ,"UInt",CLIP_DEFAULT_PRECIS                     ;-- fdwClipPrecision
+        ,"UInt",o_Quality                               ;-- fdwQuality
+        ,"UInt",(FF_DONTCARE<<4)|DEFAULT_PITCH          ;-- fdwPitchAndFamily
+        ,"Str",SubStr(p_Name,1,31))                     ;-- lpszFace
+
+    Return hFont
+}
+
+Fnt_DeleteFont(hFont) {
+    if not hFont  ;-- Zero or null
+        Return True
+
+    Return DllCall("DeleteObject","Ptr",hFont) ? True:False
+}
+
+Fnt_GetFontName(hFont:="") {
+    Static Dummy87890484
+          ,DEFAULT_GUI_FONT    :=17
+          ,HWND_DESKTOP        :=0
+          ,OBJ_FONT            :=6
+          ,MAX_FONT_NAME_LENGTH:=32     ;-- In TCHARS
+
+    ;-- If needed, get the handle to the default GUI font
+    if (DllCall("GetObjectType","Ptr",hFont)<>OBJ_FONT)
+        hFont:=DllCall("GetStockObject","Int",DEFAULT_GUI_FONT)
+
+    ;-- Select the font into the device context for the desktop
+    hDC      :=DllCall("GetDC","Ptr",HWND_DESKTOP)
+    old_hFont:=DllCall("SelectObject","Ptr",hDC,"Ptr",hFont)
+
+    ;-- Get the font name
+    VarSetCapacity(l_FontName,MAX_FONT_NAME_LENGTH*(A_IsUnicode ? 2:1))
+    DllCall("GetTextFace","Ptr",hDC,"Int",MAX_FONT_NAME_LENGTH,"Str",l_FontName)
+
+    ;-- Release the objects needed by the GetTextFace function
+    DllCall("SelectObject","Ptr",hDC,"Ptr",old_hFont)
+        ;-- Necessary to avoid memory leak
+
+    DllCall("ReleaseDC","Ptr",HWND_DESKTOP,"Ptr",hDC)
+    Return l_FontName
+}
+
+Fnt_GetFontSize(hFont:="") {
+    Static Dummy64998752
+
+          ;-- Device constants
+          ,HWND_DESKTOP:=0
+          ,LOGPIXELSY  :=90
+
+          ;-- Misc.
+          ,DEFAULT_GUI_FONT:=17
+          ,OBJ_FONT        :=6
+
+    ;-- If needed, get the handle to the default GUI font
+    if (DllCall("GetObjectType","Ptr",hFont)<>OBJ_FONT)
+        hFont:=DllCall("GetStockObject","Int",DEFAULT_GUI_FONT)
+
+    ;-- Select the font into the device context for the desktop
+    hDC      :=DllCall("GetDC","Ptr",HWND_DESKTOP)
+    old_hFont:=DllCall("SelectObject","Ptr",hDC,"Ptr",hFont)
+
+    ;-- Collect the number of pixels per logical inch along the screen height
+    l_LogPixelsY:=DllCall("GetDeviceCaps","Ptr",hDC,"Int",LOGPIXELSY)
+
+    ;-- Get text metrics for the font
+    VarSetCapacity(TEXTMETRIC,A_IsUnicode ? 60:56,0)
+    DllCall("GetTextMetrics","Ptr",hDC,"Ptr",&TEXTMETRIC)
+
+    ;-- Convert em height to point size
+    l_Size:=Round((NumGet(TEXTMETRIC,0,"Int")-NumGet(TEXTMETRIC,12,"Int"))*72/l_LogPixelsY)
+        ;-- (Height - Internal Leading) * 72 / LogPixelsY
+
+    ;-- Release the objects needed by the GetTextMetrics function
+    DllCall("SelectObject","Ptr",hDC,"Ptr",old_hFont)
+        ;-- Necessary to avoid memory leak
+
+    DllCall("ReleaseDC","Ptr",HWND_DESKTOP,"Ptr",hDC)
+    Return l_Size
+}
+
+Fnt_GetListOfFonts() {
+; function stripped down from Font Library 3.0 by jballi
+; from https://autohotkey.com/boards/viewtopic.php?t=4379
+
+    Static Dummy65612414
+          ,HWND_DESKTOP := 0  ;-- Device constants
+          ,LF_FACESIZE := 32  ;-- In TCHARS - LOGFONT constants
+
+    ;-- Initialize and populate LOGFONT structure
+    Fnt_EnumFontFamExProc_List := ""
+    p_CharSet := 1
+    p_Flags := 0x800
+    VarSetCapacity(LOGFONT,A_IsUnicode ? 92:60,0)
+    NumPut(p_CharSet,LOGFONT,23,"UChar")                ;-- lfCharSet
+
+    ;-- Enumerate fonts
+    hDC := DllCall("GetDC","Ptr",HWND_DESKTOP)
+    DllCall("EnumFontFamiliesEx"
+        ,"Ptr",hDC                                      ;-- hdc
+        ,"Ptr",&LOGFONT                                 ;-- lpLogfont
+        ,"Ptr",RegisterCallback("Fnt_EnumFontFamExProc","Fast")
+            ;-- lpEnumFontFamExProc
+        ,"Ptr",p_Flags                                  ;-- lParam
+        ,"UInt",0)                                      ;-- dwFlags (must be 0)
+
+    DllCall("ReleaseDC","Ptr",HWND_DESKTOP,"Ptr",hDC)
+    Return Fnt_EnumFontFamExProc_List
+}
+
+Fnt_EnumFontFamExProc(lpelfe,lpntme,FontType,p_Flags) {
+    Fnt_EnumFontFamExProc_List := 0
+    Static Dummy62479817
+           ,LF_FACESIZE := 32  ;-- In TCHARS - LOGFONT constants
+
+    l_FaceName := StrGet(lpelfe+28,LF_FACESIZE)
+    FontList.Push(l_FaceName)    ;-- Append the font name to the list
+    Return True  ;-- Continue enumeration
+}
+; -------------------------------------------------------------
+
+/*
+#SPACE::
+Return
+*/
