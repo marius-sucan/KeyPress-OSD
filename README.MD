@@ -11,7 +11,8 @@
 <p>If other programmers are willing to invest time in this application and to extend it, are welcomed to do so. Anyone is free to transform it into anything they wish. The source code is available. However, keep in mind, I am no programmer. I learned to code just to develop this application. The code quality is definitely poor :-).</p>
 
 <p>I coded the application as an <a href="https://autohotkey.com/">AHK script</a> for AutoHotkey_H v1.1. To execute/compile the source code one needs <a href="https://hotkeyit.github.io/v2/">AutoHotkey_H v1.1</a>.</p>
-<p>Many thanks for the great support and help to the people on #ahk (irc.freenode.net).</p>
+
+<p><em>Many thanks for the great support to drugwash</em> from the AHK forums and to the people on #ahk (irc.freenode.net), and all other people who offered me feedback or support during this project.</p>
 
 <h1>KeyPress OSD: Features</h1>
 
@@ -45,6 +46,5 @@
 <li>Easy to configure with many options in Settings windows to toggle features and customize behavior and look.</li>
 <li>Option to update to the latest version.</li>
 </ul>
-
 <p>(*) You must have Capture2Text running and Pause/Break set as a shortcut for "Text line capture". Copy to clipboard option must be enabled as well.</p>
 <p>In this way, KeyPress OSD can continously display the texts detected by Capture2Text underneath the mouse cursor.</p>

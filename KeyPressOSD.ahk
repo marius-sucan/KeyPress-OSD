@@ -139,8 +139,8 @@
 
  , UseINIfile            := 1
  , IniFile               := "keypress-osd.ini"
- , version               := "3.99"
- , releaseDate := "2018 / 01 / 16"
+ , version               := "3.99.1"
+ , releaseDate := "2018 / 01 / 17"
 
 ; Initialization variables. Altering these may lead to undesired results.
 
@@ -203,6 +203,7 @@ global typed := "" ; hack used to determine if user is writing
  , SCnames2 := "▪"
  , FontList := []
  , missingAudios := 1
+ , globalPrefix := ""
  , deadKeyPressed := "9500"
  , TrueRmDkSymbol := ""
  , showPreview := 0
@@ -232,7 +233,6 @@ if (hostCaretHighlight=1)
    SetTimer, CaretHalo, 100, -50
 }
 
-; SetTimer, modsTimer, 200, -50
 if ((VisualMouseClicks=1) || (FlashIdleMouse=1) || (ShowMouseHalo=1))
    global mouseFonctiones := ahkthread(" #Include *i keypress-files\keypress-mouse-functions.ahk ")
 
@@ -720,15 +720,12 @@ OnMousePressed() {
 }
 
 OnRLeftPressed() {
-
     try
     {
         key := GetKeyStr()
-
         if (A_TickCount-lastTypedSince < ReturnToTypingDelay) && strlen(typed)>1 && (DisableTypingMode=0) && (key ~= "i)^((.?Shift \+ )?(Left|Right))") && (ShowSingleKey=1)
         {
             deadKeyProcessing()
-
             if ((key ~= "i)^(Left)"))
             {
                caretMover(0)
@@ -1197,8 +1194,11 @@ OnLetterPressed() {
 OnCtrlAction() {
   try {
          key := GetKeyStr()
-         ShowHotkey(key)
-         SetTimer, HideGUI, % -DisplayTime
+         if (A_TickCount-lastTypedSince > 3000)
+         {
+            ShowHotkey(key)
+            SetTimer, HideGUI, % -DisplayTime
+         }
   }
 
   if (StrLen(typed)>3)
@@ -1219,16 +1219,17 @@ selectAllText() {
 }
 
 OnCtrlAup() {
+  if (KeyBeeper=1) || (beepFiringKeys=1)
+     beeperzDefunctions.ahkPostFunction["OnLetterPressed", ""]
 
+  if InStr(A_PriorHotkey, "*vk41")
+     Return
   if (ShowSingleKey=1) && (DisableTypingMode=0) && (StrLen(typed)>1)
      selectAllText()
 
   SetTimer, returnToTyped, 2
   if (sendKeysRealTime=1) && (SecondaryTypingMode=1)
      ControlSend, , ^{a}, %Window2Activate%
-
-  if (KeyBeeper=1) || (beepFiringKeys=1)
-     beeperzDefunctions.ahkPostFunction["OnLetterPressed", ""]
 }
 
 OnCtrlRLeft() {
@@ -1336,6 +1337,12 @@ OnCtrlDelBack() {
 }
 
 OnCtrlVup() {
+  if (KeyBeeper=1) || (beepFiringKeys=1)
+     beeperzDefunctions.ahkPostFunction["OnLetterPressed", ""]
+
+  if InStr(A_PriorHotkey, "*vk56")
+     Return
+
   toPaste := Clipboard
   if (ShowSingleKey=1) && (DisableTypingMode=0) && (StrLen(toPaste)>0)
   {
@@ -1353,12 +1360,15 @@ OnCtrlVup() {
     global lastTypedSince := A_TickCount
   }
   SetTimer, returnToTyped, 2
-
-  if (KeyBeeper=1) || (beepFiringKeys=1)
-     beeperzDefunctions.ahkPostFunction["OnLetterPressed", ""]
 }
 
 OnCtrlCup() {
+  if (KeyBeeper=1) || (beepFiringKeys=1)
+     beeperzDefunctions.ahkPostFunction["OnLetterPressed", ""]
+
+  if InStr(A_PriorHotkey, "*vk43")
+     Return
+
   if (StrLen(typed)>3) && (SecondaryTypingMode=1)
   {
      lola2 := "║"
@@ -1376,12 +1386,14 @@ OnCtrlCup() {
   {
     SetTimer, HideGUI, % -DisplayTimeTyping
   }
-
-  if (KeyBeeper=1) || (beepFiringKeys=1)
-     beeperzDefunctions.ahkPostFunction["OnLetterPressed", ""]
 }
 
 OnCtrlXup() {
+  if (KeyBeeper=1) || (beepFiringKeys=1)
+     beeperzDefunctions.ahkPostFunction["OnLetterPressed", ""]
+
+  if InStr(A_PriorHotkey, "*vk58")
+     Return
 
   if (StrLen(typed)>3)
   {
@@ -1400,12 +1412,14 @@ OnCtrlXup() {
   {
     SetTimer, HideGUI, % -DisplayTimeTyping
   }
-
-  if (KeyBeeper=1) || (beepFiringKeys=1)
-     beeperzDefunctions.ahkPostFunction["OnLetterPressed", ""]
 }
 
 OnCtrlZup() {
+  if (KeyBeeper=1) || (beepFiringKeys=1)
+     beeperzDefunctions.ahkPostFunction["OnLetterPressed", ""]
+
+  if InStr(A_PriorHotkey, "*vk5a")
+     Return
 
   if (StrLen(typed)>0) && (ShowSingleKey=1) && (DisableTypingMode=0)
   {
@@ -1420,9 +1434,6 @@ OnCtrlZup() {
       SetTimer, HideGUI, % -DisplayTimeTyping
   }
   SetTimer, returnToTyped, 2
-
-  if (KeyBeeper=1) || (beepFiringKeys=1)
-     beeperzDefunctions.ahkPostFunction["OnLetterPressed", ""]
 }
 
 OnSpacePressed() {
@@ -1540,7 +1551,6 @@ OnBspPressed() {
                SetTimer, HideGUI, % -DisplayTime*2
                Return
             }
-
             global lastTypedSince := A_TickCount
             typedLength := StrLen(typed)
             CaretPosy := (CaretPos = typedLength) ? 0 : CaretPos
@@ -1581,7 +1591,6 @@ OnDelPressed() {
     {
         key := GetKeyStr()
         dropOut := (A_TickCount-lastTypedSince > DisplayTimeTyping/2) && (CaretPos = 3000) && (keyCount>10) && (OnlyTypingMode=0) ? 1 : 0
-
         if (A_TickCount-lastTypedSince < ReturnToTypingDelay) && strlen(typed)>1 && (DisableTypingMode=0) && (ShowSingleKey=1) && (dropOut=0)
         {
             lola := "│"
@@ -1725,6 +1734,10 @@ OnMudPressed() {
     }
     StringReplace, keya, A_ThisHotkey, ~*,
     fl_prefix .= keya "+"
+    fl_prefix := CompactModifiers(fl_prefix)
+    Sort, fl_prefix, U D+
+    fl_prefix := RTrim(fl_prefix, "+")
+    StringReplace, fl_prefix, fl_prefix, +, %A_Space%+%A_Space%, All
 
     if InStr(fl_prefix, "Shift")
     {
@@ -1734,14 +1747,9 @@ OnMudPressed() {
        if (ShiftDisableCaps=1)
           SetCapsLockState, off
     }
-
-    if (A_TickCount-tickcount_start2 < 40) || (A_TickCount-lastTypedSince < 35) || (ShowSingleModifierKey=0)
+    SetTimer, modsTimer, 125, -50
+    if (ShowSingleModifierKey=0)
        Return
-
-    fl_prefix := CompactModifiers(fl_prefix)
-    Sort, fl_prefix, U D+
-    fl_prefix := RTrim(fl_prefix, "+")
-    StringReplace, fl_prefix, fl_prefix, +, %A_Space%+%A_Space%, All
 
     if InStr(fl_prefix, modifiers_temp) && !typed
     {
@@ -1786,7 +1794,7 @@ OnMudPressed() {
         }
    }
 
-   if ((strLen(typed)>1) && (visible=1) && (A_TickCount-lastTypedSince < 5000)) || (ShowSingleKey = 0) || ((A_TickCount-tickcount_start > 1800) && visible && !typed && keycount>7) || (OnlyTypingMode=1)
+   if ((strLen(typed)>1) && (visible=1) && (A_TickCount-lastTypedSince < 3000)) || (ShowSingleKey = 0) || ((A_TickCount-tickcount_start > 1800) && visible && !typed && keycount>7) || (OnlyTypingMode=1)
    {
       sleep, 0
    } else
@@ -2446,12 +2454,25 @@ GuiGetSize( ByRef W, ByRef H, vindov) {          ; function by VxE from https://
   H := round(NumGet(rect, 12, "uint" ))
 }
 
+modsTimer() {
+    Critical, Off
+    Thread, Priority, -50
+    static modifiers := ["LCtrl", "RCtrl", "LAlt", "RAlt", "LShift", "RShift", "LWin", "RWin"]
+
+    globalPrefix := ""
+    for i, mod in modifiers
+    {
+        if GetKeyState(mod)
+           profix .= mod "+"
+    }
+    globalPrefix := profix
+}
+
 GetKeyStr() {
 ; Sleep, 30 ; megatest
-
     modifiers_temp := 0
     static modifiers := ["LCtrl", "RCtrl", "LAlt", "RAlt", "LShift", "RShift", "LWin", "RWin"]
-    FriendlyKeyNames := {NumpadDot:"[ . ]", NumpadDiv:"[ / ]", NumpadMult:"[ * ]", NumpadAdd:"[ + ]", NumpadSub:"[ - ]", numpad0:"[ 0 ]", numpad1:"[ 1 ]", numpad2:"[ 2 ]", numpad3:"[ 3 ]", numpad4:"[ 4 ]", numpad5:"[ 5 ]", numpad6:"[ 6 ]", numpad7:"[ 7 ]", numpad8:"[ 8 ]", numpad9:"[ 9 ]", NumpadEnter:"[Enter]", NumpadDel:"[Delete]", NumpadIns:"[Insert]", NumpadHome:"[Home]", NumpadEnd:"[End]", NumpadUp:"[Up]", NumpadDown:"[Down]", NumpadPgdn:"[Page Down]", NumpadPgup:"[Page Up]", NumpadLeft:"[Left]", NumpadRight:"[Right]", NumpadClear:"[Clear]", Media_Play_Pause:"Media_Play/Pause", MButton:"Middle Click", RButton:"Right Click", Del:"Delete", PgUp:"Page Up", PgDn:"Page Down"}
+    static FriendlyKeyNames := {NumpadDot:"[ . ]", NumpadDiv:"[ / ]", NumpadMult:"[ * ]", NumpadAdd:"[ + ]", NumpadSub:"[ - ]", numpad0:"[ 0 ]", numpad1:"[ 1 ]", numpad2:"[ 2 ]", numpad3:"[ 3 ]", numpad4:"[ 4 ]", numpad5:"[ 5 ]", numpad6:"[ 6 ]", numpad7:"[ 7 ]", numpad8:"[ 8 ]", numpad9:"[ 9 ]", NumpadEnter:"[Enter]", NumpadDel:"[Delete]", NumpadIns:"[Insert]", NumpadHome:"[Home]", NumpadEnd:"[End]", NumpadUp:"[Up]", NumpadDown:"[Down]", NumpadPgdn:"[Page Down]", NumpadPgup:"[Page Up]", NumpadLeft:"[Left]", NumpadRight:"[Right]", NumpadClear:"[Clear]", Media_Play_Pause:"Media_Play/Pause", MButton:"Middle Click", RButton:"Right Click", Del:"Delete", PgUp:"Page Up", PgDn:"Page Down"}
 
     for i, mod in modifiers
     {
@@ -2459,6 +2480,11 @@ GetKeyStr() {
            prefix .= mod "+"
     }
 
+    if !prefix && globalPrefix
+       prefix := globalPrefix
+    globalPrefix := ""
+
+    SetTimer, modsTimer, Off
     if (!prefix && !ShowSingleKey)
         throw
 
@@ -2470,7 +2496,7 @@ GetKeyStr() {
 
     if (key ~= "i)^(LCtrl|RCtrl|LShift|RShift|LAlt|RAlt|LWin|RWin)$")
     {
-        throw
+        Sleep, 0
     } else
     {
         backupKey := !key ? backupKey : key
@@ -4215,7 +4241,7 @@ Dlg_Color(Color,hwnd) {
      VarSetCapacity(CUSTOM,64,0), cpdInit:=1, size:=VarSetCapacity(CHOOSECOLOR,9*A_PtrSize,0)
   }
 
-  Color := hexRGB(InStr(Color, "0x") ? Color : Color ? "0x" Color : 0x0)
+  Color := "0x" hexRGB(InStr(Color, "0x") ? Color : Color ? "0x" Color : 0x0)
   NumPut(size,CHOOSECOLOR,0,"UInt"),NumPut(hwnd,CHOOSECOLOR,A_PtrSize,"UPtr")
   ,NumPut(Color,CHOOSECOLOR,3*A_PtrSize,"UInt"),NumPut(3,CHOOSECOLOR,5*A_PtrSize,"UInt")
   ,NumPut(&CUSTOM,CHOOSECOLOR,4*A_PtrSize,"UPtr")
@@ -5423,10 +5449,10 @@ CheckSettings() {
 
 ; verify HEX values
 
-   if (forcedKBDlayout1 ~= "[^[:xdigit:]]") || (strLen(forcedKBDlayout1)!=6)
+   if (forcedKBDlayout1 ~= "[^[:xdigit:]]") || (strLen(forcedKBDlayout1)!=8)
       ForcedKBDlayout1 := "00010418"
 
-   if (forcedKBDlayout2 ~= "[^[:xdigit:]]") || (strLen(forcedKBDlayout2)!=6)
+   if (forcedKBDlayout2 ~= "[^[:xdigit:]]") || (strLen(forcedKBDlayout2)!=8)
       ForcedKBDlayout2 := "0000040c"
 
    if (OSDbgrColor ~= "[^[:xdigit:]]") || (strLen(OSDbgrColor)!=6)

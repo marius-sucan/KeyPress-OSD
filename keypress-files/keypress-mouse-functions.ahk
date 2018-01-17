@@ -280,7 +280,7 @@ GuiGetSize( ByRef W, ByRef H, vindov) {          ; function by VxE from https://
   if (vindov=4)
      Gui, Mouser: +LastFoundExist
   VarSetCapacity( rect, 16, 0 )
-  DllCall("GetClientRect", uint, MyGuiHWND := WinExist(), uint, &rect )
-  W := round(NumGet( rect, 8, "int" ))
-  H := round(NumGet( rect, 12, "int" ))
+  DllCall("GetClientRect", ptr, MyGuiHWND := WinExist(), ptr, &rect )
+  W := round(NumGet( rect, 8, "uint" ))
+  H := round(NumGet( rect, 12, "uint" ))
 }

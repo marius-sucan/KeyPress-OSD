@@ -8,6 +8,11 @@ Please use AHK_H v1.1.27 [unicode] to execute this script.
 
 by Marius Sucan (robodesign.ro)
 
+  v3.99.1 (2018-01-17)
+  - {fixed} regressions related to usage with sticky keys enabled in Windows
+  - {fixed} changing colors at preferences
+  - {fixed} unwanted shortcuts getting triggered when not needed on foreign kbd layouts [reffering to Ctrl+A/C/V/X/Z]
+
   v3.99 (2018-01-16)
   - reduced [by about 7 kilobytes] and optimized code for handling modifiers [Ctrl, Shift, AltGr and so on]
   - as a consequence, I removed the option for Sticky Keys
@@ -596,10 +601,6 @@ Features to implement:
   - download latest AHK_H
   - make a github release
 
-
-- regressions with sticky keys ; hold has a global the prefix?
-- check new ahk version
-
 - [bug; ahk bug?] set the same keyboard layout to AHK script window as the host app; i tried it over and over, I was unable to do so
   -- any idea how to set kbd layout to an ahk window?
   -- this doesn't work for script windows:
@@ -607,8 +608,9 @@ Features to implement:
 https://autohotkey.com/docs/misc/SendMessageList.htm
 
 - [add?] Customize keyboard shortcuts? 
-- test on winXP [vm]
 - with long timers, dead keys do not work reliably
+- detect kbd layout without reloads; dynamically unload/remove all hotkeys, and set new ones
+
 - Update troubleshooting.
   - I do not see letters with accents when I use dead keys. 
   - why do you claim dead keys support?
@@ -616,8 +618,6 @@ https://autohotkey.com/docs/misc/SendMessageList.htm
 
 - make a youtube demo video
 https://hotkeyit.github.io/v2/docs/AHKH_Features.htm
-
-- detect kbd layout without reloads; dynamically unload/remove all hotkeys, and set new ones
 
 - add comments through the source. Present the [lack of] code structure
 - window spy, get texts underneath the mouse using Narrator's accessibility APIs
@@ -630,11 +630,10 @@ https://hotkeyit.github.io/v2/docs/AHKH_Features.htm
 
 
 Glitches to fix or think of possible solutions:
-- [AHK bug] in Metro/Win10 apps, Input command does not capture the resulting chars with dead keys combinations
 - make the OSD text field non-selectable
 - OSD is never on top of Start menu in Windows 10
 - it does not detect keyboard layout changes when a Metro app is active; I tried to fix it... but failed; or in different IE tabs
-- make it reliably work with sticky keys; if user presses once Ctrl and another key afterwards, it rarely detects the combination on Windows 7;
+--- onmessage langchanged?
 
 - could all the defined dead keys for different kbd layouts in keypress-osd-languages.ini be replaced by DLL calls and APIs? now they are all hard-coded...
 
