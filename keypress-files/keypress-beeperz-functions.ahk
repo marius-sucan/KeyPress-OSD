@@ -15,13 +15,9 @@
 SetWorkingDir, %A_ScriptDir%
 
 global LowVolBeeps           := 1
- . IgnoreAdditionalKeys  := 0
- , IgnorekeysList        := "a.b.c"
- , NoBindedDeadKeys      := 0
  , ToggleKeysBeeper      := 1
  , CapslockBeeper        := 1     ; only when the key is released
  , KeyBeeper             := 0     ; only when the key is released
- , deadKeyBeeper         := 1
  , ModBeeper             := 0     ; beeps for every modifier, when released
  , MouseBeeper           := 0     ; if both, ShowMouseButton and Visual Mouse Clicks are disabled, mouse click beeps will never occur
  , beepFiringKeys        := 0
@@ -42,18 +38,14 @@ global LowVolBeeps           := 1
   IniRead, ScriptelSuspendel, %inifile%, TempSettings, ScriptelSuspendel, %ScriptelSuspendel%
   IniRead, SilentMode, %inifile%, SavedSettings, SilentMode, %SilentMode%
   IniRead, MouseBeeper, %inifile%, SavedSettings, MouseBeeper, %MouseBeeper%
-  IniRead, IgnoreAdditionalKeys, %inifile%, SavedSettings, IgnoreAdditionalKeys, %IgnoreAdditionalKeys%
-  IniRead, IgnorekeysList, %inifile%, SavedSettings, IgnorekeysList, %IgnorekeysList%
   IniRead, beepFiringKeys, %inifile%, SavedSettings, beepFiringKeys, %beepFiringKeys%
   IniRead, CapslockBeeper, %inifile%, SavedSettings, CapslockBeeper, %CapslockBeeper%
-  IniRead, deadKeyBeeper, %inifile%, SavedSettings, deadKeyBeeper, %deadKeyBeeper%
   IniRead, TypingBeepers, %inifile%, SavedSettings, TypingBeepers, %TypingBeepers%
   IniRead, DTMFbeepers, %inifile%, SavedSettings, DTMFbeepers, %DTMFbeepers%
   IniRead, ToggleKeysBeeper, %inifile%, SavedSettings, ToggleKeysBeeper, %ToggleKeysBeeper%
   IniRead, LowVolBeeps, %inifile%, SavedSettings, LowVolBeeps, %LowVolBeeps%
   IniRead, KeyBeeper, %inifile%, SavedSettings, KeyBeeper, %KeyBeeper%
   IniRead, ModBeeper, %inifile%, SavedSettings, ModBeeper, %ModBeeper%
-  IniRead, NoBindedDeadKeys, %inifile%, SavedSettings, NoBindedDeadKeys, %NoBindedDeadKeys%
   IniRead, prioritizeBeepers, %inifile%, SavedSettings, prioritizeBeepers, %prioritizeBeepers%
 
 if (ScriptelSuspendel=1) || (SilentMode=1)
@@ -199,7 +191,6 @@ OnModPressed() {
        modsBeeper()
 
     global lastModPressTime2 := A_TickCount
-
 }
 
 OnMediaPressed() {
@@ -538,13 +529,11 @@ checkIfSkipAbeep() {
            skipAbeep := 1
     }
 }
-/*
-changeLang2Main() {
-  Sleep, 990
-   SetFormat, Integer, H
-   IniRead, changeLangMain, %inifile%, TempSettings, changeLangMain, 0
-   WinGet, scriptWinHWND, id, KeyPressOSDwin
-   PostMessage, 0x50, 0, changeLangMain,, A
-   SetFormat, Integer, D
+
+firingKeys() {
+   Thread, Priority, -20
+   Critical, off
+
+   SoundPlay, sounds\modfiredkey%LowVolBeeps%.wav
+   Sleep, 20
 }
-*/

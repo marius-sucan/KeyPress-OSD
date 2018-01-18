@@ -36,11 +36,11 @@ MainLoop() {
    global TargetScriptTitle := "KeyPressOSDwin"
    Loop 
    { 
-;      Get one key at a time 
-;      Input, InputChar, L1 B V E I, {LControl}{RControl}{LAlt}{RAlt}{LShift}{RShift}{LWin}{RWin}{AppsKey}{F1}{F2}{F3}{F4}{F5}{F6}{F7}{F8}{F9}{F10}{F11}{F12}{Left}{Right}{Up}{Down}{Home}{End}{PgUp}{PgDn}{Del}{Ins}{BS}{Capslock}{Numlock}{PrintScreen}{Pause}
+      ; Get one key at a time 
+      ; Input, InputChar, L1 B V E I, {LControl}{RControl}{LAlt}{RAlt}{LShift}{RShift}{LWin}{RWin}{AppsKey}{F1}{F2}{F3}{F4}{F5}{F6}{F7}{F8}{F9}{F10}{F11}{F12}{Left}{Right}{Up}{Down}{Home}{End}{PgUp}{PgDn}{Del}{Ins}{BS}{Capslock}{Numlock}{PrintScreen}{Pause}
       Input, InputChar, L1 B V E I, {tab}
       EndKey := ErrorLevel
-
+      ; ToolTip, %inputchar%
       Send_WM_COPYDATA(InputChar, TargetScriptTitle)
       if result = FAIL
           Sleep, 1

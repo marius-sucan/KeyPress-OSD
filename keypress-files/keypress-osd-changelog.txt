@@ -8,6 +8,12 @@ Please use AHK_H v1.1.27 [unicode] to execute this script.
 
 by Marius Sucan (robodesign.ro)
 
+
+  v3.99.5 (2018-01-18)
+  - [major bug fix] it now sets the same keyboard layout to the AHK script window as the host app when initiating Alternative Typing Mode [with Ctrl + Insert]; MANY THANKS to drugwash!!! u da best! ;-)
+  - [bug fix] now it detects keyboard layout changes even when a Metro/Win 10 app is active; again, thanks to drugwash
+  - reduced file size [by another 6 kilobytes] and simplified keyboard detection system
+
   v3.99.1 (2018-01-17)
   - {fixed} regressions related to usage with sticky keys enabled in Windows
   - {fixed} changing colors at preferences
@@ -601,15 +607,14 @@ Features to implement:
   - download latest AHK_H
   - make a github release
 
-- [bug; ahk bug?] set the same keyboard layout to AHK script window as the host app; i tried it over and over, I was unable to do so
-  -- any idea how to set kbd layout to an ahk window?
-  -- this doesn't work for script windows:
-  PostMessage, 0x50, 0, 0x40A0409,, A
-https://autohotkey.com/docs/misc/SendMessageList.htm
-
 - [add?] Customize keyboard shortcuts? 
+
+- test with long timers/delays
 - with long timers, dead keys do not work reliably
+-- after a long time, input does not return dead key combos
+
 - detect kbd layout without reloads; dynamically unload/remove all hotkeys, and set new ones
+- https://autohotkey.com/boards/viewtopic.php?f=5&t=42933&p=195025#p195025
 
 - Update troubleshooting.
   - I do not see letters with accents when I use dead keys. 
@@ -632,9 +637,6 @@ https://hotkeyit.github.io/v2/docs/AHKH_Features.htm
 Glitches to fix or think of possible solutions:
 - make the OSD text field non-selectable
 - OSD is never on top of Start menu in Windows 10
-- it does not detect keyboard layout changes when a Metro app is active; I tried to fix it... but failed; or in different IE tabs
---- onmessage langchanged?
-
 - could all the defined dead keys for different kbd layouts in keypress-osd-languages.ini be replaced by DLL calls and APIs? now they are all hard-coded...
 
 
