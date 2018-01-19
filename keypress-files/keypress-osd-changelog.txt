@@ -8,6 +8,11 @@ Please use AHK_H v1.1.27 [unicode] to execute this script.
 
 by Marius Sucan (robodesign.ro)
 
+  v3.99.6 (2018-01-19)
+  - fixed regression: never display OSD was not working
+  - fixed a bug that caused crashes when typing
+  - some improvements to Align to right feature
+  - and various other glitches
 
   v3.99.5 (2018-01-18)
   - [major bug fix] it now sets the same keyboard layout to the AHK script window as the host app when initiating Alternative Typing Mode [with Ctrl + Insert]; MANY THANKS to drugwash!!! u da best! ;-)
@@ -608,14 +613,19 @@ Features to implement:
   - make a github release
 
 - [add?] Customize keyboard shortcuts? 
+- reduce flickering for Align to right.
+- [bug] u32, crash ComObjectCreate; burque505
+- GUI relative coordinates, see drugwash
+- add options for text caret highlighter
 
+- test with win 7 x64
 - test with long timers/delays
 - with long timers, dead keys do not work reliably
--- after a long time, input does not return dead key combos
 
 - detect kbd layout without reloads; dynamically unload/remove all hotkeys, and set new ones
 - https://autohotkey.com/boards/viewtopic.php?f=5&t=42933&p=195025#p195025
 
+- Go through older posts. Check what's done. 
 - Update troubleshooting.
   - I do not see letters with accents when I use dead keys. 
   - why do you claim dead keys support?
@@ -629,10 +639,8 @@ https://hotkeyit.github.io/v2/docs/AHKH_Features.htm
   https://autohotkey.com/board/topic/57431-get-text-under-mouse-cursor/
   https://blogs.msdn.microsoft.com/oldnewthing/20130408-00/?p=4733
 
-
 - test different DPIs
 - test on different computers - slow computers...
-
 
 Glitches to fix or think of possible solutions:
 - make the OSD text field non-selectable

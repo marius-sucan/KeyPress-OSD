@@ -9,9 +9,8 @@
 #NoTrayIcon
 #SingleInstance force
 #NoEnv
-#MaxThreads 255
-#MaxThreadsPerHotkey 255
 #MaxHotkeysPerInterval 500
+
 SetWorkingDir, %A_ScriptDir%
 
 global LowVolBeeps           := 1
@@ -51,12 +50,18 @@ global LowVolBeeps           := 1
 if (ScriptelSuspendel=1) || (SilentMode=1)
    Return
 
+if (prioritizeBeepers=1)
+{
+   Critical, on
+   #MaxThreads 255
+   #MaxThreadsPerHotkey 255
+   #MaxThreadsBuffer On
+}
+
 CreateHotkey()
+Return
 
 CreateHotkey() {
-    #MaxThreads 255
-    #MaxThreadsPerHotkey 255
-    #MaxThreadsBuffer On
 
     if (MouseBeeper=1)
     {
@@ -176,6 +181,7 @@ OnKeyPressed() {
 
 OnModPressed() {
     Thread, priority, -30
+    Critical, off
 
     if (beepFiringKeys=1) && (A_TickCount-lastModPressTime < 350)
        SetTimer, modfiredBeeperTimer, 20, -20
@@ -199,7 +205,6 @@ OnMediaPressed() {
 }
 
 OnKeyUp() {
-    Critical, on
     global lastKeyUpTime := A_TickCount
     if (keyBeeper=1)
        keysBeeper()
@@ -207,7 +212,6 @@ OnKeyUp() {
 }
 
 OnToggleUp() {
-    Critical, on
     global lastKeyUpTime := A_TickCount
     toggleLastState := (toggleLastState=1) ? 0 : 1
     toggleBeeper()
@@ -215,7 +219,6 @@ OnToggleUp() {
 }
 
 OnTypingKeysUp() {
-   Critical, on
    global lastKeyUpTime := A_TickCount
    Sleep, 15
    SoundPlay, sounds\typingkeysA%LowVolBeeps%.wav, %prioritizeBeepers%
@@ -225,7 +228,6 @@ OnTypingKeysUp() {
 }
 
 OnFunctionKeyUp() {
-   Critical, on
    global lastKeyUpTime := A_TickCount
    Sleep, 15
    SoundPlay, sounds\functionKeys%LowVolBeeps%.wav, %prioritizeBeepers%
@@ -235,7 +237,6 @@ OnFunctionKeyUp() {
 }
 
 OnNumpadsGeneralUp() {
-   Critical, on
    global lastKeyUpTime := A_TickCount
    Sleep, 15
    SoundPlay, sounds\numpads%LowVolBeeps%.wav, %prioritizeBeepers%
@@ -245,7 +246,6 @@ OnNumpadsGeneralUp() {
 }
 
 OnNumpadsDTMFUp() {
-   Critical, on
    global lastKeyUpTime := A_TickCount
    Sleep, 15
    sound2PlayNow := SubStr(A_ThisHotkey, InStr(A_ThisHotkey, "ad")+2, 1)
@@ -260,7 +260,6 @@ OnNumpadsDTMFUp() {
 }
 
 OnTypingKeysEnterUp() {
-   Critical, on
    global lastKeyUpTime := A_TickCount
    Sleep, 15
    SoundPlay, sounds\typingkeysEnter%LowVolBeeps%.wav, %prioritizeBeepers%
@@ -269,7 +268,6 @@ OnTypingKeysEnterUp() {
    checkIfSkipAbeep()
 }
 OnTypingKeysDelUp() {
-   Critical, on
    global lastKeyUpTime := A_TickCount
    Sleep, 15
    SoundPlay, sounds\typingkeysDel%LowVolBeeps%.wav, %prioritizeBeepers%
@@ -278,7 +276,6 @@ OnTypingKeysDelUp() {
    checkIfSkipAbeep()
 }
 OnTypingKeysBkspUp() {
-   Critical, on
    global lastKeyUpTime := A_TickCount
    Sleep, 15
    SoundPlay, sounds\typingkeysBksp%LowVolBeeps%.wav, %prioritizeBeepers%
@@ -288,7 +285,6 @@ OnTypingKeysBkspUp() {
 }
 
 OnTypingKeysSpaceUp() {
-   Critical, on
    global lastKeyUpTime := A_TickCount
    Sleep, 15
    SoundPlay, sounds\typingkeysSpace%LowVolBeeps%.wav, %prioritizeBeepers%
@@ -298,7 +294,6 @@ OnTypingKeysSpaceUp() {
 }
 
 OnTypingKeys5Up() {
-   Critical, on
    global lastKeyUpTime := A_TickCount
    Sleep, 15
    SoundPlay, sounds\typingkeysE%LowVolBeeps%.wav, %prioritizeBeepers%
@@ -462,7 +457,6 @@ modfiredBeeperTimer() {
 }
 
 OnLetterPressed() {
-    Critical, on
     if (ScriptelSuspendel=1) || (SilentMode=1)
        Return
 
@@ -488,7 +482,6 @@ OnLetterPressed() {
 OnDeathKeyPressed() {
   if (ScriptelSuspendel=1) || (SilentMode=1)
      Return
-  Critical, on
   deadKeysBeeper()
   checkIfSkipAbeep()
 }

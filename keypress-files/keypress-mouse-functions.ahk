@@ -27,6 +27,10 @@ global VisualMouseClicks     := 0     ; shows visual indicators for different mo
  , MouseIdleRadius       := 130
  , MouseVclickAlpha      := 150   ; from 0 to 255
  , ShowMouseHalo         := 0     ; constantly highlight mouse cursor
+ , CaretHaloAlpha        := 130   ; from 0 to 255
+ , CaretHaloColor        := "bbaa99"  ; HEX format also accepted
+ , CaretHaloRadius       := 70
+ , hostCaretHighlight    := 0
  , IniFile               := "keypress-osd.ini"
  , visible := 0
  , ClickScale := ClickScaleUser/10
@@ -37,6 +41,7 @@ global VisualMouseClicks     := 0     ; shows visual indicators for different mo
  , ha := 0
 
   IniRead, ScriptelSuspendel, %inifile%, TempSettings, ScriptelSuspendel, %ScriptelSuspendel%
+  IniRead, hostCaretHighlight, %inifile%, SavedSettings, hostCaretHighlight, %hostCaretHighlight%
   IniRead, ClickScaleUser, %inifile%, SavedSettings, ClickScaleUser, %ClickScaleUser%
   IniRead, SilentMode, %inifile%, SavedSettings, SilentMode, %SilentMode%
   IniRead, FlashIdleMouse, %inifile%, SavedSettings, FlashIdleMouse, %FlashIdleMouse%
@@ -54,6 +59,13 @@ global VisualMouseClicks     := 0     ; shows visual indicators for different mo
 
 if (ScriptelSuspendel=1)
    Return
+
+if (hostCaretHighlight=1)
+{
+   CoordMode, Caret, Screen ; Window ;Client
+   SetTitleMatchMode, 2
+   SetTimer, CaretHalo, 70, -50
+}
 
 CoordMode Mouse, Screen
 
@@ -125,6 +137,9 @@ ShowMouseIdleLocation() {
 
 MouseHalo() {
     Static
+    if (A_TimeIdle > 2000)
+       Return
+
     If (ShowMouseHalo=1) && !A_IsSuspended
     {
        MouseGetPos, mX, mY
@@ -283,4 +298,48 @@ GuiGetSize( ByRef W, ByRef H, vindov) {          ; function by VxE from https://
   DllCall("GetClientRect", ptr, MyGuiHWND := WinExist(), ptr, &rect )
   W := NumGet(rect, 8, "uint")
   H := NumGet(rect, 12, "uint")
+}
+
+CaretHalo() {
+    static
+    doNotShow := 0
+    If (hostCaretHighlight=1) && !A_IsSuspended ; && (A_TimeIdle > 200)
+    {
+       mX := !A_CaretX ? 2 : A_CaretX - CaretHaloRadius/2
+       mY := !A_CaretY ? 2 : A_CaretY - CaretHaloRadius/3
+       mX := !mX ? 1 : mX
+       mY := !mY ? 1 : mY
+
+       if (mX=2 && mY=2)
+       {
+          lastFlash := A_TickCount
+          doNotShow := 1
+       }
+       if !isHaloGui
+       {
+           Gui, CaretH: +AlwaysOnTop -Caption +ToolWindow +E0x20 +hwndhHalo
+           Gui, CaretH: Margin, 0, 0
+           Gui, CaretH: Color, %CaretHaloColor%
+           Gui, CaretH: Show, NoActivate x%mX% y%mY% w%CaretHaloRadius% h%CaretHaloRadius%, CaratHallo
+           WinSet, Region, 0-0 W%CaretHaloRadius% H%CaretHaloRadius% E, ahk_id %hHalo%
+           WinSet, Transparent, %CaretHaloAlpha%, CaratHallo
+           WinSet, AlwaysOnTop, On, CaratHallo
+           isHaloGui := 1
+       }
+       if (doNotShow!=1)
+       {
+          Gui, CaretH: Show, NoActivate x%mX% y%mY% w%CaretHaloRadius% h%CaretHaloRadius%, CaratHallo
+          WinSet, Transparent, %CaretHaloAlpha%, CaratHallo
+          WinSet, AlwaysOnTop, On, CaratHallo
+          if (A_TickCount-lastFlash>300)
+          {
+              CaretHaloAlphae := CaretHaloAlpha/2
+              WinSet, Transparent, %CaretHaloAlphae%, CaratHallo
+              lastFlash := A_TickCount
+          }
+       }
+    }
+
+    If (hostCaretHighlight=1) && A_IsSuspended || (doNotShow=1)
+       Gui, CaretH: Hide
 }
