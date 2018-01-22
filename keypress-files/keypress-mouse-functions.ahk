@@ -205,7 +205,7 @@ ShowMouseClick(clicky) {
     Sleep, 150
     Gui, Mouser: Hide
     MouseClickCounter := (MouseClickCounter > 10) ? 1 : 11
-    TransparencyLevel := MouseVclickAlpha - MouseClickCounter*4
+    TransparencyLevel := MouseVclickAlpha - MouseClickCounter*6
     BoxW := 15*ClickScale
     BoxH := 40*ClickScale
     MouseDistance := 10 * ClickScale

@@ -8,6 +8,27 @@ Please use AHK_H v1.1.27 [unicode] to execute this script.
 
 by Marius Sucan (robodesign.ro)
 
+  v4.031 (2018-01-22)
+  - [new] option to mediate navigation keys for slow computers: left / right, backspace / delete, home / end
+  - further improvements for keyboard layout name detection, thanks to Drugwash
+  - improved the compatibility of the features that enable synchronization with the host app, for foreign layouts
+  - various bug fixes regarding enable/disable the displaying of single keys, never show OSD, and the typing modes; it was a mess
+  - as a consequence, show single keys shortcut toggles now never display the OSD;
+
+  v4.02 (2018-01-21)
+  - added support for (w/o Shift+) Home/End when the new option is activated [Send keystrokes to host app to reproduce OSD content]
+  - simplified keyboard detection mechanism even more; it reads from the registry the Keyboard Layout names, for unsupported ones; many thanks to Drugwash for the idea
+
+  v4.01 (2018-01-21)
+  - bug fixes and improvements for the new feature implemented yesterday
+  - improvements [hopefully] to the handling of Ctrl+A/Z/X/C/V... again
+
+  v4.00 (2018-01-20)
+  - [new] option to send keystrokes that reproduce text changes operated in the typed OSD content, when making caret jumps with Ctrl + Bksp / Del / Left / Right. This helps to ensure a consistent experience across apps and to remain in synch [not enabled by default, for now... I might change this]
+  - reduced further flickering when using Align to right for the OSD
+  - improvements for how it behaves when Only Typing mode is not activated
+  - now it always indicates when a modifier is pressed, even in typing mode
+
   v3.99.6 (2018-01-19)
   - fixed regression: never display OSD was not working
   - fixed a bug that caused crashes when typing
@@ -607,16 +628,19 @@ by tmplinshi from https://autohotkey.com/boards/viewtopic.php?f=6&t=225
 TO-DO:
 Features to implement:
 - compile the thing! include all scripts inside?
-  - external loader? to keep all files as a code
   - separate UI settings and tray menu? separate files with include
+  - external exe to download main exe and zip [for Update now]
   - download latest AHK_H
   - make a github release
 
+- add Align to right per position.
+- add options for text caret highlighter
+- mediated backspace on a real win7 machine?
+- when escape is pressed, fuck return times
 - [add?] Customize keyboard shortcuts? 
-- reduce flickering for Align to right.
+  -- listă de taste posibile.
 - [bug] u32, crash ComObjectCreate; burque505
 - GUI relative coordinates, see drugwash
-- add options for text caret highlighter
 
 - test with win 7 x64
 - test with long timers/delays
