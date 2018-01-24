@@ -4,9 +4,22 @@
 Download AHK file from or use the Update now option:
 https://github.com/marius-sucan/KeyPress-OSD
 http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd.ahk
+
 Please use AHK_H v1.1.27 [unicode] to execute this script.
 
 by Marius Sucan (robodesign.ro)
+
+  v4.1 (2018-01-24)
+  - [new] the script will not reload when you go to check different settings windows; it will reload only when settings are changed
+  - [new] now you can disable each global keyboard shortcut individually
+  - many bug fixes, important ones
+  - made changes to the Only Typing mode, to be even more exclusivistic
+  - made the code prettier thanks to Drugwash
+
+  v4.05 (2018-01-23)
+  - [new] customize keyboard shortcuts, from Tray menu > Preferences > Global shortcuts. It's not stellar, but it's something at least.
+  - [new] option to show/hide contextual help at Typing mode window; it was too cluttered
+  - various bug fixes regarding mediate nav keys
 
   v4.031 (2018-01-22)
   - [new] option to mediate navigation keys for slow computers: left / right, backspace / delete, home / end
@@ -629,23 +642,25 @@ TO-DO:
 Features to implement:
 - compile the thing! include all scripts inside?
   - separate UI settings and tray menu? separate files with include
-  - external exe to download main exe and zip [for Update now]
+  - external BAT to rename main exe [for Update now]
   - download latest AHK_H
   - make a github release
 
+- optimizări la redraws? mods/keys should not trigger-ultra fast redraws
+- option to record hotkeys. And paste in place. 
 - add Align to right per position.
 - add options for text caret highlighter
+- GUI relative coordinates, see drugwash; kbd, mouse, osd
+- Info bar hokey. Time, date window title. 
+- Vezi ce taste poți adăuga. 
+- update Help, FAQ
+
+- [bug?] u32, crash ComObjectCreate; burque505
+- [bug? unconfirmed] probleme cu selecții; când selectezi ceva și scrii, sar chestii aiurea
 - mediated backspace on a real win7 machine?
-- when escape is pressed, fuck return times
-- [add?] Customize keyboard shortcuts? 
-  -- listă de taste posibile.
-- [bug] u32, crash ComObjectCreate; burque505
-- GUI relative coordinates, see drugwash
+
 
 - test with win 7 x64
-- test with long timers/delays
-- with long timers, dead keys do not work reliably
-
 - detect kbd layout without reloads; dynamically unload/remove all hotkeys, and set new ones
 - https://autohotkey.com/boards/viewtopic.php?f=5&t=42933&p=195025#p195025
 

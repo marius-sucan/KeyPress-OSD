@@ -14,7 +14,7 @@
 #MaxHotkeysPerInterval 500
 SetWorkingDir, %A_ScriptDir%
 
-global VisualMouseClicks     := 0     ; shows visual indicators for different mouse clicks
+Global VisualMouseClicks := 0     ; shows visual indicators for different mouse clicks
  , ClickScaleUser        := 10
  , FlashIdleMouse        := 0     ; locate an idling mouse with a flashing box
  , IdleMouseAlpha        := 70    ; from 0 to 255
@@ -89,7 +89,7 @@ if (visualMouseClicks=1)
 ShowMouseIdleLocation() {
     Static
 
-    If (FlashIdleMouse=1) && (A_TimeIdle > (MouseIdleAfter*1000)) && !A_IsSuspended
+    if (FlashIdleMouse=1) && (A_TimeIdle > (MouseIdleAfter*1000)) && !A_IsSuspended
     {
        MouseClickCounter := (MouseClickCounter > 10) ? 1 : 11
        AlphaVariator := IdleMouseAlpha - MouseClickCounter*3
@@ -140,7 +140,7 @@ MouseHalo() {
     if (A_TimeIdle > 2000)
        Return
 
-    If (ShowMouseHalo=1) && !A_IsSuspended
+    if (ShowMouseHalo=1) && !A_IsSuspended
     {
        MouseGetPos, mX, mY
        BoxW := MouseHaloRadius
@@ -162,7 +162,7 @@ MouseHalo() {
        WinSet, AlwaysOnTop, On, MousarHallo
     }
 
-    If (ShowMouseHalo=1) && A_IsSuspended
+    if (ShowMouseHalo=1) && A_IsSuspended
     {
        Gui, MouseH: Hide
        ShowMouseHalo := 0
@@ -194,7 +194,7 @@ visualMouseClicksDummy() {
 }
 
 CreateMouseGUI() {
-    global
+    Global
     Gui, Mouser: +AlwaysOnTop -Caption +ToolWindow +E0x20
     Gui, Mouser: Margin, 0, 0
 }
@@ -271,7 +271,7 @@ HideMouseClickGUI() {
        if GetKeyState("MButton","P")
           MouseDown := 1
 
-       If (MouseDown=0)
+       if (MouseDown=0)
        {
           Sleep, 250
           Gui, Mouser: Hide
@@ -295,15 +295,15 @@ GuiGetSize( ByRef W, ByRef H, vindov) {          ; function by VxE from https://
   if (vindov=4)
      Gui, Mouser: +LastFoundExist
   VarSetCapacity( rect, 16, 0 )
-  DllCall("GetClientRect", ptr, MyGuiHWND := WinExist(), ptr, &rect )
-  W := NumGet(rect, 8, "uint")
-  H := NumGet(rect, 12, "uint")
+  DllCall("GetClientRect", "Ptr", MyGuiHWND := WinExist(), "Ptr", &rect )
+  W := NumGet(rect, 8, "UInt")
+  H := NumGet(rect, 12, "UInt")
 }
 
 CaretHalo() {
-    static
+    Static
     doNotShow := 0
-    If (hostCaretHighlight=1) && !A_IsSuspended ; && (A_TimeIdle > 200)
+    if (hostCaretHighlight=1) && !A_IsSuspended ; && (A_TimeIdle > 200)
     {
        mX := !A_CaretX ? 2 : A_CaretX - CaretHaloRadius/2
        mY := !A_CaretY ? 2 : A_CaretY - CaretHaloRadius/3
@@ -340,6 +340,6 @@ CaretHalo() {
        }
     }
 
-    If (hostCaretHighlight=1) && A_IsSuspended || (doNotShow=1)
+    if (hostCaretHighlight=1) && A_IsSuspended || (doNotShow=1)
        Gui, CaretH: Hide
 }
