@@ -81,7 +81,6 @@ h1,h2 {
 <ul id="menu">
   <li><a href="presentation.html">Presentation</a></li>
   <li><a href="features.html">Features</a></li>
-  <li><a href="settings.html">Settings</a></li>
   <li><a href="faq.html">FAQ</a></li>
   <li><a href="shortcuts.html">Keyboard shortcuts</a></li>
   <li><a href="http://marius.sucan.ro">Home page</a></li>
@@ -127,9 +126,6 @@ h1,h2 {
   <p class="question"><a href="#qa11">I only want to use this application for its keyboard beepers. How to deactivate the OSD?</a></p>
 </li>
 <li>
-  <p class="question"><a href="#qa12">The OSD is aligned to the right on the secondary monitor. How to prevent this?</a></p>
-</li>
-<li>
   <p class="question"><a href="#qa13">How does it make beeps on key presses?</a></p>
 </li>
 <li>
@@ -143,14 +139,14 @@ h1,h2 {
 <p>The application does not use the caret specific Windows APIs to detect where the actual text cursor [caret] is in the text field of the currently active application, because most applications do not make use of these APIs - to report the caret position. It also does not detect if a text field is active or not.</p>
 
 <p>In details:</p>
-<p>When the script initializes, it goes through all the Virtual Key codes and tests with ToUnicodeEx() and GetKeyName() if there's something to bind to (a key name). </p>
+<p>When the script initializes, it goes through all the Virtual Key codes and tests with ToUnicodeEx() and GetKeyName() if there is something to bind to (a key name). </p>
 <p>In the language file, I made list of VKs for dead keys, for around 70 keyboard layouts. I made it to bind distinctively to this type of keys. At initialization, the script generates a list of dead key names that later, is used to display the appropriate symbol. One cannot use ToUnicodeEx() each time such a key is pressed, to display their name/symbol, because they no longer function properly in host apps.</p>
 
-<p>The main typing mode hooks to each key using the Hotkey command from AHK, by Virtual Key (vk) and different modifiers. For the Shift and AltGr key combinations, the script binds distinctively, because it must be able to catch these keys orderly and always be able to determine what key name to display using ToUnicodeEx(). if it would bind simply with the (*) wildcard, dead keys cease to function and on slow systems, modifiers detection becomes unreliable. By binding specifically to each modifier and key, based on the prefixes from the built-in variable A_THISHOTKEY, it can always ascertain what to display.</p>
+<p>The main typing mode hooks to each key using the Hotkey command from AHK, by Virtual Key (vk) and different modifiers. For the Shift and AltGr key combinations, the script binds distinctively, because it must be able to catch these keys orderly and always be able to determine what key name to display using ToUnicodeEx(). If it would bind simply with the (*) wildcard, dead keys cease to function and on slow systems, modifiers detection becomes unreliable. By binding specifically to each modifier and key, based on the prefixes from the built-in variable %A_THISHOTKEY%, it can always determine what to display.</p>
 
-<p>When alternative hooks are enabled, a different thread runs with a Loop for an Input command limited to one character. This input command is able to capture dead keys combinations (accented letters). For each key pressed, I use SendMessage to the main thread of the script, that uses OnMessage for WM_COPYDATA. The function associated processes the incoming messages / keys. What this secondary thread sends is used only after a dead key was pressed. Thus, it all still relies on the Hotkey command to get all keys and ToUnicodeEx(), except for the accented letters (keys resulted from using dead keys). When the layout is supported and no dead keys are present, this secondary thread is never initiated.</p>
+<p>When alternative hooks are enabled, a different thread runs with a Loop for an Input command limited to one character. This input command is able to capture dead keys combinations (accented letters). For each key pressed, I use SendMessage to the main thread of the script, that uses OnMessage for WM_COPYDATA. The function associated processes the incoming messages / keys. What this secondary thread sends is used only after a dead key was pressed. Thus, it all still relies on the Hotkey command to get all keys and ToUnicodeEx(), except for the accented letters (keys resulted from using dead keys). When the layout is supported, but it has no dead keys , this secondary thread is never initiated.</p>
 
-<p>When alternate typing mode is invoked, I create a new window and focus it, to capture keys with two OnMessage hooked to WM_CHAR and WM_DEADCHAR. I no longer rely on the Hotkey bindings or Input command from the secondary thread. When the user hits Enter, I use SendInput {raw}. I do not use {text} mode, because I want the OSD to send what the user sees and not have him surprised by getting something else in the host app.</p>
+<p>When alternate typing mode is invoked, I create a new window and focus it, to capture keys with two OnMessages hooked to WM_CHAR and WM_DEADCHAR. I no longer rely on the Hotkey bindings or Input command from the secondary thread. When the user hits Enter, I use SendInput, {text}.</p>
 
 <p class="question" id="qa2">Q: The text cursor does not move in synch with the host app.</p>
 <p>A: On slow computers, the host app and KeyPress are more likely to get out of synch, because each application tries to capture key presses simultaneously. If the user types *very* fast, KeyPress is likely to skip the detection of some key presses, especially when using Shift or AltGr. In other cases, on long presses of cursor navigation keys, some applications do not record every key fire.</p>
@@ -158,22 +154,27 @@ h1,h2 {
 
 <p class="question" id="qa3">Q: How to synchronize the text content from the OSD with the host app?</p>
 <p class="question" id="qa4">Q: How to retrieve the text from the host app and have it displayied in the OSD?</p>
-<p>A: Use Winkey + Insert. By default, with this keyboard shortcut, KeyPress tries to capture the entire text from the currently active window and text field (through the clipboard) - maximum characters is 950. It sends the following keystrokes rapidly: Ctrl+A [select all], Ctrl+C [copy], Right, End. The two last keystrokes are meant to ensure that the caret is placed at the end of the text.</p>
-<p>At "Typing mode" settings window, you can choose a different set of keystrokes by enabling "Synchronize with host app using Shift+Up, Home". When this option is enabled the keystrokes sent are: Shift + Up, +Home [both twice], and then Ctrl+C, and Right - to deselect and place the cursor at the end of the selection. In other words, KeyPress attempts to capture a few lines of text from the current position of the caret.</p>
-<p>WinKey + Alt + Insert is the third method provided. The keystrokes KeyPress is sending to the currently active app are meant to capture only the current line while it places the caret at the end of it: End [2x], Shift + Home [2x], Ctrl + C, Left, Right and End [2x].</p>
+<p>A: Use Winkey + Insert. By default, with this keyboard shortcut, KeyPress tries to capture the entire text from the currently active window and text field (through the clipboard) - maximum characters is 950. It sends the following keystrokes rapidly: Ctrl + A [select all], Ctrl + C [copy], Right, End. The two last key strokes are meant to ensure that the caret is placed at the end of the text.</p>
+<p>At "Typing mode" settings window, you can choose a different set of key strokes by enabling "Synchronize with host app using Shift+Up, Home". When this option is enabled the key strokes sent are: Shift + Up, +Home [both twice], and then Ctrl + C, and Right - to deselect and place the cursor at the end of the selection. In other words, KeyPress attempts to capture a few lines of text from the current position of the caret.</p>
+<p>WinKey + Alt + Insert is the third method provided. The key strokes KeyPress is sending to the currently active app are meant to capture only the current line while it places the caret at the end of it: End [2x], Shift + Home [2x], Ctrl + C, Left, Right and End [2x].</p>
 <p class="question" id="qa5">Q: The text cursor [caret] does not jump between words as the host app.</p>
 <p>A: Applications implement inconsistent rules for jumping between words, symbols and numbers with the caret when the user presses Ctrl + Left / Right.</p>
-<p>You can try activating from the "Typing mode" settings window the option "Alternative rules to jump between words". With this option enabled, it will mimmick the behavior of Microsoft Word 2016. When the option is deactivated [by default], it mimmicks the rules of Google Chrome.</p>
+<p>You can enable Mediate "Mediate the key strokes for caret jumps". KeyPress will send keys that attempt to reproduce the text cursor position. More precisely, it sends as many times required the Left, Right, Bksp or Delete keys to the host app and blocks Ctrl + Left / Right / Bksp / Delete. If there is no text in the OSD or you've reached the end or beginning of the line of text, the host app receives the keys you actually pressed. This enforces a better consistency across applications when both the OSD and the host app have the same text.</p>
+
+<p>You can also try activating from the "Typing mode" settings window the option "Alternative rules to jump between words". With this option enabled, it will mimmick the behavior of Microsoft Word 2016. When the option is deactivated [by default], it mimmicks the rules of Google Chrome.</p>
 <p class="question" id="qa6">Q: I can't type letters with accents. Dead keys don't work.</p>
-<p>A: Please activate in Preferences > "Typing mode" window the option "Do not bind (ignore) known dead keys". KeyPress will no longer detect when such a key is pressed, thus it is completely ignored.</p>
-<p>If this does not work, at Preferences > "Keyboard" settings window, activate "Ignore specific keys" and insert the symbols of the dead keys that do not work and Apply settings.</p>
+<p>A: There are multiple possible solutions:</p>
+<p>1. At Preferences > "Typing mode" window, "Dead keys" tab, increase the "Typing delays scale" by 5.</p>
+<p>2. Activate in Preferences > "Typing mode" window, "Dead keys" tab, the option "Do not bind (ignore) known dead keys". KeyPress will no longer detect when such a key is pressed, thus it is completely ignored.</p>
+<p>3. At Preferences > "Keyboard" settings window, activate "Ignore specific keys" and insert the symbols of the dead keys that do not work and Apply settings.</p>
 <p>If this still does not suffice, you can add the Virtual Key code of these keys. Go to Preferences > "Key History" and press the dead key a few times and after, press F5 [to refresh the list of pressed keys]. Copy the code from the first column into the text field of "Ignore specific keys". Put "vk" before each code, for example: vkC0.</p>
-<p>And at last, if nothing helps, before typing with dead keys, deactivate KeyPress with Shift + Pause/Break.</p>
+<p>4. You can rely for typing on the Alternate typing mode: Ctrl + Capslock.</p>
+<p>5. If nothing helps, before typing with dead keys, deactivate KeyPress with Shift + Pause/Break.</p>
 <p class="question" id="qa7">Q: Can I paste content from the OSD?</p>
 <p>A: Yes, using Ctrl + Shift + Insert. Alternatively, Ctrl + Alt + Insert. This replaces the entire text from the currently active text field.</p>
-<p>You must first enable in "Typing mode" settings window the option: "Ctrl+Shift+Insert to paste the OSD content into active text field". This is not enabled by default.</p>
+<p>You must first enable in "Typing mode" settings window, Behavior tab, the option: "Enable global shortcuts to paste the OSD content into the active text field". This is not enabled by default.</p>
 <p class="question" id="qa8">Q: How to avoid exposing my passwords, if I am in public?</p>
-<p>A: Before typing passwords, deactivate "Show single keys" with Ctrl + Alt + Shift + F8. This will maintain other features active, such as beepers. Another option is to deactivate KeyPress with Shift + Pause / Break.</p>
+<p>A: Before typing passwords, deactivate "Never show the OSD" with Ctrl + Alt + Shift + F8. This will maintain other features active, such as beepers. Another option is to deactivate KeyPress with Shift + Pause / Break.</p>
 <p class="question" id="qa9">Q: What's typed text history?</p>
 <p>A: If this feature is enabled at "Typing mode" settings window, on Enter and Escape, the currently written line of text in the OSD is preserved. The two previously recorded lines can be accessed with Page Up / Page Down. This feature is useful to review what you previously wrote.</p>
 <p class="question" id="qa15">Q: Can I use Ctrl+Z or Ctrl+V to undo or paste?</p>
@@ -183,11 +184,9 @@ h1,h2 {
 <p class="question" id="qa10">Q: When I play games, it is plain annoying. How to deactivate it temporarly?</p>
 <p>A: Before starting the game, deactivate KeyPress with Shift + Pause / Break.</p>
 <p class="question" id="qa11">Q: I only want to use this application for its keyboard beepers. How to deactivate the OSD?</p>
-<p>A: At Main menu > Preferences, select "Never show the OSD".</p>
-<p class="question" id="qa12">Q: The OSD is aligned to the right on the secondary monitor. How to prevent this?</p>
-<p>A: Activate the option "Never align to the right" at "OSD appearances" settings window from Main menu > Preferences.</p>
+<p>A: At Main menu, in the system tray, select "Never show the OSD" or press Ctrl + Alt + Shift + F8.</p>
 <p class="question" id="qa13">Q: How does it make beeps on key presses?</p>
-<p>A: It uses sound files for different types of keys. If these are missing, it generates a sound beep that mimmick these sound files. However, the souund volume of generated beeps cannot be changed by KeyPress.</p>
+<p>A: It uses sound files for different types of keys. If these are missing, it generates sound beeps that mimmick these sound files. However, the sound volume of generated beeps cannot be changed by KeyPress.</p>
 <p class="question" id="qa14">Q: What is Capture2Text?</p>
 <p>A: It is the name of another application that specializes in Optical Character Recognition (OCR) on screen. It can capture texts from the screen at the push of a button. It can be customized in many ways.</p>
 <p>The KeyPress feature is meant to facilitate the use of Capture2Text. Capture2Text must be configured such that it captures a line of text underneath the mouse cursor when pressing Pause/Break. Please make sure as well that what it captures is stored in the clipboard. When the KeyPress feature is activated, it sends {Pause} every second and it monitors the clipboard. When the clipboard content changes, it displays the content.</p>
