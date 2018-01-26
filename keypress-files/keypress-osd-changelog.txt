@@ -4,10 +4,22 @@
 Download AHK file from or use the Update now option:
 https://github.com/marius-sucan/KeyPress-OSD
 http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd.ahk
+http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled-package-exe-x64.zip
 
 Please use AHK_H v1.1.27 [unicode] to execute this script.
 
 by Marius Sucan (robodesign.ro)
+
+  v4.16 (2018-01-26)
+  - [new] option to set centered alignment for the OSD
+  - [new] distinct alignment per position A and B
+  - updated Troubleshooting and Help
+  - fixes regarding Ctrl+Del/Bksp with selections
+
+  v4.13 (2018-01-25)
+  - fixed a bug related to text selections
+  - mediate navigation keys limited now to Home / End only
+  - various bug fixes related to Mediated key strokes for caret jumps
 
   v4.1 (2018-01-24)
   - [new] the script will not reload when you go to check different settings windows; it will reload only when settings are changed
@@ -132,7 +144,7 @@ by Marius Sucan (robodesign.ro)
   - reduced delays when automatic layout change occurs;
   - re-added on request [from drugwash] the option to choose another script when the main file is missing when the script attempts to reload itself
 
-  v3.93 (2018-01-03)
+  v3.93 (2018-01-03) - major release
   - substantially changed how Shift and AltGr are detected when typing; it should be much more reliable; it buffers the events more orderly;
   - simplified the error handling of script file missing; I do not want the user to pick the new file :-)
   - published on GitHub: https://github.com/marius-sucan/KeyPress-OSD
@@ -180,7 +192,7 @@ by Marius Sucan (robodesign.ro)
   - [new] option to have a distinctive beep for toggle keys: caps, num and scroll lock
   - removed option "beep keys even if hidden"
 
-  v3.82 (2017-12-20)
+  v3.82 (2017-12-20) - the last AHK_L based release
   - bug fixes related to typing, the caret and OSD; better optimized calculations... now it's faster, with a more fluid behaviour on old PCs.
 
   [side work - 2017-12-19)
@@ -646,19 +658,12 @@ Features to implement:
   - download latest AHK_H
   - make a github release
 
-- optimizări la redraws? mods/keys should not trigger-ultra fast redraws
 - option to record hotkeys. And paste in place. 
-- add Align to right per position.
-- add options for text caret highlighter
 - GUI relative coordinates, see drugwash; kbd, mouse, osd
-- Info bar hokey. Time, date window title. 
-- Vezi ce taste poți adăuga. 
 - update Help, FAQ
 
 - [bug?] u32, crash ComObjectCreate; burque505
-- [bug? unconfirmed] probleme cu selecții; când selectezi ceva și scrii, sar chestii aiurea
 - mediated backspace on a real win7 machine?
-
 
 - test with win 7 x64
 - detect kbd layout without reloads; dynamically unload/remove all hotkeys, and set new ones
