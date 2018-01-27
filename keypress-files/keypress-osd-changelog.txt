@@ -4,15 +4,23 @@
 Download AHK file from or use the Update now option:
 https://github.com/marius-sucan/KeyPress-OSD
 http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd.ahk
-http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled-package-exe-x64.zip
+http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip
 
 Please use AHK_H v1.1.27 [unicode] to execute this script.
 
 by Marius Sucan (robodesign.ro)
 
+  v4.16.5 (2018-01-27)
+  - [improvement] now you can switch between Settings windows and change all the settings and Apply only once, without reloads inbetween. [suggestion from drugwash]
+  - fixed defaults for OSD positions [thx Burque505]
+  - it now removes temporary files in system folders [thanks to Drugwash]
+  - now you can press Escape to close About or any other Settings window
+  - updated About window
+
   v4.16 (2018-01-26)
   - [new] option to set centered alignment for the OSD
   - [new] distinct alignment per position A and B
+  - [improvement] Updater works with compiled x64/x32 binaries of this script
   - updated Troubleshooting and Help
   - fixes regarding Ctrl+Del/Bksp with selections
 
@@ -654,13 +662,12 @@ TO-DO:
 Features to implement:
 - compile the thing! include all scripts inside?
   - separate UI settings and tray menu? separate files with include
-  - external BAT to rename main exe [for Update now]
   - download latest AHK_H
   - make a github release
 
+- separate FAQs into sections
 - option to record hotkeys. And paste in place. 
 - GUI relative coordinates, see drugwash; kbd, mouse, osd
-- update Help, FAQ
 
 - [bug?] u32, crash ComObjectCreate; burque505
 - mediated backspace on a real win7 machine?
