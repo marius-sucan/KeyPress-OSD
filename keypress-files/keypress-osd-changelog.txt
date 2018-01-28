@@ -1,14 +1,22 @@
 // KeyPress OSD - CHANGELOG
 // keypress-osd-changelog.txt
 
-Download AHK file from or use the Update now option:
-https://github.com/marius-sucan/KeyPress-OSD
-http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd.ahk
-http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip
+[b]Download files or use the Update now option:[/b]
+[b]on GitHub:[/b]  https://github.com/marius-sucan/KeyPress-OSD
 
+[b]Main AHK file:[/b]
+http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd.ahk
 Please use AHK_H v1.1.27 [unicode] to execute this script.
 
+[b]ZIP Package compiled [x64 / x32][/b]
+http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip
+
 by Marius Sucan (robodesign.ro)
+
+  v4.17.0 (2018-01-28)
+  - much improved support for extended unicode chars and Emojis in the OSD
+  - redesigned Keyboard and Mouse settings windows
+  - added options to change flashing idle mouse color and visual mouse clicks color
 
   v4.16.5 (2018-01-27)
   - [improvement] now you can switch between Settings windows and change all the settings and Apply only once, without reloads inbetween. [suggestion from drugwash]
@@ -17,46 +25,46 @@ by Marius Sucan (robodesign.ro)
   - now you can press Escape to close About or any other Settings window
   - updated About window
 
-  v4.16 (2018-01-26)
+  v4.16.0 (2018-01-26)
   - [new] option to set centered alignment for the OSD
   - [new] distinct alignment per position A and B
   - [improvement] Updater works with compiled x64/x32 binaries of this script
   - updated Troubleshooting and Help
   - fixes regarding Ctrl+Del/Bksp with selections
 
-  v4.13 (2018-01-25)
+  v4.13.0 (2018-01-25)
   - fixed a bug related to text selections
   - mediate navigation keys limited now to Home / End only
   - various bug fixes related to Mediated key strokes for caret jumps
 
-  v4.1 (2018-01-24)
+  v4.10.0 (2018-01-24)
   - [new] the script will not reload when you go to check different settings windows; it will reload only when settings are changed
   - [new] now you can disable each global keyboard shortcut individually
   - many bug fixes, important ones
   - made changes to the Only Typing mode, to be even more exclusivistic
   - made the code prettier thanks to Drugwash
 
-  v4.05 (2018-01-23)
+  v4.05.0 (2018-01-23)
   - [new] customize keyboard shortcuts, from Tray menu > Preferences > Global shortcuts. It's not stellar, but it's something at least.
   - [new] option to show/hide contextual help at Typing mode window; it was too cluttered
   - various bug fixes regarding mediate nav keys
 
-  v4.031 (2018-01-22)
+  v4.03.1 (2018-01-22)
   - [new] option to mediate navigation keys for slow computers: left / right, backspace / delete, home / end
   - further improvements for keyboard layout name detection, thanks to Drugwash
   - improved the compatibility of the features that enable synchronization with the host app, for foreign layouts
   - various bug fixes regarding enable/disable the displaying of single keys, never show OSD, and the typing modes; it was a mess
   - as a consequence, show single keys shortcut toggles now never display the OSD;
 
-  v4.02 (2018-01-21)
+  v4.02.0 (2018-01-21)
   - added support for (w/o Shift+) Home/End when the new option is activated [Send keystrokes to host app to reproduce OSD content]
   - simplified keyboard detection mechanism even more; it reads from the registry the Keyboard Layout names, for unsupported ones; many thanks to Drugwash for the idea
 
-  v4.01 (2018-01-21)
+  v4.01.0 (2018-01-21)
   - bug fixes and improvements for the new feature implemented yesterday
   - improvements [hopefully] to the handling of Ctrl+A/Z/X/C/V... again
 
-  v4.00 (2018-01-20)
+  v4.00.0 (2018-01-20)
   - [new] option to send keystrokes that reproduce text changes operated in the typed OSD content, when making caret jumps with Ctrl + Bksp / Del / Left / Right. This helps to ensure a consistent experience across apps and to remain in synch [not enabled by default, for now... I might change this]
   - reduced further flickering when using Align to right for the OSD
   - improvements for how it behaves when Only Typing mode is not activated
@@ -78,7 +86,7 @@ by Marius Sucan (robodesign.ro)
   - {fixed} changing colors at preferences
   - {fixed} unwanted shortcuts getting triggered when not needed on foreign kbd layouts [reffering to Ctrl+A/C/V/X/Z]
 
-  v3.99 (2018-01-16)
+  v3.99.0 (2018-01-16)
   - reduced [by about 7 kilobytes] and optimized code for handling modifiers [Ctrl, Shift, AltGr and so on]
   - as a consequence, I removed the option for Sticky Keys
   - [bug fixed] the bug with Shift + VKdc reported by burque505
@@ -93,19 +101,19 @@ by Marius Sucan (robodesign.ro)
   - [new] option to change typing delays required internally to allow host apps to receive dead keys properly.... by changing this multiplier, you can make dead keys work well, even if "Do not bind dead keys" is activated.
   - minor bug fixes
   - 
-  v3.98.08 (2018-01-12) - release candidate 2
+  v3.98.0.8 (2018-01-12) - release candidate 2
   - minor bug fixes
 
-  v3.98.07 (2018-01-11) - release candidate
+  v3.98.0.7 (2018-01-11) - release candidate
   - many bug fixes; as always, too many too list here; i would waste time keeping track of them
   - removed useless options from typing settings: 
     -- immediately change to alternate typing mode, when typing [because it's too unreliable]
     -- do not treat dead keys as a different char [the recent changes made it useless]
 
-  v3.98.05 (2018-01-10) - beta
+  v3.98.0.5 (2018-01-10) - beta
   - lots of bug fixes and improvements to yesterday's release; now it's working much better; still got some bugs left related to AltGr and Alternate hooks.
 
-  v3.98 (2018-01-09) - alpha
+  v3.98.0 (2018-01-09) - alpha
   - [NEW] option for alternative mode to hook to keys. This enables full support for dead keys. The dead key symbol is displayied and inserted into the OSD [when needed] only if the option "Do not bind to dead keys" ïs not enabled. This new option is now enabled by default. @rommmcek: MANY THANKS for pointing me to TypingAid.
   - [new] option to send keystrokes in realtime to host app when using alternative typing mode; it does not work in all apps
   - improved the way text is sent from the OSD to the host app when using Alternative typing method, much faster and does not rely on the clipboard anymore.
@@ -116,7 +124,7 @@ by Marius Sucan (robodesign.ro)
   - many bug fixes... and notably... fixed a crash on win32
   - [improvements] made Ctrl+C/X/V/A work with the alternate typing mode
 
-  v3.97 (2018-01-07)
+  v3.97.0 (2018-01-07)
   - [new] option to highlight text cursor/caret when its position is detectable [Keyboard settings]
   - [bug fixes] for alternate typing mode 
   - various other fixes
@@ -129,7 +137,7 @@ by Marius Sucan (robodesign.ro)
   - considerably improved dead keys support
 
 by Drugwash [from the AHK forums]
-  v3.96 (2018-01-06)
+  v3.96.0 (2018-01-06)
   - [new] option to enable the possibility to drag the OSD
   - improved UI: removed the buttons to pick colors, you can now click the colors to change them 
   - mouse halo is now round, when idling, the flashing halo is round as well

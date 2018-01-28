@@ -20,11 +20,13 @@ Global VisualMouseClicks := 0     ; shows visual indicators for different mouse 
  , IdleMouseAlpha        := 70    ; from 0 to 255
  , LowVolBeeps           := 1
  , MouseBeeper           := 0     ; if both, ShowMouseButton and Visual Mouse Clicks are disabled, mouse click beeps will never occur
+ , MouseVclickColor      := "555555"
  , MouseHaloAlpha        := 130   ; from 0 to 255
  , MouseHaloColor        := "eedd00"  ; HEX format also accepted
  , MouseHaloRadius       := 85
  , MouseIdleAfter        := 10    ; in seconds
  , MouseIdleRadius       := 130
+ , MouseIdleColor        := "333333"
  , MouseVclickAlpha      := 150   ; from 0 to 255
  , ShowMouseHalo         := 0     ; constantly highlight mouse cursor
  , CaretHaloAlpha        := 130   ; from 0 to 255
@@ -56,6 +58,8 @@ Global VisualMouseClicks := 0     ; shows visual indicators for different mouse 
   IniRead, IdleMouseAlpha, %inifile%, SavedSettings, IdleMouseAlpha, %IdleMouseAlpha%
   IniRead, LowVolBeeps, %inifile%, SavedSettings, LowVolBeeps, %LowVolBeeps%
   IniRead, MouseBeeper, %inifile%, SavedSettings, MouseBeeper, %MouseBeeper%
+  IniRead, MouseVclickColor, %inifile%, SavedSettings, MouseVclickColor, %MouseVclickColor%
+  IniRead, MouseIdleColor, %inifile%, SavedSettings, MouseIdleColor, %MouseIdleColor%
 
 if (ScriptelSuspendel=1)
    Return
@@ -103,8 +107,10 @@ ShowMouseIdleLocation() {
           BorderSize := 4
           RectW := BoxW - BorderSize*2
           RectH := BoxH - BorderSize*2
-          InnerColor := "333333"
-          OuterColor := "eeeeee"
+          InnerColor := "0x" MouseIdleColor
+          SetFormat, Integer, H
+          OuterColor := 0x222222 + InnerColor
+          SetFormat, Integer, D
           idleOn := 1
        }
 
@@ -236,8 +242,10 @@ ShowMouseClick(clicky) {
          mX := wa ? (mX - Wa/2) : (mX - BoxW/2)
          mY := mY + BoxH*2 + MouseDistance/2
       }
-      InnerColor := "555555"
-      OuterColor := "aaaaaa"
+      InnerColor := "0x" MouseVclickColor
+      SetFormat, Integer, H
+      OuterColor := 0x222222 + InnerColor
+      SetFormat, Integer, D
       BorderSize := 4
       RectW := BoxW - BorderSize*2
       RectH := BoxH - BorderSize*2
