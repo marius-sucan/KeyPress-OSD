@@ -130,6 +130,7 @@
  , VisualMouseClicks     := 0     ; shows visual indicators for different mouse clicks
  , MouseClickRipples     := 0
  , MouseVclickAlpha      := 150   ; from 0 to 255
+ , MouseVclickColor      := "555555"
  , ClickScaleUser        := 10
  , ShowMouseHalo         := 0     ; constantly highlight mouse cursor
  , MouseHaloRadius       := 85
@@ -137,6 +138,7 @@
  , MouseHaloAlpha        := 130   ; from 0 to 255
  , FlashIdleMouse        := 0     ; locate an idling mouse with a flashing box
  , MouseIdleRadius       := 130
+ , MouseIdleColor        := "333333"
  , MouseIdleAfter        := 10    ; in seconds
  , IdleMouseAlpha        := 70    ; from 0 to 255
  , MouseRippleMaxSize    := 155
@@ -157,8 +159,8 @@
 
  , UseINIfile            := 1
  , IniFile               := "keypress-osd.ini"
- , version               := "4.16.5"
- , releaseDate := "2018 / 01 / 27"
+ , version               := "4.17"
+ , releaseDate := "2018 / 01 / 28"
 
 ; Initialization variables. Altering these may lead to undesired results.
 
@@ -418,11 +420,12 @@ CalcVisibleText() {
 }
 
 
-caretMover(direction) {
+caretMover(direction,inLoop:=0) {
   StringGetPos, CaretPos, typed, %lola%
+  StringGetPos, CaretPosSelly, typed, %lola2%
   direction2check := (direction=2) ? CaretPos+3 : CaretPos
   testChar := SubStr(typed, direction2check, 1)
-  If RegExMatch(testChar, "[\p{Mn}\p{Cc}\p{Cf}\p{Co}]")
+  If RegExMatch(testChar, "[\p{Mn}\p{Cc}\p{Cf}\p{Co}\p{Cs}\p{Sk}]") && (inLoop=0) && (CaretPosSelly<0)
      mustRepeat := 1
 
   If (st_count(typed, lola2)>0)
@@ -455,11 +458,11 @@ caretMover(direction) {
   {
      If (CaretPos=1) && (direction=0)
         Return
-     caretMover(direction)
+     caretMover(direction,1)
   }
 }
 
-caretMoverSel(direction) {
+caretMoverSel(direction,inLoop:=0) {
   cola := lola2
   cola2 := lola
   StringGetPos, CaretPos, typed, %cola2%
@@ -468,11 +471,15 @@ caretMoverSel(direction) {
      StringGetPos, CaretPos, typed, %cola%
      direction2check := (direction=1) ? CaretPos+3 : CaretPos
      testChar := SubStr(typed, direction2check, 1)
-     If RegExMatch(testChar, "[\p{Mn}\p{Cc}\p{Cf}\p{Co}]")
+     If RegExMatch(testChar, "[\p{Mn}\p{Cc}\p{Cf}\p{Co}\p{Cs}\p{Sk}]") && (inLoop=0)
         mustRepeat := 1
   } Else
   {
      StringGetPos, CaretPos, typed, %cola2%
+     direction2check := (direction=1) ? CaretPos+3 : CaretPos
+     testChar := SubStr(typed, direction2check, 1)
+     If RegExMatch(testChar, "[\p{Mn}\p{Cc}\p{Cf}\p{Co}\p{Cs}\p{Sk}]") && (inLoop=0)
+        mustRepeat := 1
      CaretPos := (direction=1) ? CaretPos + 1 : CaretPos
   }
 
@@ -497,15 +504,15 @@ caretMoverSel(direction) {
 
   CalcVisibleText()
   If (mustRepeat=1)
-     caretMoverSel(direction)
+     caretMoverSel(direction,1)
 }
 
 caretJumpMain(direction) {
   If (CaretPos<=1)
      CaretPos := 1.5
 
-  theRegEx := "i)((?=[[:space:]│!""@#$%^&*()_¡°¿+{}\[\]|;:<>?/.,\-=``~])[\p{L}\p{M}\p{Z}\p{N}\p{P}\p{S}]\b(?=\S)|\s(?!\s)(?=\p{L}))"
-  alternativeRegEx := "i)(((\p{L}|\p{N}|\w)(?=\S))([\p{M}\p{Z}!""@#$%^&*()_¡°¿+{}\[\]|;:<>?/.,\-=``~\p{S}\p{C}])|\s+[[:punct:]])"
+  theRegEx := "i)((?=[[:space:]|│!""@#$%^&*()_¡°¿+{}\[\]|;:<>?/.,\-=``~])[\p{L}\p{M}\p{Z}\p{N}\p{P}\p{S}]\b(?=\S)|\s(?!\s)(?=\p{L})|\p{So}(?=\S))"
+  alternativeRegEx := "i)(((\p{Sc}|\p{So}|\p{L}|\p{N}|\w)(?=\S))([\p{M}\p{Z}!""@#$%^&*()_¡°¿+{}\[\]|;:<>?/.,\-=``~\p{S}\p{C}])|\s+[[:punct:]])"
   If (direction=1)
   {
      CaretuPos := RegExMatch(typed, theRegEx, , CaretPos+1) + 1
@@ -520,7 +527,7 @@ caretJumpMain(direction) {
 
   If (direction=0)
   {
-     typed := ST_Insert(" z.", typed, StrLen(typed)+1)
+     typed := typed " z."
      If (CaretPos<=1)
         skipLoop := 1
 
@@ -560,6 +567,12 @@ caretJumper(direction) {
   StringReplace, typed, typed, %lola%
   caretJumpMain(direction)
   typed := ST_Insert(lola, typed, CaretPos)
+
+  StringGetPos, CaretPoza, typed, %lola%
+  direction2check := CaretPoza+2
+  testChar := SubStr(typed, direction2check, 1)
+  If RegExMatch(testChar, "[\p{Mn}\p{Cc}\p{Cf}\p{Co}\p{Cs}\p{Sk}]")
+     caretMover(direction*2,1)
 }
 
 caretJumpSelector(direction) {
@@ -578,8 +591,12 @@ caretJumpSelector(direction) {
   If (InStr(typed, lola lola2) || InStr(typed, lola2 lola))
      StringReplace, typed, typed, %lola2%
 
+  StringGetPos, CaretPoza, typed, %lola2%
+  direction2check := CaretPoza+2
+  testChar := SubStr(typed, direction2check, 1)
+  If RegExMatch(testChar, "[\p{Mn}\p{Cc}\p{Cf}\p{Co}\p{Cs}\p{Sk}]")
+     caretMoverSel(direction,1)
 }
-
 
 toUnicodeExtended(uVirtKey,uScanCode,shiftPressed:=0,AltGrPressed:=0,wFlags:=0) {
 ; Many thanks to Helgef for helping me with this function:
@@ -794,8 +811,11 @@ OnUpDownPressed() {
 }
 
 OnHomeEndPressed() {
-    StringGetPos, exKaretPos, typed, %lola%
-    StringGetPos, exKaretPosSelly, typed, %lola2%
+    taiped := typed
+    taiped := RegExReplace(taiped, "[\p{Mn}\p{Cc}\p{Cf}]")
+    taiped := RegExReplace(taiped, "(😝|😐|👄|😭|👋|💯|👽|👶|👙|😎|😋|🙈|🙊|👼|💏|😃|😴|💁|💃|👏|💤|⛄|🌙|👳|😳|😛|🎄|😢|😮|😜|😡|😉|😞|😗|🌜|😙|♥|😩|😆|😚|👍|💋|️|🌸|💖|😈|🌛|☀|💕|😄|😊|😂|😕|🌷|💓|💗|🙏|😍|😔|❤|☹|💞|🙁|🙂|😀|😇|☺|😘)", "1")
+    StringGetPos, exKaretPos, taiped, %lola%
+    StringGetPos, exKaretPosSelly, taiped, %lola2%
     try
     {
         key := GetKeyStr()
@@ -866,8 +886,11 @@ OnHomeEndPressed() {
 
     If (MediateNavKeys=1) && (SecondaryTypingMode=0)
     {
-      StringGetPos, exKaretPos2, typed, %lola%
-      StringGetPos, exKaretPosSelly2, typed, %lola2%
+      taiped := typed
+      taiped := RegExReplace(taiped, "[\p{Mn}\p{Cc}\p{Cf}]")
+      taiped := RegExReplace(taiped, "(😝|😐|👄|😭|👋|💯|👽|👶|👙|😎|😋|🙈|🙊|👼|💏|😃|😴|💁|💃|👏|💤|⛄|🌙|👳|😳|😛|🎄|😢|😮|😜|😡|😉|😞|😗|🌜|😙|♥|😩|😆|😚|👍|💋|️|🌸|💖|😈|🌛|☀|💕|😄|😊|😂|😕|🌷|💓|💗|🙏|😍|😔|❤|☹|💞|🙁|🙂|😀|😇|☺|😘)", "1")
+      StringGetPos, exKaretPos2, taiped, %lola%
+      StringGetPos, exKaretPosSelly2, taiped, %lola2%
       times2pressKey := (exKaretPos2 > exKaretPos) ? (exKaretPos2 - exKaretPos) : (exKaretPos - exKaretPos2)
       managedMode := (exKaretPos=exKaretPos2) || (times2pressKey<1) ? 0 : 1
       If (exKaretPosSelly<0 && exKaretPosSelly2>=0)
@@ -887,7 +910,7 @@ OnHomeEndPressed() {
       {
          times2pressKey := (exKaretPosSelly2 > exKaretPosSelly) ? (exKaretPosSelly2 - exKaretPosSelly) : (exKaretPosSelly - exKaretPosSelly2)
          If (key ~= "i)^(.?Shift \+ Home)") && (exKaretPosSelly>exKaretPos) || (key ~= "i)^(.?Shift \+ End)") && (exKaretPosSelly<exKaretPos)
-         times2pressKey := times2pressKey - 1
+            times2pressKey := times2pressKey - 1
          managedMode := (exKaretPosSelly=exKaretPosSelly2) || (times2pressKey<1) ? 0 : 1
       }
 
@@ -1210,8 +1233,11 @@ OnCtrlRLeft() {
       key := GetKeyStr()
   }
 
-  StringGetPos, exKaretPos, typed, %lola%
-  StringGetPos, exKaretPosSelly, typed, %lola2%
+  taiped := typed
+  taiped := RegExReplace(taiped, "[\p{Mn}\p{Cc}\p{Cf}]")
+  taiped := RegExReplace(taiped, "(😝|😐|👄|😭|👋|💯|👽|👶|👙|😎|😋|🙈|🙊|👼|💏|😃|😴|💁|💃|👏|💤|⛄|🌙|👳|😳|😛|🎄|😢|😮|😜|😡|😉|😞|😗|🌜|😙|♥|😩|😆|😚|👍|💋|️|🌸|💖|😈|🌛|☀|💕|😄|😊|😂|😕|🌷|💓|💗|🙏|😍|😔|❤|☹|💞|🙁|🙂|😀|😇|☺|😘)", "1")
+  StringGetPos, exKaretPos, taiped, %lola%
+  StringGetPos, exKaretPosSelly, taiped, %lola2%
   If (A_TickCount-lastTypedSince < ReturnToTypingDelay) && (DisableTypingMode=0) && (ShowSingleKey=1) && (keyCount<10) && StrLen(typed)>1
   {
       If InStr(A_ThisHotkey, "+^Left")
@@ -1274,9 +1300,11 @@ OnCtrlRLeft() {
       ShowHotkey(key)
       SetTimer, HideGUI, % -DisplayTime
   }
-
-  StringGetPos, exKaretPos2, typed, %lola%
-  StringGetPos, exKaretPosSelly2, typed, %lola2%
+  taiped := typed
+  taiped := RegExReplace(taiped, "[\p{Mn}\p{Cc}\p{Cf}]")
+  taiped := RegExReplace(taiped, "(😝|😐|👄|😭|👋|💯|👽|👶|👙|😎|😋|🙈|🙊|👼|💏|😃|😴|💁|💃|👏|💤|⛄|🌙|👳|😳|😛|🎄|😢|😮|😜|😡|😉|😞|😗|🌜|😙|♥|😩|😆|😚|👍|💋|️|🌸|💖|😈|🌛|☀|💕|😄|😊|😂|😕|🌷|💓|💗|🙏|😍|😔|❤|☹|💞|🙁|🙂|😀|😇|☺|😘)", "1")
+  StringGetPos, exKaretPos2, taiped, %lola%
+  StringGetPos, exKaretPosSelly2, taiped, %lola2%
   keyCount := (exKaretPos!=exKaretPos2) && (exKaretPosSelly)<0 && (exKaretPosSelly2<0) || (exKaretPos=exKaretPos2) && (exKaretPosSelly!=exKaretPosSelly2) ? 1 : keyCount
   If (sendJumpKeys=1) && (SecondaryTypingMode=0) && (droppedSelection!=1)
   {
@@ -1357,17 +1385,11 @@ OnCtrlDelBack() {
                 ControlSend, , {BackSpace}, %Window2Activate%
          } Else
          {
+             typed := typed "zz z"
              caretJumper(0)
-             If (CaretzoiPos >= StrLen(typed)-1)
-             {
-                typed := typed "zzz"
-                removeEnd := 3
-             }
              StringGetPos, CaretzoaiaPos, typed, %lola%
              typed := st_delete(typed, CaretzoaiaPos+1, CaretzoiPos - CaretzoaiaPos+1)
-             If (removeEnd>1)
-                 StringTrimRight, typed, typed, 3
-
+             StringTrimRight, typed, typed, 4
              If (st_count(typed, lola)<1)
                 typed := ST_Insert(lola, typed, CaretzoaiaPos+1)
              BkspPressed := 1
@@ -1665,7 +1687,6 @@ OnBspPressed() {
                SetTimer, HideGUI, % -DisplayTimeTyping
                Return
             }
-
             deadKeyProcessing()
             StringGetPos, CaretPos, typed, % lola
             CaretPos := (CaretPos < 1) ? 2000 : CaretPos
@@ -1677,6 +1698,16 @@ OnBspPressed() {
             }
             keycount := 1
             Global lastTypedSince := A_TickCount
+            StringGetPos, CaretPos, typed, %lola%
+            testChar := SubStr(typed, CaretPos, 1)
+            If RegExMatch(testChar, "[\p{Cs}\p{Sk}]")
+            {
+                typed := st_delete(typed, CaretPos-1, 2)
+                CalcVisibleText()
+                ShowHotkey(visibleTextField)
+                SetTimer, HideGUI, % -DisplayTimeTyping
+                Return
+            }
             typedLength := StrLen(typed)
             CaretPosy := (CaretPos = typedLength) ? 0 : CaretPos
             typed := (caretpos<1) ? typed : st_delete(typed, CaretPosy, 1)
@@ -1742,7 +1773,7 @@ OnDelPressed() {
             If (CaretPos >= StrLen(typed)-2 )
                endReached := 1
 
-            If InStr(typed, lola "▫") || RegExMatch(testChar, "[\p{Mn}\p{Cc}\p{Cf}\p{Co}]")
+            If InStr(typed, lola "▫") || RegExMatch(testChar, "[\p{Mn}\p{Cc}\p{Cf}\p{Co}\p{Cs}\p{Sk}]")
                deleteNext := 1
 
             If (endReached!=1) && InStr(typed, lola)
@@ -2865,8 +2896,8 @@ IdentifyKBDlayout() {
          CurrentKBD := kbLayoutRaw ". Layout unrecognized."
       } Else
       {
-         ShowLongMsg("Unsupported: " langFriendlySysName " (" kbLayoutRawShort ")")
-         CurrentKBD := langFriendlySysName " ("  kbLayoutRawShort "). Layout unsupported."
+         ShowLongMsg("Unsupported: " langFriendlySysName " (" kbLayoutRaw ")")
+         CurrentKBD := langFriendlySysName " ("  kbLayoutRaw "). Layout unsupported."
       }
       SetTimer, HideGUI, % -DisplayTime
       SoundBeep, 500, 900
@@ -3773,6 +3804,7 @@ TypeOptionsShowHelp() {
 SwitchPreferences() {
     GuiControlGet, ApplySettingsBTN, Enabled
     GuiControlGet, CurrentPrefWindow
+    showHelp := 0
     Gui, Submit
     Global reopen := 1
     Gui, SettingsGUIA: Destroy
@@ -4181,40 +4213,48 @@ ShowKBDsettings() {
            Return
     }
     Global CurrentPrefWindow := 1
-    Gui, Add, Text, x15 y15 w220, Status: %CurrentKBD%
-    Gui, Add, Text, xp+0 yp+40, Settings regarding keyboard layouts:
-    Gui, Add, Checkbox, xp+10 yp+20 gVerifyKeybdOptions Checked%AutoDetectKBD% vAutoDetectKBD, Detect keyboard layout at start
-    Gui, Add, Checkbox, xp+0 yp+20 gVerifyKeybdOptions Checked%ConstantAutoDetect% vConstantAutoDetect, Continuously detect layout changes
-    Gui, Add, Checkbox, xp+0 yp+20 gVerifyKeybdOptions Checked%SilentDetection% vSilentDetection, Silent detection (no messages)
-    Gui, Add, Checkbox, xp+0 yp+20 gVerifyKeybdOptions Checked%audioAlerts% vaudioAlerts, Beep for failed key bindings
-    Gui, Add, Checkbox, xp+0 yp+20 gVerifyKeybdOptions Checked%enableAltGr% venableAltGr, Enable Ctrl+Alt / AltGr support
-    Gui, Add, Checkbox, xp+0 yp+20 gForceKbdInfo Checked%ForceKBD% vForceKBD, Force detected keyboard layout (A / B)
-    Gui, Add, Edit, xp+20 yp+20 gVerifyKeybdOptions w68 r1 limit8 -multi -wantCtrlA -wantReturn -wantTab -wrap vForcedKBDlayout1, %ForcedKBDlayout1%
-    Gui, Add, Edit, xp+73 yp+0 gVerifyKeybdOptions w68 r1 limit8 -multi -wantCtrlA -wantReturn -wantTab -wrap vForcedKBDlayout2, %ForcedKBDlayout2%
-    Gui, Add, Checkbox, xp-93 yp+30 gVerifyKeybdOptions Checked%IgnoreAdditionalKeys% vIgnoreAdditionalKeys, Ignore specific keys (dot separated)
-    Gui, Add, Edit, xp+20 yp+20 gVerifyKeybdOptions w140 r1 -multi -wantReturn -wantTab -wrap vIgnorekeysList, %IgnorekeysList%
+    Global EditF22
+    Gui, Add, Tab3,, Keyboard layouts|Behavior
+    Gui, Tab, 1 ; general
+    Gui, Add, Checkbox, x+15 y+15 gVerifyKeybdOptions Checked%AutoDetectKBD% vAutoDetectKBD, Detect keyboard layout at start
+    Gui, Add, Checkbox, y+7 gVerifyKeybdOptions Checked%ConstantAutoDetect% vConstantAutoDetect, Continuously detect layout changes
+    Gui, Add, Checkbox, y+7 gVerifyKeybdOptions Checked%SilentDetection% vSilentDetection, Silent detection (no messages)
+    Gui, Add, Checkbox, y+7 gVerifyKeybdOptions Checked%audioAlerts% vaudioAlerts, Beep for failed key bindings
+    Gui, Add, Checkbox, y+7 gVerifyKeybdOptions Checked%enableAltGr% venableAltGr, Enable Ctrl+Alt / AltGr support
+    Gui, Add, Checkbox, y+7 section gForceKbdInfo Checked%ForceKBD% vForceKBD, Force detected keyboard layout (A / B)   
+    Gui, Add, Edit, xp+20 y+5 gVerifyKeybdOptions w68 r1 limit8 -multi -wantCtrlA -wantReturn -wantTab -wrap vForcedKBDlayout1, %ForcedKBDlayout1%
+    Gui, Add, Edit, x+5 gVerifyKeybdOptions w68 r1 limit8 -multi -wantCtrlA -wantReturn -wantTab -wrap vForcedKBDlayout2, %ForcedKBDlayout2%
+    Gui, Add, Checkbox, xs+0 y+7 gVerifyKeybdOptions Checked%IgnoreAdditionalKeys% vIgnoreAdditionalKeys, Ignore specific keys (dot separated)
+    Gui, Add, Edit, xp+20 y+5 gVerifyKeybdOptions w140 r1 -multi -wantReturn -wantTab -wrap vIgnorekeysList, %IgnorekeysList%
+    Gui, font, bold
+    Gui, Add, Text, xp-20 y+7 w250, Status: %CurrentKBD%
+    Gui, font, normal
 
-    Gui, Add, Text, x260 y15, Display behavior:
-    Gui, Add, Checkbox, xp+10 yp+20 gVerifyKeybdOptions Checked%ShowSingleKey% vShowSingleKey, Show single keys
-    Gui, Add, Checkbox, xp+0 yp+20 gVerifyKeybdOptions Checked%HideAnnoyingKeys% vHideAnnoyingKeys, Hide Left Click and PrintScreen
-    Gui, Add, Checkbox, xp+0 yp+20 gVerifyKeybdOptions Checked%ShowSingleModifierKey% vShowSingleModifierKey, Display modifiers
-    Gui, Add, Checkbox, xp+0 yp+20 gVerifyKeybdOptions Checked%DifferModifiers% vDifferModifiers, Differ left and right modifiers
-    Gui, Add, Checkbox, xp+0 yp+20 gVerifyKeybdOptions Checked%ShowKeyCount% vShowKeyCount, Show key count
-    Gui, Add, Checkbox, xp+0 yp+20 gVerifyKeybdOptions Checked%ShowKeyCountFired% vShowKeyCountFired, Count number of key fires
-    Gui, Add, Checkbox, xp+0 yp+20 gVerifyKeybdOptions Checked%ShowPrevKey% vShowPrevKey, Show previous key (delay in ms)
-    Gui, Add, Edit, xp+180 yp+0 gVerifyKeybdOptions w24 r1 limit3 -multi number -wantCtrlA -wantReturn -wantTab -wrap vShowPrevKeyDelay, %ShowPrevKeyDelay%
+    Gui, Tab, 2 ; behavior
+    Gui, Add, Checkbox, x+15 y+15 gVerifyKeybdOptions Checked%ShowSingleKey% vShowSingleKey, Show single keys
+    Gui, Add, Checkbox, y+7 gVerifyKeybdOptions Checked%HideAnnoyingKeys% vHideAnnoyingKeys, Hide Left Click and PrintScreen
+    Gui, Add, Checkbox, y+7 gVerifyKeybdOptions Checked%ShowSingleModifierKey% vShowSingleModifierKey, Display modifiers
+    Gui, Add, Checkbox, y+7 gVerifyKeybdOptions Checked%DifferModifiers% vDifferModifiers, Differ left and right modifiers
+    Gui, Add, Checkbox, y+7 gVerifyKeybdOptions Checked%ShowKeyCount% vShowKeyCount, Show key count
+    Gui, Add, Checkbox, y+7 gVerifyKeybdOptions Checked%ShowKeyCountFired% vShowKeyCountFired, Count number of key fires
+    Gui, Add, Checkbox, y+7 section gVerifyKeybdOptions Checked%ShowPrevKey% vShowPrevKey, Show previous key (delay in ms)
+    Gui, Add, Edit, x+5 w55 r1 limit3 -multi number -wantCtrlA -wantReturn -wantTab -wrap vEditF22, %ShowPrevKeyDelay%
+    Gui, Add, UpDown, vShowPrevKeyDelay gVerifyKeybdOptions Range100-990, %ShowPrevKeyDelay%
     If (OnlyTypingMode=1)
     {
-       Gui, Add, Text, xp-190 yp+20 w200, Some options were disabled because Only Typing mode is activated.
-       Gui, Add, Text, xp+0 y+8, Other options:
-    } Else Gui, Add, Text, xp-190 yp+35, Other options:
-    Gui, Add, Checkbox, xp+10 yp+20 gVerifyKeybdOptions Checked%ShiftDisableCaps% vShiftDisableCaps, Shift turns off Caps Lock
-    Gui, Add, Checkbox, xp+0 yp+20 gVerifyKeybdOptions Checked%ClipMonitor% vClipMonitor, Monitor clipboard changes
-    Gui, Add, Checkbox, xp+0 yp+20 gVerifyKeybdOptions w190 Checked%hostCaretHighlight% vhostCaretHighlight, Highlight text cursor in host app (if detectable)
+       Gui, Font, bold
+       Gui, Add, Text, xs+0 y+7 w250, Some options were disabled because Only Typing mode is activated.
+       Gui, Font, normal
+    }
+    Gui, Add, Text, xs+0 y+7, Other options:
+    Gui, Add, Checkbox, xp+15 y+7 gVerifyKeybdOptions Checked%ShiftDisableCaps% vShiftDisableCaps, Shift turns off Caps Lock
+    Gui, Add, Checkbox, y+7 gVerifyKeybdOptions Checked%ClipMonitor% vClipMonitor, Monitor clipboard changes
+    Gui, Add, Checkbox, y+7 gVerifyKeybdOptions w250 Checked%hostCaretHighlight% vhostCaretHighlight, Highlight text cursor in host app (if detectable)
 
-    Gui, Add, Button, x15 yp+40 w70 h30 Default gApplySettings vApplySettingsBTN, A&pply
-    Gui, Add, Button, xp+75 yp+0 w70 h30 gCloseSettings, C&ancel
-    Gui, Add, DropDownList, xp+75 yp+5 AltSubmit gSwitchPreferences choose%CurrentPrefWindow% vCurrentPrefWindow , Keyboard|Typing mode|Sounds|Mouse|Appearances|Shortcuts
+    Gui, Tab
+    Gui, Add, Button, xm+0 y+10 w70 h30 Default gApplySettings vApplySettingsBTN, A&pply
+    Gui, Add, Button, x+5 yp+0 w70 h30 gCloseSettings, C&ancel
+    Gui, Add, DropDownList, x+5 yp+0 AltSubmit gSwitchPreferences choose%CurrentPrefWindow% vCurrentPrefWindow , Keyboard|Typing mode|Sounds|Mouse|Appearances|Shortcuts
     Gui, Show, AutoSize, Keyboard settings: KeyPress OSD
     VerifyKeybdOptions(0)
 }
@@ -4238,6 +4278,7 @@ VerifyKeybdOptions(enableApply:=1) {
     GuiControl, % (enableApply=0 ? "Disable" : "Enable"), ApplySettingsBTN
     GuiControl, % (ShowSingleModifierKey=0 ? "Disable" : "Enable"), DifferModifiers
     GuiControl, % (ShowPrevKey=0 ? "Disable" : "Enable"), ShowPrevKeyDelay
+    GuiControl, % (ShowPrevKey=0 ? "Disable" : "Enable"), editF22
     GuiControl, % (ShowKeyCount=0 ? "Disable" : "Enable"), ShowKeyCountFired
 
     If (ShowSingleKey=0)
@@ -4256,7 +4297,10 @@ VerifyKeybdOptions(enableApply:=1) {
        GuiControl, Enable, ShowKeyCount
        GuiControl, Enable, ShowPrevKey
        if (ShowPrevKey=1)
+       {
           GuiControl, Enable, ShowPrevKeyDelay
+          GuiControl, Enable, EditF22
+       }
     }
 
     If (AutoDetectKBD=1)
@@ -4302,6 +4346,7 @@ VerifyKeybdOptions(enableApply:=1) {
         GuiControl, Disable, ShowKeyCountFired
         GuiControl, Disable, ShowPrevKey 
         GuiControl, Disable, ShowPrevKeyDelay
+        GuiControl, Disable, EditF22
         GuiControl, Disable, HideAnnoyingKeys
         GuiControl, Disable, DifferModifiers
     }
@@ -4325,43 +4370,50 @@ ShowMouseSettings() {
     }
     Global CurrentPrefWindow := 4
     Global editF1, editF2, editF3, editF4, editF5, editF6, editF7, btn1
-    Gui, Add, Checkbox, gVerifyMouseOptions x15 y15 Checked%ShowMouseButton% vShowMouseButton, Show mouse clicks in the OSD
+
+    Gui, Add, Tab3, w300, Mouse clicks|Mouse location
+    Gui, Tab, 1 ; clicks
+    Gui, Add, Checkbox, gVerifyMouseOptions x+15 y+15 Checked%ShowMouseButton% vShowMouseButton, Show mouse clicks in the OSD
     Gui, Add, Checkbox, gVerifyMouseOptions xp+0 yp+20 Checked%MouseBeeper% vMouseBeeper, Beep on mouse clicks
-    Gui, Add, Checkbox, gVerifyMouseOptions xp+0 yp+20 Checked%VisualMouseClicks% vVisualMouseClicks, Visual mouse clicks (scale, alpha)
+    Gui, Add, Checkbox, gVerifyMouseOptions section xp+0 yp+20 Checked%VisualMouseClicks% vVisualMouseClicks, Visual mouse clicks (scale, alpha, color)
     Gui, Add, Edit, xp+16 yp+20 w45 r1 limit2 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF1, %ClickScaleUser%
     Gui, Add, UpDown, vClickScaleUser gVerifyMouseOptions Range3-90, %ClickScaleUser%
     Gui, Add, Edit, xp+50 yp+0 w45 r1 limit3 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF2, %MouseVclickAlpha%
     Gui, Add, UpDown, vMouseVclickAlpha gVerifyMouseOptions Range10-240, %MouseVclickAlpha%
-    Gui, Add, Checkbox, gVerifyMouseOptions xp-65 yp+35 Checked%MouseClickRipples% vMouseClickRipples, Show ripples on clicks (size, thickness)
+    Gui, Add, ListView, xp+50 yp+0 w45 h22 %cclvo% Background%MouseVclickColor% vMouseVclickColor hwndhLV6,
+    Gui, Add, Checkbox, gVerifyMouseOptions xs+0 yp+35 Checked%MouseClickRipples% vMouseClickRipples, Show ripples on clicks (size, thickness)
     Gui, Add, Edit, xp+16 yp+20 w45 r1 limit3 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF8, %MouseRippleMaxSize%
     Gui, Add, UpDown, vMouseRippleMaxSize gVerifyMouseOptions Range90-400, %MouseRippleMaxSize%
     Gui, Add, Edit, xp+50 yp+0 w45 r1 limit2 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF9, %MouseRippleThickness%
     Gui, Add, UpDown, vMouseRippleThickness gVerifyMouseOptions Range5-50, %MouseRippleThickness%
 
-    Gui, Add, Edit, x345 y40 w60 r1 limit3 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF3, %MouseHaloRadius%
+    Gui, Tab, 2 ; location
+    Gui, Add, Checkbox, gVerifyMouseOptions section x+15 y+15 Checked%ShowMouseHalo% vShowMouseHalo, Mouse halo / highlight
+    Gui, Add, Text, xp+15 yp+25, Radius:
+    Gui, Add, Text, xp+0 yp+25, Alpha, color:
+    Gui, Add, Checkbox, gVerifyMouseOptions xp-15 yp+33 Checked%FlashIdleMouse% vFlashIdleMouse, Flash idle mouse to locate it
+    Gui, Add, Text, xp+15 yp+25, Idle after (in sec.)
+    Gui, Add, Text, xp+0 yp+25, Halo radius:
+    Gui, Add, Text, xp+0 yp+25, Alpha, color:
+
+    Gui, Add, Edit, xp+115 ys+25 w60 r1 limit3 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF3, %MouseHaloRadius%
     Gui, Add, UpDown, vMouseHaloRadius gVerifyMouseOptions Range5-950, %MouseHaloRadius%
-    Gui, Add, ListView, xp+0 yp+25 w60 h20 %cclvo% Background%MouseHaloColor% vMouseHaloColor hwndhLV4, 1
     Gui, Add, Edit, xp+0 yp+25 w60 r1 limit3 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF4, %MouseHaloAlpha%
     Gui, Add, UpDown, vMouseHaloAlpha gVerifyMouseOptions Range10-240, %MouseHaloAlpha%
-    Gui, Add, Edit, xp+0 yp+55 w60 r1 limit3 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF5, %MouseIdleAfter%
+    Gui, Add, ListView, x+5 w55 h20 %cclvo% Background%MouseHaloColor% vMouseHaloColor hwndhLV4,
+    Gui, Add, Edit, xp-60 yp+55 w60 r1 limit3 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF5, %MouseIdleAfter%
     Gui, Add, UpDown, vMouseIdleAfter gVerifyMouseOptions Range3-950, %MouseIdleAfter%
     Gui, Add, Edit, xp+0 yp+25 w60 r1 limit3 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF6, %MouseIdleRadius%
     Gui, Add, UpDown, vMouseIdleRadius gVerifyMouseOptions Range5-950, %MouseIdleRadius%
     Gui, Add, Edit, xp+0 yp+25 w60 r1 limit3 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF7, %IdleMouseAlpha%
     Gui, Add, UpDown, vIdleMouseAlpha gVerifyMouseOptions Range10-240, %IdleMouseAlpha%
+    Gui, Add, ListView, x+5 w55 h20 %cclvo% Background%MouseIdleColor% vMouseIdleColor hwndhLV7,
 
-    Gui, Add, Checkbox, gVerifyMouseOptions x230 y15 Checked%ShowMouseHalo% vShowMouseHalo, Mouse halo / highlight
-    Gui, Add, Text, xp+15 yp+25, Radius:
-    Gui, Add, Text, xp+0 yp+25, Color:
-    Gui, Add, Text, xp+0 yp+25, Alpha:
-    Gui, Add, Checkbox, gVerifyMouseOptions xp-15 yp+33 Checked%FlashIdleMouse% vFlashIdleMouse, Flash idle mouse to locate it
-    Gui, Add, Text, xp+15 yp+25, Idle after (in sec.)
-    Gui, Add, Text, xp+0 yp+25, Halo radius:
-    Gui, Add, Text, xp+0 yp+25, Alpha:
+    Gui, Tab
+    Gui, Add, Button, xm+0 y+10 w70 h30 Default gApplySettings vApplySettingsBTN, A&pply
+    Gui, Add, Button, x+5 yp+0 w70 h30 gCloseSettings, C&ancel
+    Gui, Add, DropDownList, x+5 yp+0 AltSubmit gSwitchPreferences choose%CurrentPrefWindow% vCurrentPrefWindow , Keyboard|Typing mode|Sounds|Mouse|Appearances|Shortcuts
 
-    Gui, Add, Button, x15 yp-20 w70 h30 Default gApplySettings vApplySettingsBTN, A&pply
-    Gui, Add, Button, xp+75 yp+0 w70 h30 gCloseSettings, C&ancel
-    Gui, Add, DropDownList, xp-75 y+5 AltSubmit gSwitchPreferences choose%CurrentPrefWindow% vCurrentPrefWindow , Keyboard|Typing mode|Sounds|Mouse|Appearances|Shortcuts
     Gui, Show, AutoSize, Mouse settings: KeyPress OSD
     VerifyMouseOptions(0)
 }
@@ -4406,6 +4458,7 @@ VerifyMouseOptions(enableApply:=1) {
     {
        GuiControl, Disable, ClickScaleUser
        GuiControl, Disable, MouseVclickAlpha
+       GuiControl, Disable, MouseVclickColor
        GuiControl, Enable, MouseClickRipples
        GuiControl, Disable, editF1
        GuiControl, Disable, editF2
@@ -4413,6 +4466,7 @@ VerifyMouseOptions(enableApply:=1) {
     {
        GuiControl, Enable, ClickScaleUser
        GuiControl, Enable, MouseVclickAlpha
+       GuiControl, Enable, MouseVclickColor
        GuiControl, Disable, MouseClickRipples
        GuiControl, Enable, editF1
        GuiControl, Enable, editF2
@@ -4422,6 +4476,7 @@ VerifyMouseOptions(enableApply:=1) {
     {
        GuiControl, Disable, MouseIdleAfter
        GuiControl, Disable, MouseIdleRadius
+       GuiControl, Disable, MouseIdleColor
        GuiControl, Disable, IdleMouseAlpha
        GuiControl, Disable, editF5
        GuiControl, Disable, editF6
@@ -4430,6 +4485,7 @@ VerifyMouseOptions(enableApply:=1) {
     {
        GuiControl, Enable, MouseIdleAfter
        GuiControl, Enable, MouseIdleRadius
+       GuiControl, Enable, MouseIdleColor
        GuiControl, Enable, IdleMouseAlpha
        GuiControl, Enable, editF5
        GuiControl, Enable, editF6
@@ -5308,6 +5364,8 @@ ShaveSettings() {
   IniWrite, %KBDTglPosition%, %inifile%, SavedSettings, KBDTglPosition
   IniWrite, %KBDidLangNow%, %inifile%, SavedSettings, KBDidLangNow
   IniWrite, %KBDReload%, %inifile%, SavedSettings, KBDReload
+  IniWrite, %MouseVclickColor%, %inifile%, SavedSettings, MouseVclickColor
+  IniWrite, %MouseIdleColor%, %inifile%, SavedSettings, MouseIdleColor
 }
 
 LoadSettings() {
@@ -5419,6 +5477,8 @@ LoadSettings() {
   IniRead, KBDTglPosition, %inifile%, SavedSettings, KBDTglPosition, %KBDTglPosition%
   IniRead, KBDidLangNow, %inifile%, SavedSettings, KBDidLangNow, %KBDidLangNow%
   IniRead, KBDReload, %inifile%, SavedSettings, KBDReload, %KBDReload%
+  IniRead, MouseVclickColor, %inifile%, SavedSettings, MouseVclickColor, %MouseVclickColor%
+  IniRead, MouseIdleColor, %inifile%, SavedSettings, MouseIdleColor, %MouseIdleColor%
 
   CheckSettings()
   GuiX := (GUIposition=1) ? GuiXa : GuiXb
@@ -5644,6 +5704,12 @@ CheckSettings() {
 
    If (MouseHaloColor ~= "[^[:xdigit:]]") || (StrLen(MouseHaloColor)!=6)
       MouseHaloColor := "eedd00"
+
+   If (MouseVclickColor ~= "[^[:xdigit:]]") || (StrLen(MouseVclickColor)!=6)
+      MouseVclickColor := "555555"
+
+   If (MouseIdleColor ~= "[^[:xdigit:]]") || (StrLen(MouseIdleColor)!=6)
+      MouseIdleColor := "333333"
 
    If (TypingColorHighlight ~= "[^[:xdigit:]]") || (StrLen(TypingColorHighlight)!=6)
       TypingColorHighlight := "12E217"
