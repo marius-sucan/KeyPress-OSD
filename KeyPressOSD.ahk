@@ -75,6 +75,7 @@
  , ShowKeyCount          := 1     ; count how many times a key is pressed
  , ShowKeyCountFired     := 0     ; show only key presses (0) or catch key fires as well (1)
  , NeverDisplayOSD       := 0
+ , mouseOSDbehavior      := 1
  , ReturnToTypingUser    := 20    ; in seconds
  , DisplayTimeTypingUser := 10    ; in seconds
  , synchronizeMode       := 0
@@ -101,8 +102,9 @@
  , maxGuiWidth           := 550
  , FontName              := "Arial"
  , FontSize              := 19
- , OSDalignment1          := 3     ; 1 = left ; 2 = center ; 3 = right
- , OSDalignment2          := 1     ; 1 = left ; 2 = center ; 3 = right
+ , prefsLargeFonts       := 0
+ , OSDalignment1         := 3     ; 1 = left ; 2 = center ; 3 = right
+ , OSDalignment2         := 1     ; 1 = left ; 2 = center ; 3 = right
  , OSDbgrColor           := "131209"
  , OSDtextColor          := "FFFEFA"
  , CapsColorHighlight    := "88AAff"
@@ -157,10 +159,11 @@
  , KBDidLangNow          := "!+^F11"
  , KBDReload             := "!+^F12"
 
+ , TextZoomer            := 0
  , UseINIfile            := 1
  , IniFile               := "keypress-osd.ini"
- , version               := "4.17"
- , releaseDate := "2018 / 01 / 28"
+ , version               := "4.17.7"
+ , releaseDate := "2018 / 01 / 31"
 
 ; Initialization variables. Altering these may lead to undesired results.
 
@@ -258,6 +261,7 @@ if (ClipMonitor=1)
 hCursM := DllCall("LoadCursor", "Ptr", NULL, "Int", 32646, "Ptr")  ; IDC_SIZEALL
 hCursH := DllCall("LoadCursor", "Ptr", NULL, "Int", 32649, "Ptr")  ; IDC_HAND
 OnMessage(0x200, "MouseMove")    ; WM_MOUSEMOVE
+ComObjError(false)
 
 if (AlternativeHook2keys=1) && (DisableTypingMode=0) && (ShowSingleKey=1)
 {
@@ -2167,6 +2171,18 @@ CreateOSDGUI() {
        CreateOSDGUIghost()
 }
 
+CreateOSDCaptureTXTgui() {
+    Global
+    Sleep, 10
+    Gui, capTxt: Destroy
+    Gui, capTxt: +AlwaysOnTop -Caption +Owner +LastFound +ToolWindow +E0x20
+    Gui, capTxt: Margin, 20, 10
+    Gui, capTxt: Color, %OSDbgrColor%
+    Gui, capTxt: Font, c%OSDtextColor% s%FontSize% bold, %FontName%
+    Gui, capTxt: Font, s9
+    Gui, capTxt: Add, Text, 0x80 y+0 vCapturedTexty, %CapturedTexty%
+}
+
 CreateOSDGUIghost() {
     Global
     Gui, OSDghost: Destroy
@@ -2542,6 +2558,31 @@ ShowLongMsg(stringo) {
    IniRead, NeverDisplayOSD, %inifile%, SavedSettings, NeverDisplayOSD, %NeverDisplayOSD%
 }
 
+ShowCapturedText(HotkeyStr) {
+; Sleep, 70 ; megatest
+; CreateOSDCaptureTXTgui()
+    dGuiX := Round(GuiX)
+    osd_height := GuiHeight
+    If (OSDautosize=1)
+    {
+        osd_width := GetTextExtentPoint(HotkeyStr, FontName, FontSize) / (OSDautosizeFactory/100) + 35
+        if (osd_width > maxAllowedGuiWidth-30)
+        {
+           osd_height := GuiHeight*4
+           osd_width := maxAllowedGuiWidth
+        }
+    } Else if (OSDautosize=0)
+    {
+        osd_width := maxAllowedGuiWidth
+    }
+    GuiControl, capTxt: , CapturedTexty, %HotkeyStr%
+    GuiControl, capTxt: Move, CapturedTexty, w%osd_width% h%osd_height%
+
+    SetTimer, checkMousePresence, on, 950, -15
+    Gui, capTxt: Show, NoActivate AutoSize y10 x%dGuiX% , KeyPressOSDcapTxt
+    WinSet, AlwaysOnTop, On, KeyPressOSDcapTxt
+}
+
 GetTextExtentPoint(sString, sFaceName, nHeight, initialStart := 0) {
 ; by Sean from https://autohotkey.com/board/topic/16414-hexview-31-for-stdlib/#entry107363
 ; Sleep, 60 ; megatest
@@ -2601,6 +2642,8 @@ GuiGetSize(ByRef W, ByRef H, vindov) {          ; function by VxE from https://a
      Gui, MouseIdlah: +LastFoundExist
   If (vindov=4)
      Gui, Mouser: +LastFoundExist
+  If (vindov=5)
+     Gui, SettingsGUIA: +LastFoundExist
   VarSetCapacity(rect, 16, 0)
   DllCall("GetClientRect", "Ptr", MyGuiHWND := WinExist(), "Ptr", &rect)
   W := NumGet(rect, 8, "UInt")
@@ -3051,6 +3094,7 @@ HideGUI() {
        Return
     OSDvisible := 0
     Gui, OSD: Hide
+    Gui, capTxt: Hide
     SetTimer, checkMousePresence, off
 }
 
@@ -3365,6 +3409,30 @@ ToggleSilence() {
     Sleep, 400
 }
 
+ToggleCaptureText() {
+    If !FileExist("keypress-files\keypress-acc-viewer-functions.ahk")
+       Return
+    TextZoomer := !TextZoomer
+    Menu, tray, % (TextZoomer=0 ? "Uncheck" : "Check"), Capture text
+    if (TextZoomer=1)
+    {
+       CreateOSDCaptureTXTgui()
+;       SetTimer, GetAccInfo, 120, 50, UseErrorLevel
+    } else
+    {
+ ;      SetTimer, GetAccInfo, off
+       Gui, capTxt: Destroy
+    }
+    Sleep, 400
+}
+
+ToggleLargeFonts() {
+    prefsLargeFonts := !prefsLargeFonts
+    IniWrite, %prefsLargeFonts%, %IniFile%, SavedSettings, prefsLargeFonts
+    Menu, SubSetMenu, % (prefsLargeFonts=0 ? "Uncheck" : "Check"), Large UI fonts
+    Sleep, 200
+}
+
 DetectLangNow() {
     ReloadCounter := 1
     IniWrite, %ReloadCounter%, %IniFile%, TempSettings, ReloadCounter
@@ -3519,10 +3587,11 @@ InitializeTray() {
     Menu, SubSetMenu, Add, &Typing mode, ShowTypeSettings
     Menu, SubSetMenu, Add, &Sounds, ShowSoundsSettings
     Menu, SubSetMenu, Add, &Mouse, ShowMouseSettings
-    Menu, SubSetMenu, Add, &OSD appearances, ShowOSDsettings
+    Menu, SubSetMenu, Add, &OSD appearance, ShowOSDsettings
     Menu, SubSetMenu, Add, &Global shortcuts, ShowShortCutsSettings
     Menu, SubSetMenu, Add
     Menu, SubSetMenu, Add, S&ilent mode, ToggleSilence
+    Menu, SubSetMenu, Add, Large UI fonts, ToggleLargeFonts
     Menu, SubSetMenu, Add, Start at boot, SetStartUp
     Menu, SubSetMenu, Add
     Menu, SubSetMenu, Add, Restore defaults, DeleteSettings
@@ -3538,6 +3607,9 @@ InitializeTray() {
 
     If (SilentMode=1)
        Menu, SubSetMenu, Check, S&ilent mode
+
+    If (prefsLargeFonts=1)
+       Menu, SubSetMenu, Check, Large UI fonts
 
     If !FileExist("keypress-files\keypress-beeperz-functions.ahk")
     {
@@ -3584,7 +3656,8 @@ InitializeTray() {
 
     Menu, Tray, Add, &Toggle OSD positions, TogglePosition
     Menu, Tray, Add, &Never show the OSD, ToggleNeverDisplay
-    Menu, Tray, Add, &Capture2Text mode, ToggleCapture2Text
+    Menu, Tray, Add, &Capture2Text mode (OCR), ToggleCapture2Text
+;    Menu, Tray, Add, Capture text, ToggleCaptureText
     Menu, Tray, Add
     Menu, Tray, Add, &KeyPress activated, SuspendScript
     Menu, tray, Check, &KeyPress activated
@@ -3597,6 +3670,9 @@ InitializeTray() {
 
     If (NeverDisplayOSD=1)
        Menu, tray, Check, &Never show the OSD
+
+    If !FileExist("keypress-files\keypress-acc-viewer-functions.ahk")
+       Menu, tray, Disable, Capture text
 
     faqHtml := "keypress-files\help\faq.html"
     If !FileExist(faqHtml)
@@ -3623,16 +3699,16 @@ DeleteSettings() {
     }
 }
 
-KillScript() {
+KillScript(showMSG:=1) {
    Thread, Priority, 50
    Critical, on
    thisFile := A_ScriptName
-   If FileExist(thisFile)
+   If FileExist(thisFile) && (showMSG=1)
    {
       ShaveSettings()
       ShowLongMsg("Bye byeee :-)")
       Sleep, 350
-   } Else
+   } Else if (showMSG=1)
    {
       ShowLongMsg("Adiiooosss :-(((")
       Sleep, 1550
@@ -3657,7 +3733,8 @@ SettingsGUI() {
    Gui, SettingsGUIA: Destroy
    Sleep, 15
    Gui, SettingsGUIA: Default
-   Gui, SettingsGUIA: -SysMenu
+   Gui, SettingsGUIA: -MaximizeBox
+   Gui, SettingsGUIA: -MinimizeBox
    Gui, SettingsGUIA: Margin, 15, 15
 }
 
@@ -3693,6 +3770,12 @@ ShowTypeSettings() {
     }
     deadKstatus := (DeadKeys=1) ? "Dead keys present." : "."
     Global CurrentPrefWindow := 2
+    txtWid := 350
+    If (prefsLargeFonts=1)
+    {
+       txtWid := 600
+       Gui, font, s14
+    }
     Gui, Add, Tab3,, General|Dead keys|Behavior
     Gui, Tab, 1 ; general
     Gui, Add, Checkbox, x+15 y+15 gVerifyTypeOptions Checked%ShowSingleKey% vShowSingleKey, Show single keys in the OSD (mandatory for the main typing mode)
@@ -3701,25 +3784,25 @@ ShowTypeSettings() {
     Gui, Add, Checkbox, y+7 gVerifyTypeOptions Checked%MediateNavKeys% vMediateNavKeys, Mediate {Home} / {End} keys presses
     If (showHelp=1)
     {
-       Gui, Add, Text, xp+15 y+5 w350, This can ensure a stricter synchronization with the host app when typing in short multi-line text fields. Key strokes will be sent to the host app that attempt to reproduce the caret location from the OSD.
+       Gui, Add, Text, xp+15 y+5 w%txtWid%, This can ensure a stricter synchronization with the host app when typing in short multi-line text fields. Key strokes will be sent to the host app that attempt to reproduce the caret location from the OSD.
        Gui, Add, Checkbox, xp-15 y+10 gVerifyTypeOptions Checked%OnlyTypingMode% vOnlyTypingMode, Typing mode only
     } Else Gui, Add, Checkbox, y+10 gVerifyTypeOptions Checked%OnlyTypingMode% vOnlyTypingMode, Typing mode only
 
     If (showHelp=1)
     {
-       Gui, Add, Text, xp+15 y+5 w350, The main typing mode works by attempting to shadow the host app. KeyPress will attempt to reproduce text cursor actions to mimmick text fields.
+       Gui, Add, Text, xp+15 y+5 w%txtWid%, The main typing mode works by attempting to shadow the host app. KeyPress will attempt to reproduce text cursor actions to mimmick text fields.
        Gui, Add, Checkbox, xp-15 y+10 gVerifyTypeOptions Checked%alternateTypingMode% valternateTypingMode, Enable global keyboard shortcut to enter in alternate typing mode
-       Gui, Add, Text, xp+15 y+5 w350, Default shortcut: {Ctrl + CapsLock}. Type through KeyPress and send text on {Enter}. This ensures full support for dead keys and full predictability. In other words, what you see is what you typed - once you sent it to the host app. However, in Windows 7 or below, the keyboard layout of the host app might not match with the one of the OSD.
+       Gui, Add, Text, xp+15 y+5 w%txtWid%, Default shortcut: {Ctrl + CapsLock}. Type through KeyPress and send text on {Enter}. This ensures full support for dead keys and full predictability. In other words, what you see is what you typed - once you sent it to the host app. However, in Windows 7 or below, the keyboard layout of the host app might not match with the one of the OSD.
        Gui, Add, Checkbox, y+7 gVerifyTypeOptions Checked%pasteOnClick% vpasteOnClick, Paste on click what you typed
     } Else
     {
        Gui, Add, Checkbox, y+12 gVerifyTypeOptions Checked%alternateTypingMode% valternateTypingMode, Enable global keyboard shortcut to enter in alternate typing mode
-       Gui, Add, Text, xp+15 y+5 w350, Type through KeyPress OSD and send text on {Enter}. Full support for dead keys and predictable results.
+       Gui, Add, Text, xp+15 y+5 w%txtWid%, Type through KeyPress OSD and send text on {Enter}. Full support for dead keys and predictable results.
        Gui, Add, Checkbox, y+7 gVerifyTypeOptions Checked%pasteOnClick% vpasteOnClick, Paste on click what you typed
     }
     Gui, Add, Checkbox, y+7 gVerifyTypeOptions Checked%sendKeysRealTime% vsendKeysRealTime, Send keystrokes in realtime to the host app
     If (showHelp=1)
-       Gui, Add, Text, xp+15 y+5 w350, This does not work with all appllications.
+       Gui, Add, Text, xp+15 y+5 w%txtWid%, This does not work with all appllications.
 
     Gui, Tab, 3  ; behavior
     Gui, Add, Checkbox, x+15 y+15 gVerifyTypeOptions Checked%enableTypingHistory% venableTypingHistory, Typed text history (with {Page Up} / {Page Down})
@@ -3727,62 +3810,62 @@ ShowTypeSettings() {
     Gui, Add, Checkbox, y+7 gVerifyTypeOptions Checked%UpDownAsHE% vUpDownAsHE, {Up} / {Down} arrow keys should behave as {Home} / {End}
     Gui, Add, Checkbox, xp+15 y+7 gVerifyTypeOptions Checked%UpDownAsLR% vUpDownAsLR, ... or as the {Left} / {Right} keys
     If (showHelp=1)
-       Gui, Add, Checkbox, xp-15 y+12 w350 gVerifyTypeOptions Checked%pasteOSDcontent% vpasteOSDcontent, Enable global shortcuts to paste the OSD content into the active text area. The default global keyboard shortcuts are {Ctrl + Shift + Insert} and {Ctrl + Alt + Insert}.
+       Gui, Add, Checkbox, xp-15 y+12 w%txtWid% gVerifyTypeOptions Checked%pasteOSDcontent% vpasteOSDcontent, Enable global shortcuts to paste the OSD content into the active text area. The default global keyboard shortcuts are {Ctrl + Shift + Insert} and {Ctrl + Alt + Insert}.
     else
        Gui, Add, Checkbox, xp-15 y+12 gVerifyTypeOptions Checked%pasteOSDcontent% vpasteOSDcontent, Enable global shortcuts to paste the OSD content into the active text area
     Gui, Add, Checkbox, y+7 gVerifyTypeOptions Checked%synchronizeMode% vsynchronizeMode, Synchronize using {Shift + Up} && {Shift + Home} key sequence
     If (showHelp=1)
     {
-        Gui, Add, Text, xp+15 y+5 w350, By default, {Ctrl + A}, select all, is used to capture the text from the host app. The default global keyboard shortcuts to synchronize are: {Winkey + Insert} and {Winkey + Alt + Insert}.
+        Gui, Add, Text, xp+15 y+5 w%txtWid%, By default, {Ctrl + A}, select all, is used to capture the text from the host app. The default global keyboard shortcuts to synchronize are: {Winkey + Insert} and {Winkey + Alt + Insert}.
         Gui, Add, Checkbox, xp-15 y+10 gVerifyTypeOptions Checked%enterErasesLine% venterErasesLine, In "only typing" mode, {Enter} and {Escape} erase text from KeyPress
     } Else Gui, Add, Checkbox, y+10 gVerifyTypeOptions Checked%enterErasesLine% venterErasesLine, In "only typing" mode, {Enter} and {Escape} erase text from KeyPress
 
-    Gui, Add, Checkbox, y+10 gVerifyTypeOptions Checked%alternativeJumps% valternativeJumps, Alternative rules to jump between words with {Ctrl + Bksp / Del / Left / Right}
+    Gui, Add, Checkbox, y+10 section gVerifyTypeOptions Checked%alternativeJumps% valternativeJumps, Alternative rules to jump between words with {Ctrl + Bksp / Del / Left / Right}
     If (showHelp=1)
     {
         Gui, Add, Text, xp+15 y+5, Please note, applications have inconsistent rules for this.
-        Gui, Add, Checkbox, y+7 w350 gVerifyTypeOptions Checked%sendJumpKeys% vsendJumpKeys, Mediate the key strokes for caret jumps
-        Gui, Add, Text, y+5 w350, This ensure higher predictability and chances of staying in synch. Key strokes that attempt to reproduce the actions you see in the OSD will be sent to the host app.
+        Gui, Add, Checkbox, y+7 w%txtWid% gVerifyTypeOptions Checked%sendJumpKeys% vsendJumpKeys, Mediate the key strokes for caret jumps
+        Gui, Add, Text, y+5 w%txtWid%, This ensure higher predictability and chances of staying in synch. Key strokes that attempt to reproduce the actions you see in the OSD will be sent to the host app.
     } Else Gui, Add, Checkbox, xp+15 y+7 w350 gVerifyTypeOptions Checked%sendJumpKeys% vsendJumpKeys, Mediate the key strokes for caret jumps
 
-    Gui, Add, Text, xp-15 y+12, Display time when typing (in seconds)
-    Gui, Add, Edit, xp+270 yp+0 w45 r1 limit2 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF1, %DisplayTimeTypingUser%
+    Gui, Add, Text, xs+0 y+12, Display time when typing (in seconds)
+    Gui, Add, Edit, x+15 w60 r1 limit2 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF1, %DisplayTimeTypingUser%
     Gui, Add, UpDown, vDisplayTimeTypingUser gVerifyTypeOptions Range2-99, %DisplayTimeTypingUser%
-    Gui, Add, Text, xp-270 yp+20, Time to resume typing with text related keys (in sec.)
-    Gui, Add, Edit, xp+270 yp+0 w45 r1 limit2 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF2, %ReturnToTypingUser%
+    Gui, Add, Text, xs+0 y+7, Time to resume typing with text related keys (in sec.)
+    Gui, Add, Edit, x+15 w60 r1 limit2 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF2, %ReturnToTypingUser%
     Gui, Add, UpDown, vReturnToTypingUser gVerifyTypeOptions Range2-99, %ReturnToTypingUser%
 
     Gui, Tab, 2 ; dead keys
-    Gui, Add, Checkbox, x+15 y+15 gVerifyTypeOptions Checked%ShowDeadKeys% vShowDeadKeys, Insert generic dead key symbol when using such a key and typing
+    Gui, Add, Checkbox, x+15 y+15 section gVerifyTypeOptions Checked%ShowDeadKeys% vShowDeadKeys, Insert generic dead key symbol when using such a key and typing
     Gui, Add, Checkbox, y+7 gVerifyTypeOptions Checked%AltHook2keysUser% vAltHook2keysUser, Alternative hook to keys (applies to the main typing mode)
     If (showHelp=1)
     {
-        Gui, Add, Text, xp+15 y+5 w350, This enables full support for dead keys. However, please note that some applications can interfere with this, e.g., Wox launcher.
+        Gui, Add, Text, xp+15 y+5 w%txtWid%, This enables full support for dead keys. However, please note that some applications can interfere with this, e.g., Wox launcher.
         Gui, Font, Bold
         Gui, Add, Text, xp-15 y+10, Troubleshooting:
         Gui, Font, Normal
-        Gui, Add, Text, xp+15 y+5 w350, If you cannot use dead keys on supported layouts in host apps, Increase the multiplier progressively until dead keys work. Apply settings and then test dead keys in the host app. If you cannot identify the right delay, activate "Do not bind".
+        Gui, Add, Text, xp+15 y+5 w%txtWid%, If you cannot use dead keys on supported layouts in host apps, Increase the multiplier progressively until dead keys work. Apply settings and then test dead keys in the host app. If you cannot identify the right delay, activate "Do not bind".
         Gui, Add, Text, xp-15 y+10, Typing delays scale (1 = no delays)
     } Else
     {
         Gui, Font, bold
-        Gui, Add, Text, y+10 w350, If dead keys do not work, change these options:
+        Gui, Add, Text, y+10 w%txtWid%, If dead keys do not work, change these options:
         Gui, Font, normal
         Gui, Add, Text, y+10, Typing delays scale (1 = no delays)
     }
-    Gui, Add, Edit, xp+190 yp+0 w45 r1 limit2 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF3, %typingDelaysScaleUser%
+    Gui, Add, Edit, x+15 w60 r1 limit2 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF3, %typingDelaysScaleUser%
     Gui, Add, UpDown, vtypingDelaysScaleUser gVerifyTypeOptions Range1-40, %typingDelaysScaleUser%
-    Gui, Add, Checkbox, xp-190 y+12 gVerifyTypeOptions Checked%DoNotBindDeadKeys% vDoNotBindDeadKeys, Do not bind (ignore) known dead keys
+    Gui, Add, Checkbox, xs+0 y+12 gVerifyTypeOptions Checked%DoNotBindDeadKeys% vDoNotBindDeadKeys, Do not bind (ignore) known dead keys
     Gui, Add, Checkbox, xp+15 y+7 gVerifyTypeOptions Checked%DoNotBindAltGrDeadKeys% vDoNotBindAltGrDeadKeys, Ignore dead keys associated with AltGr as well
 
     Gui, Font, Bold
     Gui, Add, Text, xp-15 y+15, Keyboard layout status: %deadKstatus%
     Gui, Font, Normal
-    Gui, Add, Text, y+10 w350, %CurrentKBD%.
+    Gui, Add, Text, y+10 w%txtWid%, %CurrentKBD%.
     Gui, Tab
     Gui, Add, Button, xm+0 y+10 w70 h30 Default gApplySettings vApplySettingsBTN, A&pply
     Gui, Add, Button, x+5 yp+0 w70 h30 gCloseSettings, C&ancel
-    Gui, Add, DropDownList, x+5 yp+0 AltSubmit gSwitchPreferences choose%CurrentPrefWindow% vCurrentPrefWindow , Keyboard|Typing mode|Sounds|Mouse|Appearances|Shortcuts
+    Gui, Add, DropDownList, x+5 yp+0 AltSubmit gSwitchPreferences choose%CurrentPrefWindow% vCurrentPrefWindow , Keyboard|Typing mode|Sounds|Mouse|Appearance|Shortcuts
     Gui, Add, Checkbox, x+10 yp+0 gTypeOptionsShowHelp Checked%showHelp% vShowHelp, Show contextual help
 
     Gui, Show, AutoSize, Typing mode settings: KeyPress OSD
@@ -3802,13 +3885,22 @@ TypeOptionsShowHelp() {
 }
 
 SwitchPreferences() {
-    GuiControlGet, ApplySettingsBTN, Enabled
     GuiControlGet, CurrentPrefWindow
-    showHelp := 0
+    If !FileExist("keypress-files\keypress-beeperz-functions.ahk") && (CurrentPrefWindow=3) || !FileExist("keypress-files\keypress-mouse-functions.ahk") && (CurrentPrefWindow=4)
+    {
+      ShowLongMsg("ERROR: Missing files...")
+      SoundBeep, 300, 900
+      Sleep, 500
+      HideGUI()
+      Return
+    }
+    GuiControlGet, ApplySettingsBTN, Enabled
     Gui, Submit
+    Global showHelp := 0
     Global reopen := 1
     Gui, SettingsGUIA: Destroy
     Sleep, 15
+    SettingsGUI()
     CheckSettings()
     If (CurrentPrefWindow=1)
     {
@@ -4006,48 +4098,47 @@ ShowShortCutsSettings() {
            Return
     }
     Global CurrentPrefWindow := 6
-    Gui, SettingsGUIA: Add, Checkbox, x96 y35 gVerifyShortcutOptions Checked%alternateTypingMode% valternateTypingMode, Enter alternate typing mode
-    If (DisableTypingMode=0)
+    If (prefsLargeFonts=1)
+       Gui, font, s14
+    Gui, Add, Text, x15 y15 section, All the shortcuts listed in this panel are available globally, in any application.
+    Gui, Add, Edit, y+7 w75 gVerifyShortcutOptions r1 limit20 -multi -wantReturn -wantTab -wrap vKBDaltTypeMode, %KBDaltTypeMode%
+    Gui, Add, Checkbox, x+5 gVerifyShortcutOptions Checked%alternateTypingMode% valternateTypingMode, Enter alternate typing mode
+    if (DisableTypingMode=0)
     {
-       Gui, Add, Checkbox, y+12 gVerifyShortcutOptions Checked%pasteOSDcontent% vpasteOSDcontent, Send/paste the OSD content into the active window/text field
-       Gui, Add, Text, xp+15 y+13, Replace entire text from the host app with the OSD content
-       Gui, Add, Text, xp-15 y+43, Capture text from the active text area (preffered choice)
-       Gui, Add, Text, y+10, Capture text from the active text area [only the current line]
-       Gui, Add, Text, y+10, Switch forced keyboard layout (A / B)
-    } Else Gui, Add, Text, y+43, Switch forced keyboard layout (A / B)
-    Gui, Add, Text, y+10, Toggle never display OSD
-    Gui, Add, Text, y+10, Toggle OSD positions (A / B)
-    Gui, Add, Text, y+10, Toggle Capture2Text
-    Gui, Add, Text, y+10, Detect keyboard layout
-    Gui, Add, Text, y+10, Restart / reload KeyPress OSD
-    Gui, Add, Text, y+10, Suspend / deactivate KeyPress OSD
-
-    Gui, Add, Text, x15 y15, All the shortcuts listed in this panel are available globally, in any application.
-    Gui, Add, Edit, y+4 w75 gVerifyShortcutOptions r1 limit20 -multi -wantReturn -wantTab -wrap vKBDaltTypeMode, %KBDaltTypeMode%
-    If (DisableTypingMode=0)
-    {
-       Gui, Add, Edit, y+4 w75 gVerifyShortcutOptions r1 limit20 -multi -wantReturn -wantTab -wrap vKBDpasteOSDcnt1, %KBDpasteOSDcnt1%
-       Gui, Add, Edit, y+4 w75 gVerifyShortcutOptions r1 limit20 -multi -wantReturn -wantTab -wrap vKBDpasteOSDcnt2, %KBDpasteOSDcnt2%
+        Gui, Add, Edit, xs+0 y+10 w75 gVerifyShortcutOptions r1 limit20 -multi -wantReturn -wantTab -wrap vKBDpasteOSDcnt1, %KBDpasteOSDcnt1%
+        Gui, Add, Checkbox, x+5 gVerifyShortcutOptions Checked%pasteOSDcontent% vpasteOSDcontent, Send/paste the OSD content into the active window/text field
+        Gui, Add, Edit, xs+0 y+10 w75 gVerifyShortcutOptions r1 limit20 -multi -wantReturn -wantTab -wrap vKBDpasteOSDcnt2, %KBDpasteOSDcnt2%
+        Gui, Add, Text, x+5, Replace entire text from the host app with the OSD content
     }
-    Gui, Add, Checkbox, y+15 gVerifyShortcutOptions Checked%KeyboardShortcuts% vKeyboardShortcuts, Other global keyboard shortcuts
-    If (DisableTypingMode=0)
+
+    Gui, Add, Checkbox, xs+0 y+20 gVerifyShortcutOptions Checked%KeyboardShortcuts% vKeyboardShortcuts, Other global keyboard shortcuts
+    if (DisableTypingMode=0)
     {
-       Gui, Add, Edit, y+6 w75 gVerifyShortcutOptions r1 limit20 -multi -wantReturn -wantTab -wrap vKBDsynchApp1, %KBDsynchApp1%
-       Gui, Add, Edit, y+2 w75 gVerifyShortcutOptions r1 limit20 -multi -wantReturn -wantTab -wrap vKBDsynchApp2, %KBDsynchApp2%
-       Gui, Add, Edit, y+2 w75 gVerifyShortcutOptions r1 limit20 -multi -wantReturn -wantTab -wrap vKBDTglForceLang, %KBDTglForceLang%
-    } Else Gui, Add, Edit, y+6 w75 gVerifyShortcutOptions r1 limit20 -multi -wantReturn -wantTab -wrap vKBDTglForceLang, %KBDTglForceLang%
-    Gui, Add, Edit, y+2 w75 gVerifyShortcutOptions r1 limit20 -multi -wantReturn -wantTab -wrap vKBDTglNeverOSD, %KBDTglNeverOSD%
-    Gui, Add, Edit, y+2 w75 gVerifyShortcutOptions r1 limit20 -multi -wantReturn -wantTab -wrap vKBDTglPosition, %KBDTglPosition%
-    Gui, Add, Edit, y+2 w75 gVerifyShortcutOptions r1 limit20 -multi -wantReturn -wantTab -wrap vKBDTglCap2Text, %KBDTglCap2Text%
-    Gui, Add, Edit, y+2 w75 gVerifyShortcutOptions r1 limit20 -multi -wantReturn -wantTab -wrap vKBDidLangNow, %KBDidLangNow%
-    Gui, Add, Edit, y+2 w75 gVerifyShortcutOptions r1 limit20 -multi -wantReturn -wantTab -wrap vKBDReload, %KBDReload%
-    Gui, Add, Edit, y+2 w75 gVerifyShortcutOptions r1 limit20 -multi -wantReturn -wantTab -wrap vKBDsuspend, %KBDsuspend%
-    Gui, Add, Text, y+15, To individually disable a shortcut, type Disable in the text field.
-    Gui, Add, Text, y+6, Available modifiers:   ^ Control  ||  ! Alt  ||  + Shift  ||  # WinKey
-    Gui, Add, DropDownList, y+6 Choose1 , Available keys|[[ 0-9 / numbers ]]|[[ A-Z / letters ]]|AppsKey|Backspace|Break|Browser_Back|Browser_Favorites|Browser_Forward|Browser_Home|Browser_Refresh|Browser_Search|Browser_Stop|CapsLock|CtrlBreak|Delete|Down|End|Enter|Escape|Help|Home|Insert|Launch_App1|Launch_App2|Launch_Mail|Launch_Media|LButton|Left|MButton|Media_Next|Media_Play_Pause|Media_Prev|Media_Stop|NumLock|Numpad0|Numpad1|Numpad2|Numpad3|Numpad4|Numpad5|Numpad6|Numpad7|Numpad8|Numpad9|NumpadAdd|NumpadClear|NumpadDel|NumpadDiv|NumpadDot|NumpadDown|NumpadEnd|NumpadEnter|NumpadHome|NumpadIns|NumpadLeft|NumpadMult|NumpadPgDn|NumpadPgUp|NumpadRight|NumpadSub|NumpadUp|Pause|PgDn|PgUp|PrintScreen|RButton|Right|ScrollLock|Sleep|Space|Tab|Up|Volume_Down|Volume_Mute|Volume_Up|WheelDown|WheelLeft|WheelRight|WheelUp|[[ VK nnn ]]|[[ SC nnn ]]
+      Gui, Add, Edit, y+10 w75 gVerifyShortcutOptions r1 limit20 -multi -wantReturn -wantTab -wrap vKBDsynchApp1, %KBDsynchApp1%
+      Gui, Add, Text, x+5, Capture text from the active text area (preffered choice)
+      Gui, Add, Edit, xs+0 y+10 w75 gVerifyShortcutOptions r1 limit20 -multi -wantReturn -wantTab -wrap vKBDsynchApp2, %KBDsynchApp2%
+      Gui, Add, Text, x+5, Capture text from the active text area [only the current line]
+    }
+    Gui, Add, Edit, xs+0 y+10 w75 gVerifyShortcutOptions r1 limit20 -multi -wantReturn -wantTab -wrap vKBDTglForceLang, %KBDTglForceLang%
+    Gui, Add, Text, x+5, Switch forced keyboard layout (A / B)
+    Gui, Add, Edit, xs+0 y+10 w75 gVerifyShortcutOptions r1 limit20 -multi -wantReturn -wantTab -wrap vKBDTglNeverOSD, %KBDTglNeverOSD%
+    Gui, Add, Text, x+5, Toggle never display OSD
+    Gui, Add, Edit, xs+0 y+10 w75 gVerifyShortcutOptions r1 limit20 -multi -wantReturn -wantTab -wrap vKBDTglPosition, %KBDTglPosition%
+    Gui, Add, Text, x+5, Toggle OSD positions (A / B)
+    Gui, Add, Edit, xs+0 y+10 w75 gVerifyShortcutOptions r1 limit20 -multi -wantReturn -wantTab -wrap vKBDTglCap2Text, %KBDTglCap2Text%
+    Gui, Add, Text, x+5, Toggle Capture2Text
+    Gui, Add, Edit, xs+0 y+10 w75 gVerifyShortcutOptions r1 limit20 -multi -wantReturn -wantTab -wrap vKBDidLangNow, %KBDidLangNow%
+    Gui, Add, Text, x+5, Detect keyboard layout
+    Gui, Add, Edit, xs+0 y+10 w75 gVerifyShortcutOptions r1 limit20 -multi -wantReturn -wantTab -wrap vKBDReload, %KBDReload%
+    Gui, Add, Text, x+5, Restart / reload KeyPress OSD
+    Gui, Add, Edit, xs+0 y+10 w75 gVerifyShortcutOptions r1 limit20 -multi -wantReturn -wantTab -wrap vKBDsuspend, %KBDsuspend%
+    Gui, Add, Text, x+5, Suspend / deactivate KeyPress OSD
+    Gui, Add, Text, xs+0 y+15, To individually disable a shortcut, type Disable in the text field.
+    Gui, Add, Text, y+6, Available modifiers to insert:   ^ Control  ||  ! Alt  ||  + Shift  ||  # WinKey
+    Gui, Add, DropDownList, y+6 Choose1 , Available keys to insert|[[ 0-9 / numbers ]]|[[ A-Z / letters ]]|AppsKey|Backspace|Break|Browser_Back|Browser_Favorites|Browser_Forward|Browser_Home|Browser_Refresh|Browser_Search|Browser_Stop|CapsLock|CtrlBreak|Delete|Down|End|Enter|Escape|Help|Home|Insert|Launch_App1|Launch_App2|Launch_Mail|Launch_Media|LButton|Left|MButton|Media_Next|Media_Play_Pause|Media_Prev|Media_Stop|NumLock|Numpad0|Numpad1|Numpad2|Numpad3|Numpad4|Numpad5|Numpad6|Numpad7|Numpad8|Numpad9|NumpadAdd|NumpadClear|NumpadDel|NumpadDiv|NumpadDot|NumpadDown|NumpadEnd|NumpadEnter|NumpadHome|NumpadIns|NumpadLeft|NumpadMult|NumpadPgDn|NumpadPgUp|NumpadRight|NumpadSub|NumpadUp|Pause|PgDn|PgUp|PrintScreen|RButton|Right|ScrollLock|Sleep|Space|Tab|Up|Volume_Down|Volume_Mute|Volume_Up|WheelDown|WheelLeft|WheelRight|WheelUp|[[ VK nnn ]]|[[ SC nnn ]]
     Gui, Add, Button, y+20 w70 h30 Default gApplySettings vApplySettingsBTN, A&pply
     Gui, Add, Button, x+5 w70 h30 gCloseSettings, C&ancel
-    Gui, Add, DropDownList, x+5 AltSubmit gSwitchPreferences choose%CurrentPrefWindow% vCurrentPrefWindow , Keyboard|Typing mode|Sounds|Mouse|Appearances|Shortcuts
+    Gui, Add, DropDownList, x+5 AltSubmit gSwitchPreferences choose%CurrentPrefWindow% vCurrentPrefWindow , Keyboard|Typing mode|Sounds|Mouse|Appearance|Shortcuts
 
     Gui, Show, AutoSize, Global shortcuts: KeyPress OSD
     VerifyShortcutOptions(0)
@@ -4120,6 +4211,12 @@ ShowSoundsSettings() {
 
     Global ApplySettingsBTN
     Global CurrentPrefWindow := 3
+    txtWid := 285
+    If (prefsLargeFonts=1)
+    {
+       txtWid := 485
+       Gui, font, s14
+    }
     Gui, Add, Checkbox, gVerifySoundsOptions x15 y15 Checked%SilentMode% vSilentMode, Silent mode - make no sounds
     Gui, Add, text, y+10, Make a beep when the following keys are released:
     Gui, Add, Checkbox, gVerifySoundsOptions xp+15 y+7 Checked%KeyBeeper% vKeyBeeper, All bound keys
@@ -4134,15 +4231,19 @@ ShowSoundsSettings() {
     Gui, Add, Checkbox, gVerifySoundsOptions y+7 Checked%audioAlerts% vaudioAlerts, At start, beep for every failed key binding
     Gui, Add, Checkbox, gVerifySoundsOptions y+14 Checked%LowVolBeeps% vLowVolBeeps, Play beeps at reduced volume
     Gui, Add, Checkbox, gVerifySoundsOptions y+7 Checked%prioritizeBeepers% vprioritizeBeepers, Attempt to play every beep (may interfere with typing mode)
+
+    If (DisableTypingMode=1)
+       Gui, Add, Text, y+15 w%txtWid%, Some options are disabled, because typing mode is not activated
+
     If (missingAudios=1)
     {
        Gui, Font, Bold
-       Gui, Add, Text, y+14 w250, WARNING. Sound files are missing. The attempts to download them seem to have failed. The beeps will be synthesized at a high volume.
+       Gui, Add, Text, y+15 w%txtWid%, WARNING. Sound files are missing. The attempts to download them seem to have failed. The beeps will be synthesized at a high volume.
        Gui, Font, Normal
     }
     Gui, Add, Button, y+20 w70 h30 Default gApplySettings vApplySettingsBTN, A&pply
     Gui, Add, Button, x+5 w70 h30 gCloseSettings, C&ancel
-    Gui, Add, DropDownList, x+5 AltSubmit gSwitchPreferences choose%CurrentPrefWindow% vCurrentPrefWindow , Keyboard|Typing mode|Sounds|Mouse|Appearances|Shortcuts
+    Gui, Add, DropDownList, x+5 AltSubmit gSwitchPreferences choose%CurrentPrefWindow% vCurrentPrefWindow , Keyboard|Typing mode|Sounds|Mouse|Appearance|Shortcuts
     Gui, Show, AutoSize, Sounds settings: KeyPress OSD
     VerifySoundsOptions(0)
 }
@@ -4184,10 +4285,7 @@ VerifySoundsOptions(enableApply:=1) {
     }
 
     If (SilentMode=0)
-    {
        GuiControl, % (keyBeeper=0 ? "Disable" : "Enable"), TypingBeepers
-       GuiControl, % (ShowMouseButton=0 && VisualMouseClicks=0 ? "Disable" : "Enable"), MouseBeeper
-    }
 
     If ((ForceKBD=0) && (AutoDetectKBD=0)) || (DoNotBindDeadKeys=1)
        GuiControl, Disable, deadKeyBeeper
@@ -4214,20 +4312,25 @@ ShowKBDsettings() {
     }
     Global CurrentPrefWindow := 1
     Global EditF22
+    txtWid := 260
+    If (prefsLargeFonts=1)
+    {
+       txtWid := 400
+       Gui, font, s14
+    }
     Gui, Add, Tab3,, Keyboard layouts|Behavior
-    Gui, Tab, 1 ; general
+    Gui, Tab, 1 ; layouts
     Gui, Add, Checkbox, x+15 y+15 gVerifyKeybdOptions Checked%AutoDetectKBD% vAutoDetectKBD, Detect keyboard layout at start
     Gui, Add, Checkbox, y+7 gVerifyKeybdOptions Checked%ConstantAutoDetect% vConstantAutoDetect, Continuously detect layout changes
     Gui, Add, Checkbox, y+7 gVerifyKeybdOptions Checked%SilentDetection% vSilentDetection, Silent detection (no messages)
     Gui, Add, Checkbox, y+7 gVerifyKeybdOptions Checked%audioAlerts% vaudioAlerts, Beep for failed key bindings
-    Gui, Add, Checkbox, y+7 gVerifyKeybdOptions Checked%enableAltGr% venableAltGr, Enable Ctrl+Alt / AltGr support
     Gui, Add, Checkbox, y+7 section gForceKbdInfo Checked%ForceKBD% vForceKBD, Force detected keyboard layout (A / B)   
-    Gui, Add, Edit, xp+20 y+5 gVerifyKeybdOptions w68 r1 limit8 -multi -wantCtrlA -wantReturn -wantTab -wrap vForcedKBDlayout1, %ForcedKBDlayout1%
-    Gui, Add, Edit, x+5 gVerifyKeybdOptions w68 r1 limit8 -multi -wantCtrlA -wantReturn -wantTab -wrap vForcedKBDlayout2, %ForcedKBDlayout2%
+    Gui, Add, Edit, xp+20 y+5 gVerifyKeybdOptions w90 r1 limit8 -multi -wantCtrlA -wantReturn -wantTab -wrap vForcedKBDlayout1, %ForcedKBDlayout1%
+    Gui, Add, Edit, x+5 gVerifyKeybdOptions wp+0 r1 limit8 -multi -wantCtrlA -wantReturn -wantTab -wrap vForcedKBDlayout2, %ForcedKBDlayout2%
     Gui, Add, Checkbox, xs+0 y+7 gVerifyKeybdOptions Checked%IgnoreAdditionalKeys% vIgnoreAdditionalKeys, Ignore specific keys (dot separated)
-    Gui, Add, Edit, xp+20 y+5 gVerifyKeybdOptions w140 r1 -multi -wantReturn -wantTab -wrap vIgnorekeysList, %IgnorekeysList%
+    Gui, Add, Edit, xp+20 y+5 gVerifyKeybdOptions w180 r1 -multi -wantReturn -wantTab -wrap vIgnorekeysList, %IgnorekeysList%
     Gui, font, bold
-    Gui, Add, Text, xp-20 y+7 w250, Status: %CurrentKBD%
+    Gui, Add, Text, xp-20 y+7 w%txtWid%, Status: %CurrentKBD%
     Gui, font, normal
 
     Gui, Tab, 2 ; behavior
@@ -4238,12 +4341,12 @@ ShowKBDsettings() {
     Gui, Add, Checkbox, y+7 gVerifyKeybdOptions Checked%ShowKeyCount% vShowKeyCount, Show key count
     Gui, Add, Checkbox, y+7 gVerifyKeybdOptions Checked%ShowKeyCountFired% vShowKeyCountFired, Count number of key fires
     Gui, Add, Checkbox, y+7 section gVerifyKeybdOptions Checked%ShowPrevKey% vShowPrevKey, Show previous key (delay in ms)
-    Gui, Add, Edit, x+5 w55 r1 limit3 -multi number -wantCtrlA -wantReturn -wantTab -wrap vEditF22, %ShowPrevKeyDelay%
+    Gui, Add, Edit, x+5 w60 r1 limit3 -multi number -wantCtrlA -wantReturn -wantTab -wrap vEditF22, %ShowPrevKeyDelay%
     Gui, Add, UpDown, vShowPrevKeyDelay gVerifyKeybdOptions Range100-990, %ShowPrevKeyDelay%
     If (OnlyTypingMode=1)
     {
        Gui, Font, bold
-       Gui, Add, Text, xs+0 y+7 w250, Some options were disabled because Only Typing mode is activated.
+       Gui, Add, Text, xs+0 y+7 w%txtWid%, Some options are disabled because Only Typing mode is activated.
        Gui, Font, normal
     }
     Gui, Add, Text, xs+0 y+7, Other options:
@@ -4254,7 +4357,7 @@ ShowKBDsettings() {
     Gui, Tab
     Gui, Add, Button, xm+0 y+10 w70 h30 Default gApplySettings vApplySettingsBTN, A&pply
     Gui, Add, Button, x+5 yp+0 w70 h30 gCloseSettings, C&ancel
-    Gui, Add, DropDownList, x+5 yp+0 AltSubmit gSwitchPreferences choose%CurrentPrefWindow% vCurrentPrefWindow , Keyboard|Typing mode|Sounds|Mouse|Appearances|Shortcuts
+    Gui, Add, DropDownList, x+5 yp+0 AltSubmit gSwitchPreferences choose%CurrentPrefWindow% vCurrentPrefWindow , Keyboard|Typing mode|Sounds|Mouse|Appearance|Shortcuts
     Gui, Show, AutoSize, Keyboard settings: KeyPress OSD
     VerifyKeybdOptions(0)
 }
@@ -4328,14 +4431,9 @@ VerifyKeybdOptions(enableApply:=1) {
     }
 
     If ((ForceKBD=0) && (AutoDetectKBD=0))
-    {
        GuiControl, Disable, SilentDetection
-       GuiControl, Disable, enableAltGr
-    } Else
-    {
+    Else
        GuiControl, Enable, SilentDetection
-       GuiControl, Enable, enableAltGr
-    }
 
     GuiControl, % (IgnoreAdditionalKeys=0 ? "Disable" : "Enable"), IgnorekeysList
 
@@ -4371,48 +4469,51 @@ ShowMouseSettings() {
     Global CurrentPrefWindow := 4
     Global editF1, editF2, editF3, editF4, editF5, editF6, editF7, btn1
 
-    Gui, Add, Tab3, w300, Mouse clicks|Mouse location
+    If (prefsLargeFonts=1)
+       Gui, font, s14
+    Gui, Add, Tab3,, Mouse clicks|Mouse location
     Gui, Tab, 1 ; clicks
-    Gui, Add, Checkbox, gVerifyMouseOptions x+15 y+15 Checked%ShowMouseButton% vShowMouseButton, Show mouse clicks in the OSD
-    Gui, Add, Checkbox, gVerifyMouseOptions xp+0 yp+20 Checked%MouseBeeper% vMouseBeeper, Beep on mouse clicks
-    Gui, Add, Checkbox, gVerifyMouseOptions section xp+0 yp+20 Checked%VisualMouseClicks% vVisualMouseClicks, Visual mouse clicks (scale, alpha, color)
-    Gui, Add, Edit, xp+16 yp+20 w45 r1 limit2 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF1, %ClickScaleUser%
+    Gui, Add, Checkbox, gVerifyMouseOptions x+15 y+15 w250 Checked%MouseBeeper% vMouseBeeper, Beep on mouse clicks
+    if (OnlyTypingMode!=1)
+       Gui, Add, Checkbox, gVerifyMouseOptions y+5 Checked%ShowMouseButton% vShowMouseButton, Show mouse clicks in the OSD
+    Gui, Add, Checkbox, gVerifyMouseOptions section y+7 Checked%VisualMouseClicks% vVisualMouseClicks, Visual mouse clicks (scale, alpha, color)
+    Gui, Add, Edit, xp+16 y+5 w55 r1 limit2 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF1, %ClickScaleUser%
     Gui, Add, UpDown, vClickScaleUser gVerifyMouseOptions Range3-90, %ClickScaleUser%
-    Gui, Add, Edit, xp+50 yp+0 w45 r1 limit3 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF2, %MouseVclickAlpha%
+    Gui, Add, Edit, x+5 w55 r1 limit3 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF2, %MouseVclickAlpha%
     Gui, Add, UpDown, vMouseVclickAlpha gVerifyMouseOptions Range10-240, %MouseVclickAlpha%
-    Gui, Add, ListView, xp+50 yp+0 w45 h22 %cclvo% Background%MouseVclickColor% vMouseVclickColor hwndhLV6,
-    Gui, Add, Checkbox, gVerifyMouseOptions xs+0 yp+35 Checked%MouseClickRipples% vMouseClickRipples, Show ripples on clicks (size, thickness)
-    Gui, Add, Edit, xp+16 yp+20 w45 r1 limit3 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF8, %MouseRippleMaxSize%
+    Gui, Add, ListView, x+5 w50 h22 %cclvo% Background%MouseVclickColor% vMouseVclickColor hwndhLV6,
+    Gui, Add, Checkbox, gVerifyMouseOptions xs+0 y+10 Checked%MouseClickRipples% vMouseClickRipples, Show ripples on clicks (size, thickness)
+    Gui, Add, Edit, xp+16 y+10 w55 r1 limit3 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF8, %MouseRippleMaxSize%
     Gui, Add, UpDown, vMouseRippleMaxSize gVerifyMouseOptions Range90-400, %MouseRippleMaxSize%
-    Gui, Add, Edit, xp+50 yp+0 w45 r1 limit2 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF9, %MouseRippleThickness%
+    Gui, Add, Edit, x+5 w55 r1 limit2 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF9, %MouseRippleThickness%
     Gui, Add, UpDown, vMouseRippleThickness gVerifyMouseOptions Range5-50, %MouseRippleThickness%
 
     Gui, Tab, 2 ; location
     Gui, Add, Checkbox, gVerifyMouseOptions section x+15 y+15 Checked%ShowMouseHalo% vShowMouseHalo, Mouse halo / highlight
-    Gui, Add, Text, xp+15 yp+25, Radius:
-    Gui, Add, Text, xp+0 yp+25, Alpha, color:
-    Gui, Add, Checkbox, gVerifyMouseOptions xp-15 yp+33 Checked%FlashIdleMouse% vFlashIdleMouse, Flash idle mouse to locate it
-    Gui, Add, Text, xp+15 yp+25, Idle after (in sec.)
-    Gui, Add, Text, xp+0 yp+25, Halo radius:
-    Gui, Add, Text, xp+0 yp+25, Alpha, color:
-
-    Gui, Add, Edit, xp+115 ys+25 w60 r1 limit3 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF3, %MouseHaloRadius%
+    Gui, Add, Edit, xs+16 y+10 w60 r1 limit3 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF3, %MouseHaloRadius%
     Gui, Add, UpDown, vMouseHaloRadius gVerifyMouseOptions Range5-950, %MouseHaloRadius%
-    Gui, Add, Edit, xp+0 yp+25 w60 r1 limit3 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF4, %MouseHaloAlpha%
+    Gui, Add, Text, x+5, radius
+    Gui, Add, Edit, xs+16 y+10 w60 r1 limit3 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF4, %MouseHaloAlpha%
     Gui, Add, UpDown, vMouseHaloAlpha gVerifyMouseOptions Range10-240, %MouseHaloAlpha%
+    Gui, Add, Text, x+5, alpha, color
     Gui, Add, ListView, x+5 w55 h20 %cclvo% Background%MouseHaloColor% vMouseHaloColor hwndhLV4,
-    Gui, Add, Edit, xp-60 yp+55 w60 r1 limit3 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF5, %MouseIdleAfter%
+
+    Gui, Add, Checkbox, gVerifyMouseOptions xs+0 y+15 Checked%FlashIdleMouse% vFlashIdleMouse, Flash idle mouse to locate it
+    Gui, Add, Edit, xs+16 y+10 w60 r1 limit3 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF5, %MouseIdleAfter%
     Gui, Add, UpDown, vMouseIdleAfter gVerifyMouseOptions Range3-950, %MouseIdleAfter%
-    Gui, Add, Edit, xp+0 yp+25 w60 r1 limit3 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF6, %MouseIdleRadius%
+    Gui, Add, Text, x+5, idle after (in seconds)
+    Gui, Add, Edit, xs+16 y+10 w60 r1 limit3 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF6, %MouseIdleRadius%
     Gui, Add, UpDown, vMouseIdleRadius gVerifyMouseOptions Range5-950, %MouseIdleRadius%
-    Gui, Add, Edit, xp+0 yp+25 w60 r1 limit3 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF7, %IdleMouseAlpha%
+    Gui, Add, Text, x+5, halo radius
+    Gui, Add, Edit, xs+16 y+10 w60 r1 limit3 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF7, %IdleMouseAlpha%
     Gui, Add, UpDown, vIdleMouseAlpha gVerifyMouseOptions Range10-240, %IdleMouseAlpha%
+    Gui, Add, Text, x+5, alpha, color
     Gui, Add, ListView, x+5 w55 h20 %cclvo% Background%MouseIdleColor% vMouseIdleColor hwndhLV7,
 
     Gui, Tab
     Gui, Add, Button, xm+0 y+10 w70 h30 Default gApplySettings vApplySettingsBTN, A&pply
     Gui, Add, Button, x+5 yp+0 w70 h30 gCloseSettings, C&ancel
-    Gui, Add, DropDownList, x+5 yp+0 AltSubmit gSwitchPreferences choose%CurrentPrefWindow% vCurrentPrefWindow , Keyboard|Typing mode|Sounds|Mouse|Appearances|Shortcuts
+    Gui, Add, DropDownList, x+5 yp+0 AltSubmit gSwitchPreferences choose%CurrentPrefWindow% vCurrentPrefWindow , Keyboard|Typing mode|Sounds|Mouse|Appearance|Shortcuts
 
     Gui, Show, AutoSize, Mouse settings: KeyPress OSD
     VerifyMouseOptions(0)
@@ -4452,8 +4553,6 @@ VerifyMouseOptions(enableApply:=1) {
     GuiControlGet, MouseClickRipples
 
     GuiControl, % (enableApply=0 ? "Disable" : "Enable"), ApplySettingsBTN
-    GuiControl, % (ShowMouseButton=0 && VisualMouseClicks=0 ? "Disable" : "Enable"), MouseBeeper
-
     If (VisualMouseClicks=0)
     {
        GuiControl, Disable, ClickScaleUser
@@ -4525,8 +4624,6 @@ VerifyMouseOptions(enableApply:=1) {
        GuiControl, Enable, editF8
        GuiControl, Enable, editF9
     }
-    If (OnlyTypingMode=1)
-       GuiControl, Disable, ShowMouseButton
 }
 
 UpdateFntNow() {
@@ -4576,57 +4673,66 @@ ShowOSDsettings() {
     Global CurrentPrefWindow := 5
     Global positionB, editF1, editF2, editF3, editF4, editF5, editF6, editF7, editF8, editF9, editF10, Btn1, Btn2
     GUIposition := GUIposition + 1
+    columnBpos1 := 125
+    columnBpos2 := 120
+    If (prefsLargeFonts=1)
+    {
+       Gui, font, s14
+       columnBpos1 := 250
+       columnBpos2 := 250
+    }
+    columnBpos1b := columnBpos1 + 70
 
-    Gui, SettingsGUIA: Add, Radio, x15 y35 gVerifyOsdOptions Checked vGUIposition, Position A (x, y)
-    Gui, Add, Radio, xp+0 yp+25 gVerifyOsdOptions Checked%GUIposition% vPositionB, Position B (x, y)
-    Gui, Add, Button, xp+145 yp-25 w25 h20 gLocatePositionA vBtn1, L
-    Gui, Add, Edit, xp+27 yp+0 w55 r1 limit4 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF1, %GuiXa%
+    Gui, Add, Tab3,, Size and position|Style and colors
+    Gui, Tab, 1 ; size/position
+    Gui, Add, Text, x+15 y+15 section, OSD location presets:
+    Gui, Add, Radio, y+7 Group Section gVerifyOsdOptions Checked vGUIposition, Position A (x, y)
+    Gui, Add, Radio, yp+30 gVerifyOsdOptions Checked%GUIposition% vPositionB, Position B (x, y)
+    Gui, Add, DropDownList, xs+%columnBpos1% ys+0 w65 gVerifyOsdOptions AltSubmit choose%OSDalignment2% vOSDalignment2, Left|Center|Right|
+    Gui, Add, Edit, x+5 w65 r1 limit4 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF1, %GuiXa%
     Gui, Add, UpDown, vGuiXa gVerifyOsdOptions 0x80 Range-9995-9998, %GuiXa%
-    Gui, Add, Edit, xp+60 yp+0 w55 r1 limit4 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF2, %GuiYa%
+    Gui, Add, Edit, x+5 w65 r1 limit4 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF2, %GuiYa%
     Gui, Add, UpDown, vGuiYa gVerifyOsdOptions 0x80 Range-9995-9998, %GuiYa%
-    Gui, Add, Button, xp-86 yp+25 w25 h20 gLocatePositionB vBtn2, L
-    Gui, Add, Edit, xp+27 yp+0 w55 r1 limit4 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF3, %GuiXb%
+    Gui, Add, Button, x+5 w25 h20 gLocatePositionA vBtn1, L
+    Gui, Add, DropDownList, xs+%columnBpos1% ys+30 Section w65 gVerifyOsdOptions AltSubmit choose%OSDalignment1% vOSDalignment1, Left|Center|Right|
+    Gui, Add, Edit, x+5 w65 r1 limit4 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF3, %GuiXb%
     Gui, Add, UpDown, vGuiXb gVerifyOsdOptions 0x80 Range-9995-9998, %GuiXb%
-    Gui, Add, Edit, xp+60 yp+0 w55 r1 limit4 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF4, %GuiYb%
+    Gui, Add, Edit, x+5 w65 r1 limit4 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF4, %GuiYb%
     Gui, Add, UpDown, vGuiYb gVerifyOsdOptions 0x80 Range-9995-9998, %GuiYb%
-    Gui, Add, DropDownList, xp-60 yp+25 w55 gVerifyOsdOptions AltSubmit choose%OSDalignment2% vOSDalignment2, Left|Center|Right|
-    Gui, Add, DropDownList, xp+60 yp+0 w55 gVerifyOsdOptions AltSubmit choose%OSDalignment1% vOSDalignment1, Left|Center|Right|
-    Gui, Add, DropDownList, xp-150 yp+25 w145 gVerifyOsdOptions Sort Choose1 vFontName, %FontName%
+    Gui, Add, Button, x+5 w25 h20 gLocatePositionB vBtn2, L
+
+    Gui, Add, Text, xm+15 ys+30 Section, Width (fixed size)
+    Gui, Add, Text, xp+0 yp+30, Text width factor (lower = larger)
+    Gui, Add, Checkbox, xp+0 yp+30 gVerifyOsdOptions Checked%OSDautosize% vOSDautosize, Auto-resize OSD (max. width)
+    Gui, Add, Text, xp+0 yp+30, When mouse cursor hovers the OSD
+
+    Gui, Add, Edit, xs+%columnBpos1b% ys+0 w65 r1 limit4 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF7, %GuiWidth%
+    Gui, Add, UpDown, gVerifyOsdOptions vGuiWidth Range55-2900, %GuiWidth%
+    Gui, Add, Edit, xp+0 yp+30 w65 r1 limit3 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF9, %OSDautosizeFactory%
+    Gui, Add, UpDown, gVerifyOsdOptions vOSDautosizeFactory Range10-400, %OSDautosizeFactory%
+    Gui, Add, Edit, xp+0 yp+30 w65 r1 limit4 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF8, %maxGuiWidth%
+    Gui, Add, UpDown, gVerifyOsdOptions vmaxGuiWidth Range55-2900, %maxGuiWidth%
+    Gui, Add, DropDownList, xp+0 yp+30 w160 gVerifyOsdOptions AltSubmit choose%mouseOSDbehavior% vmouseOSDbehavior, Immediately hide|Toggle positions (A/B)|Allow drag to reposition
+
+    Gui, Tab, 2 ; style
+    Gui, Add, Text, x+15 y+15 Section, Font name and size
+    Gui, Add, Text, xp+0 yp+30, Text and background colors
+    Gui, Add, Text, xp+0 yp+30, Caps lock highlight color
+    Gui, Add, Text, xp+0 yp+30, Alternative typing mode highlight color
+    Gui, Add, Text, xp+0 yp+30, Display time / when typing (in sec.)
+    Gui, Add, Checkbox, xp+0 yp+30 gVerifyOsdOptions Checked%OSDborder% vOSDborder, System border around OSD
+
+    Gui, Add, DropDownList, xs+%columnBpos2% ys+0 section w145 gVerifyOsdOptions Sort Choose1 vFontName, %FontName%
     Gui, Add, Edit, xp+150 yp+0 w55 r1 limit3 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF5, %FontSize%
     Gui, Add, UpDown, gVerifyOsdOptions vFontSize Range7-295, %FontSize%
-    Gui, Add, ListView, xp-60 yp+25 w55 h20 %cclvo% Background%OSDtextColor% vOSDtextColor hwndhLV1,
+    Gui, Add, ListView, xp-60 yp+30 w55 h20 %cclvo% Background%OSDtextColor% vOSDtextColor hwndhLV1,
     Gui, Add, ListView, xp+60 yp+0 w55 h20 %cclvo% Background%OSDbgrColor% vOSDbgrColor hwndhLV2,
-    Gui, Add, ListView, xp-60 yp+25 w55 h20 %cclvo% Background%CapsColorHighlight% vCapsColorHighlight hwndhLV3,
-    Gui, Add, ListView, xp+60 yp+0 w55 h20 %cclvo% Background%TypingColorHighlight% vTypingColorHighlight hwndhLV5,
-    Gui, Add, Edit, xp-60 yp+25 w55 r1 limit2 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF6, %DisplayTimeUser%
-    Gui, Add, UpDown, vDisplayTimeUser gVerifyOsdOptions Range1-99, %DisplayTimeUser%
-    Gui, Add, Edit, xp+60 yp+0 w55 r1 limit2 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF10, %DisplayTimeTypingUser%
+    Gui, Add, ListView, xp-60 yp+30 w55 h20 %cclvo% Background%CapsColorHighlight% vCapsColorHighlight hwndhLV3,
+    Gui, Add, ListView, xp+0 yp+30 w55 h20 %cclvo% Background%TypingColorHighlight% vTypingColorHighlight hwndhLV5,
+    Gui, Add, Edit, xp+60 yp+30 w55 r1 limit2 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF10, %DisplayTimeTypingUser%
     Gui, Add, UpDown, vDisplayTimeTypingUser gVerifyOsdOptions Range2-99, %DisplayTimeTypingUser%
-    Gui, Add, Edit, xp-60 yp+25 w55 r1 limit4 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF7, %GuiWidth%
-    Gui, Add, UpDown, gVerifyOsdOptions vGuiWidth Range55-2900, %GuiWidth%
-    Gui, Add, Edit, xp+60 yp+0 w55 r1 limit4 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF8, %maxGuiWidth%
-    Gui, Add, UpDown, gVerifyOsdOptions vmaxGuiWidth Range55-2900, %maxGuiWidth%
-    Gui, Add, Edit, xp-60 yp+25 w55 r1 limit3 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF9, %OSDautosizeFactory%
-    Gui, Add, UpDown, gVerifyOsdOptions vOSDautosizeFactory Range10-400, %OSDautosizeFactory%
-
-    Gui, Add, Text, x15 y15, OSD location presets. Click L to define each.
-    Gui, Add, Text, xp+0 yp+72, OSD alignment (A / B)
-    Gui, Add, Text, xp+0 yp+25, Font / size
-    Gui, Add, Text, xp+0 yp+25, Text / background
-    Gui, Add, Text, xp+0 yp+25, Caps lock / alt. typing mode
-    Gui, Add, Text, xp+0 yp+25, Display time / when typing (in sec.)
-    Gui, Add, Text, xp+0 yp+25, Width (fixed size / dynamic max,)
-    Gui, Add, Text, xp+0 yp+25, Text width factor (lower = larger)
-    Gui, Add, Checkbox, xp+0 yp+25 gVerifyOsdOptions Checked%OSDautosize% vOSDautosize, Auto-resize OSD (screen DPI: %A_ScreenDPI%)
-    Gui, Add, Checkbox, xp+0 yp+20 gVerifyOsdOptions Checked%OSDborder% vOSDborder, System border around OSD
-    Gui, Add, Checkbox, xp+0 yp+20 gVerifyOsdOptions Checked%JumpHover% vJumpHover, Toggle OSD positions when mouse runs over it
-    Gui, Add, Checkbox, xp+0 yp+20 gVerifyOsdOptions Checked%DragOSDmode% vDragOSDmode, Allow easy OSD repositioning (click to drag it)
-    Gui, Font, Bold
-    If (NeverDisplayOSD=1)
-       Gui, Add, Text, xp+0 yp+25, WARNING: Never display OSD is activated.
-    Gui, Add, Checkbox, xp+0 yp+20 gVerifyOsdOptions Checked%showPreview% vshowPreview, Show preview window
-    Gui, Add, Edit, xp+170 yp+0 gVerifyOsdOptions w115 limit30 r1 -multi -wantReturn -wantTab -wrap vpreviewWindowText, %previewWindowText%
-    Gui, Font, Normal
+    Gui, Add, Edit, xp-60 yp+0 w55 r1 limit2 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF6, %DisplayTimeUser%
+    Gui, Add, UpDown, vDisplayTimeUser gVerifyOsdOptions Range1-99, %DisplayTimeUser%
 
     If !FontList._NewEnum()[k, v]
     {
@@ -4635,15 +4741,23 @@ ShowOSDsettings() {
     }
     Loop, % FontList.MaxIndex() {
         fontNameInstalled := FontList[A_Index]
-        If (fontNameInstalled ~= "i)(@|oem|extb|symbol|marlett|wst_|glyph|reference specialty|system|terminal|mt extra|small fonts|cambria math|fixedsys|emoji|hksc| mdl|wingdings|webdings)")
+        If (fontNameInstalled ~= "i)(@|oem|extb|symbol|marlett|wst_|glyph|reference specialty|system|terminal|mt extra|small fonts|cambria math|this font is not|fixedsys|emoji|hksc| mdl|wingdings|webdings)") || (fontNameInstalled=FontName)
            Continue
         GuiControl, , FontName, %fontNameInstalled%
     }
 
-    Gui, Add, Button, xp-170 yp+30 w70 h30 Default gApplySettings vApplySettingsBTN, A&pply
-    Gui, Add, Button, xp+75 yp+0 w70 h30 gCloseSettings, C&ancel
-    Gui, Add, DropDownList, xp+75 yp+0 AltSubmit gSwitchPreferences choose%CurrentPrefWindow% vCurrentPrefWindow , Keyboard|Typing mode|Sounds|Mouse|Appearances|Shortcuts
-    Gui, Show, AutoSize, OSD appearances: KeyPress OSD
+    Gui, Tab
+    Gui, Font, Bold
+    If (NeverDisplayOSD=1)
+       Gui, Add, Text, y+5, WARNING: Never display OSD is activated.
+    Gui, Add, Checkbox, y+8 gVerifyOsdOptions Checked%showPreview% vshowPreview, Show preview window
+    Gui, Add, Edit, x+7 gVerifyOsdOptions w165 limit30 r1 -multi -wantReturn -wantTab -wrap vpreviewWindowText, %previewWindowText%
+    Gui, Font, Normal
+
+    Gui, Add, Button, xm+0 y+10 w70 h30 Default gApplySettings vApplySettingsBTN, A&pply
+    Gui, Add, Button, x+5 yp+0 w70 h30 gCloseSettings, C&ancel
+    Gui, Add, DropDownList, x+5 yp+0 AltSubmit gSwitchPreferences choose%CurrentPrefWindow% vCurrentPrefWindow , Keyboard|Typing mode|Sounds|Mouse|Appearance|Shortcuts
+    Gui, Show, AutoSize, OSD appearance: KeyPress OSD
     VerifyOsdOptions(0)
 }
 
@@ -4651,11 +4765,9 @@ VerifyOsdOptions(enableApply:=1) {
     GuiControlGet, OSDautosize
     GuiControlGet, GUIposition
     GuiControlGet, showPreview
-    GuiControlGet, JumpHover
     GuiControlGet, DragOSDmode
 
     GuiControl, % (enableApply=0 ? "Disable" : "Enable"), ApplySettingsBTN
-    GuiControl, % (DragOSDmode=1 ? "Disable" : "Enable"), JumpHover
     GuiControl, % (showPreview=1 ? "Enable" : "Disable"), previewWindowText
 
     If (GUIposition=0)
@@ -4701,6 +4813,12 @@ VerifyOsdOptions(enableApply:=1) {
         GuiControl, Enable, maxGuiWidth
         GuiControl, Enable, editF8
     }
+
+    if (DisableTypingMode=1)
+    {
+        GuiControl, Disable, editF10
+        GuiControl, Disable, DisplayTimeTypingUser
+    }
     OSDpreview()
 }
 
@@ -4716,11 +4834,11 @@ LocatePositionA() {
     ToolTip
     GuiControl, , GuiXa, %x%
     GuiControl, , GuiYa, %y%
+    OSDpreview()
 }
 
 LocatePositionB() {
     GuiControlGet, GUIposition
-
     If (GUIposition=0)
     {
         ToolTip, Move mouse to desired location and click
@@ -4731,6 +4849,7 @@ LocatePositionB() {
         GuiControl, , GuiXb, %x%
         GuiControl, , GuiYb, %y%
     } Else Return
+    OSDpreview()
 }
 
 trimArray(arr) { ; Hash O(n) 
@@ -4766,17 +4885,25 @@ AboutWindow() {
     }
 
     SettingsGUI()
+    txtWid := 300
+    btnWid := 100
     Gui, Font, s20 bold, Arial, -wrap
     Gui, Add, Text, x15 y10, KeyPress OSD v%version%
     Gui, Font
+    If (prefsLargeFonts=1)
+    {
+       btnWid := 150
+       txtWid := 500
+       Gui, font, s14
+    }
     Gui, Add, Link, y+4, Script developed by <a href="http://marius.sucan.ro">Marius Șucan</a> for AHK_H v1.1.27.
     Gui, Add, Link, y+4, Based on KeyPressOSD v2.2 by Tmplinshi. <a href="mailto:marius.sucan@gmail.com">Send me feedback</a>.
     Gui, Add, Text, y+4, Freeware. Open source. For Windows XP, Vista, 7, 8, and 10.
-    Gui, Add, Text, y+10 w300, My gratitude to Drugwash for directly contributing with considerable improvements and code to this project.
-    Gui, Add, Text, y+10 w300, Many thanks to the great people from #ahk (irc.freenode.net), in particular to Phaleth, Tidbit and Saiapatsu. Special mentions to: Burque505 / Winter (for continued feedback) and Neuromancer.
-    Gui, Add, Text, y+10 w300, This contains code also from: Maestrith (color picker), Alguimist (font list generator), VxE (GuiGetSize), Sean (GetTextExtentPoint), Helgef (toUnicodeEx), Jess Harpur (Extract2Folder), Tidbit (String Things), jballi (Font Library 3) and Lexikos.
+    Gui, Add, Text, y+10 w%txtWid%, My gratitude to Drugwash for directly contributing with considerable improvements and code to this project.
+    Gui, Add, Text, y+10 w%txtWid%, Many thanks to the great people from #ahk (irc.freenode.net), in particular to Phaleth, Tidbit and Saiapatsu. Special mentions to: Burque505 / Winter (for continued feedback) and Neuromancer.
+    Gui, Add, Text, y+10 w%txtWid%, This contains code also from: Maestrith (color picker), Alguimist (font list generator), VxE (GuiGetSize), Sean (GetTextExtentPoint), Helgef (toUnicodeEx), Jess Harpur (Extract2Folder), Tidbit (String Things), jballi (Font Library 3) and Lexikos.
     Gui, Add, Button, y+15 w75 Default gCloseWindow, &Close
-    Gui, Add, Button, x+5 w85 gChangeLog, Version &history
+    Gui, Add, Button, x+5 w%btnWid% gChangeLog, Version &history
     Gui, Add, Text, x+5, Released: %releaseDate%
     Gui, Show, AutoSize, About KeyPress OSD v%version%
 }
@@ -5366,6 +5493,8 @@ ShaveSettings() {
   IniWrite, %KBDReload%, %inifile%, SavedSettings, KBDReload
   IniWrite, %MouseVclickColor%, %inifile%, SavedSettings, MouseVclickColor
   IniWrite, %MouseIdleColor%, %inifile%, SavedSettings, MouseIdleColor
+  IniWrite, %mouseOSDbehavior%, %inifile%, SavedSettings, mouseOSDbehavior
+  IniWrite, %prefsLargeFonts%, %IniFile%, SavedSettings, prefsLargeFonts
 }
 
 LoadSettings() {
@@ -5479,6 +5608,8 @@ LoadSettings() {
   IniRead, KBDReload, %inifile%, SavedSettings, KBDReload, %KBDReload%
   IniRead, MouseVclickColor, %inifile%, SavedSettings, MouseVclickColor, %MouseVclickColor%
   IniRead, MouseIdleColor, %inifile%, SavedSettings, MouseIdleColor, %MouseIdleColor%
+  IniRead, mouseOSDbehavior, %inifile%, SavedSettings, mouseOSDbehavior, %mouseOSDbehavior%
+  IniRead, prefsLargeFonts, %inifile%, SavedSettings, prefsLargeFonts, %prefsLargeFonts%
 
   CheckSettings()
   GuiX := (GUIposition=1) ? GuiXa : GuiXb
@@ -5504,6 +5635,7 @@ CheckSettings() {
     enableTypingHistory := (enableTypingHistory=0 || enableTypingHistory=1) ? enableTypingHistory : 0
     OSDalignment1 := (OSDalignment1=1 || OSDalignment1=2 || OSDalignment1=3) ? OSDalignment1 : 1
     OSDalignment2 := (OSDalignment2=1 || OSDalignment2=2 || OSDalignment2=3) ? OSDalignment2 : 3
+    mouseOSDbehavior := (mouseOSDbehavior=1 || mouseOSDbehavior=2 || mouseOSDbehavior=3) ? mouseOSDbehavior : 1
     FlashIdleMouse := (FlashIdleMouse=0 || FlashIdleMouse=1) ? FlashIdleMouse : 0
     ForcedKBDlayout := (ForcedKBDlayout=0 || ForcedKBDlayout=1) ? ForcedKBDlayout : 0
     ForceKBD := (ForceKBD=0 || ForceKBD=1) ? ForceKBD : 0
@@ -5549,6 +5681,21 @@ CheckSettings() {
     AltHook2keysUser := (AltHook2keysUser=0 || AltHook2keysUser=1) ? AltHook2keysUser : 1
     sendJumpKeys := (sendJumpKeys=0 || sendJumpKeys=1) ? sendJumpKeys : 0
     MediateNavKeys := (MediateNavKeys=0 || MediateNavKeys=1) ? MediateNavKeys : 0
+    prefsLargeFonts := (prefsLargeFonts=0 || prefsLargeFonts=1) ? prefsLargeFonts : 0
+
+    If (mouseOSDbehavior=1)
+    {
+        DragOSDmode := 0
+        JumpHover := 0
+    } Else if (mouseOSDbehavior=2)
+    {
+        DragOSDmode := 0
+        JumpHover := 1
+    } Else if (mouseOSDbehavior=3)
+    {
+        DragOSDmode := 1
+        JumpHover := 0
+    }
 
     If (UpDownAsHE=1) && (UpDownAsLR=1)
        UpDownAsLR := 0
@@ -5895,7 +6042,7 @@ checkifRunningWindow() {
   Sleep, 10
   WinGet, otherKP, id, KeyPressOSDwin
   If otherKP not in %OSDhandles%
-     ExitApp
+     KillScript(0)
   DetectHiddenWindows, off
   SetTimer, , off
 }
@@ -6395,3 +6542,12 @@ SettingsGUIAGuiEscape:
    Else
       Gui, SettingsGUIA: Destroy
 Return
+
+SettingsGUIAGuiClose:
+   If (prefOpen=1)
+      CloseSettings()
+   Else
+      Gui, SettingsGUIA: Destroy
+Return
+
+; #Include *i %A_Scriptdir%\keypress-files\keypress-acc-viewer-functions.ahk
