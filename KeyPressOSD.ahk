@@ -3671,8 +3671,8 @@ InitializeTray() {
     If (NeverDisplayOSD=1)
        Menu, tray, Check, &Never show the OSD
 
-    If !FileExist("keypress-files\keypress-acc-viewer-functions.ahk")
-       Menu, tray, Disable, Capture text
+ ;   If !FileExist("keypress-files\keypress-acc-viewer-functions.ahk")
+;       Menu, tray, Disable, Capture text
 
     faqHtml := "keypress-files\help\faq.html"
     If !FileExist(faqHtml)
