@@ -13,9 +13,15 @@ http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip
 
 by Marius Sucan (robodesign.ro)
 
+  v4.18.1 (2018-02-02)
+  - [new] mouse text collector [experimental new feature]; with this feature enabled, KeyPress will continously capture text underneath the mouse cursor from applications that implement the Microsoft's Accessibility APIs [MSAA] and allow screen readers. The implementation of this feature makes use of scripts written by nepter(?), Sean and jethrow...
+  - [new] option to enable/disable "LEDs" to indicate key states in the OSD. This applies for Alt, Ctrl, Shift, Winkey and Caps / Num / Scroll lock. [inspired by some of the work from Drugwash]
+  - [improvement] if the cursor is at the end or beginning of the line, the caret changes into different shapes, corresponding to the following keys: left/right, home/end, up/down, page up/down, bksp/del... this is meant to offer visual feedback to the user when the caret remains still and these keys are pressed [inspired by some of the work from Drugwash]
+  - [improvement] if Large UI fonts is enabled and the preferences window is larger than the available screen resolution, user is given the option to deactivate Large UI fonts.
+
   v4.17.7 (2018-01-31)
-  - UI related bug fixes
-  
+  - various UI related bug fixes
+
   v4.17.5 (2018-01-29)
   - [new] option to set large UI fonts for preferences
   - redesigned OSD appearance settings window as well
@@ -29,7 +35,7 @@ by Marius Sucan (robodesign.ro)
   v4.16.5 (2018-01-27)
   - [improvement] now you can switch between Settings windows and change all the settings and Apply only once, without reloads inbetween. [suggestion from drugwash]
   - fixed defaults for OSD positions [thx Burque505]
-  - it now removes temporary files in system folders [thanks to Drugwash]
+  - it now removes temporary files in system folders [code from Drugwash]
   - now you can press Escape to close About or any other Settings window
   - updated About window
 
@@ -680,11 +686,11 @@ Features to implement:
   - separate UI settings and tray menu? separate files with include
   - download latest AHK_H
   - make a github release
+
+- fix behavior for missing lang file, treat it as a *sound file*
 - capture text to-do:
   - wm-getobject, send message [chrome]
   - get tool tips
-  - weather app, cartes/maps - error msg?!
-  - indicate control type, state
   - external GUI - multi-line
 
 - separate FAQs into sections
