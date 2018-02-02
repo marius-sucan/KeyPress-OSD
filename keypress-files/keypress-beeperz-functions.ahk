@@ -374,6 +374,7 @@ volBeeperTimer() {
 }
 
 deadKeysBeeper() {
+   Critical, on
    SoundPlay, sounds\deadkeys%LowVolBeeps%.wav, %prioritizeBeepers%
    if (ErrorLevel=1) && (prioritizeBeepers=0)
       SetTimer, deadKeysBeeperTimer, 15, -20
