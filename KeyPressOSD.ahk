@@ -6,20 +6,31 @@
 ; Charset for this file must be UTF 8 with BOM.
 ; it may not function properly otherwise.
 ;
-; Script written for AHK_H v1.1.27 Unicode.
+; Script written for AHK_H / AHK_L v1.1.27 Unicode.
 ;--------------------------------------------------------------------------------------------------------------------------
 ;
 ; Keyboard language definitions file:
 ;   keypress-osd-languages.ini
 ;   http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-languages.ini
-;   File required for AutoDetectKBD = 1, to detect keyboard layouts.
 ;   File must be placed in the keypress-files folder by the script.
-;   It adds support for around 110 keyboard layouts covering about 55 languages.;
+;   It adds support for dead keys for around 110 keyboard layouts covering about 55 languages.;
 ;
 ; Change log file:
 ;   keypress-osd-changelog.txt
 ;   http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-changelog.txt
 ;
+;
+/*
+<p>How it works:</p>
+<p>When the script initializes, it goes through all the Virtual Key codes and tests with ToUnicodeEx() and GetKeyName() if there is something to bind to (a key name). </p>
+<p>In the language file, I made list of VKs for dead keys, for around 70 keyboard layouts. I made it to bind distinctively to this type of keys. At initialization, the script generates a list of dead key names that later, is used to display the appropriate symbol. One cannot use ToUnicodeEx() each time such a key is pressed, to display their name/symbol, because they no longer function properly in host apps.</p>
+
+<p>The main typing mode hooks to each key using the Hotkey command from AHK, by Virtual Key (vk) and different modifiers. For the Shift and AltGr key combinations, the script binds distinctively, because it must be able to catch these keys orderly and always be able to determine what key name to display using ToUnicodeEx(). If it would bind simply with the (*) wildcard, dead keys cease to function and on slow systems, modifiers detection becomes unreliable. By binding specifically to each modifier and key, based on the prefixes from the built-in variable %A_THISHOTKEY%, it can always determine what to display.</p>
+
+<p>When alternative hooks are enabled, a different thread runs with a Loop for an Input command limited to one character. This input command is able to capture dead keys combinations (accented letters). For each key pressed, I use SendMessage to the main thread of the script, that uses OnMessage for WM_COPYDATA. The function associated processes the incoming messages / keys. What this secondary thread sends is used only after a dead key was pressed. Thus, it all still relies on the Hotkey command to get all keys and ToUnicodeEx(), except for the accented letters (keys resulted from using dead keys). When the layout is supported, but it has no dead keys , this secondary thread is never initiated.</p>
+
+<p>When alternate typing mode is invoked, I create a new window and focus it, to capture keys with two OnMessages hooked to WM_CHAR and WM_DEADCHAR. I no longer rely on the Hotkey bindings or Input command from the secondary thread. When the user hits Enter, I use SendInput, {text}.</p>
+*/
 ;----------------------------------------------------------------------------
 
 ; Initialization
@@ -30,6 +41,7 @@
  #MaxThreads 255
  #MaxThreadsPerHotkey 255
  #MaxThreadsBuffer On
+ ComObjError(false)
  SetTitleMatchMode, 2
  SetBatchLines, -1
  ListLines, Off
@@ -50,6 +62,7 @@
  , ForcedKBDlayout1      := "00010418" ; enter here the HEX code of your desired keyboards
  , ForcedKBDlayout2      := "0000040c"
  , ForcedKBDlayout       := 0
+ , EnforceSluggishSynch  := 0
  , enableAltGr           := 1
  , AltHook2keysUser      := 1
  , typingDelaysScaleUser := 7
@@ -152,19 +165,20 @@
  , KBDpasteOSDcnt2       := "^!Insert"
  , KBDsynchApp1          := "#Insert"
  , KBDsynchApp2          := "#!Insert"
- , KBDTglCap2Text        := "!Pause"
  , KBDsuspend            := "+Pause"
  , KBDTglForceLang       := "!+^F7"
  , KBDTglNeverOSD        := "!+^F8"
  , KBDTglPosition        := "!+^F9"
+ , KBDTglSilence         := "!+^F10"
  , KBDidLangNow          := "!+^F11"
  , KBDReload             := "!+^F12"
+ , KBDCapText            := "Disabled"
 
  , TextZoomer            := 0
  , UseINIfile            := 1
  , IniFile               := "keypress-osd.ini"
- , version               := "4.18.1"
- , releaseDate := "2018 / 02 / 02"
+ , version               := "4.18.3"
+ , releaseDate := "2018 / 02 / 04"
 
 ; Initialization variables. Altering these may lead to undesired results.
 
@@ -214,7 +228,7 @@ Global typed := "" ; hack used to determine If user is writing
  , backTypeCtrl := ""
  , backTypdUndo := ""
  , CurrentKBD := "Default: English US"
- , loadedLangz := A_IsCompiled ? 1 : 0
+ , loadedLangz := 0
  , kbLayoutRaw := 0
  , DeadKeys := 0
  , DKnotShifted_list := ""
@@ -236,7 +250,7 @@ Global typed := "" ; hack used to determine If user is writing
  , showPreview := 0
  , previewWindowText := "Preview ║window... │"
  , MainModsList := ["LCtrl", "RCtrl", "LAlt", "RAlt", "LShift", "RShift", "LWin", "RWin"]
- , hOSD, OSDhandles, nowDraggable, CapsLED, ShiftLED, CtrlLED, AltLED, WinLED, NumLED, ScrolLED
+ , hOSD, OSDhandles, nowDraggable, mouseFonctiones, beeperzDefunctions, mouseRipplesThread, keyStrokesThread, NOahkH
  , cclvo := "-E0x200 +Border -Hdr -Multi +ReadOnly Report -Hidden AltSubmit gsetColors"
 
    maxAllowedGuiWidth := (OSDautosize=1) ? maxGuiWidth : GuiWidth
@@ -247,38 +261,49 @@ Global typed := "" ; hack used to determine If user is writing
 CreateOSDGUI()
 verifyNonCrucialFiles()
 Sleep, 250
-
-if ((VisualMouseClicks=1) || (FlashIdleMouse=1) || (ShowMouseHalo=1) || (hostCaretHighlight=1))
-   Global mouseFonctiones := ahkThread(" #Include *i keypress-files\keypress-mouse-functions.ahk ")
-
-if (MouseClickRipples=1)
-   Global mouseRipplesThread := ahkThread(" #Include *i keypress-files\keypress-mouse-ripples-functions.ahk ")
-
-Global beeperzDefunctions := ahkThread(" #Include *i keypress-files\keypress-beeperz-functions.ahk ")
-
 CreateGlobalShortcuts()
 CreateHotkey()
 CheckInstalledLangs()
 InitializeTray()
-if (ClipMonitor=1)
+initAHKhThreads()
+LEDsIndicatorsManager(1)
+If (ClipMonitor=1)
    OnClipboardChange("ClipChanged")
 
 hCursM := DllCall("LoadCursor", "Ptr", NULL, "Int", 32646, "Ptr")  ; IDC_SIZEALL
 hCursH := DllCall("LoadCursor", "Ptr", NULL, "Int", 32649, "Ptr")  ; IDC_HAND
 OnMessage(0x200, "MouseMove")    ; WM_MOUSEMOVE
-ComObjError(false)
-
-if (AlternativeHook2keys=1) && (DisableTypingMode=0) && (ShowSingleKey=1)
-{
-   Global keyStrokesThread := ahkThread(" #Include *i keypress-files\keypress-keystrokes-helper.ahk")
-   OnMessage(0x4a, "KeyStrokeReceiver")  ; 0x4a is WM_COPYDATA
-}
-LEDsIndicatorsManager(1)
 Return
 
 ;================================================================
 ; The script
 ;================================================================
+
+initAHKhThreads() {
+    func2exec := "ahkThread"
+    If StrLen(A_GlobalStruct)>3 
+    {
+        If ((VisualMouseClicks=1) || (FlashIdleMouse=1) || (ShowMouseHalo=1) || (hostCaretHighlight=1))
+           Global mouseFonctiones := %func2exec%(" #Include *i keypress-files\keypress-mouse-functions.ahk ")
+
+        If (MouseClickRipples=1)
+           Global mouseRipplesThread := %func2exec%(" #Include *i keypress-files\keypress-mouse-ripples-functions.ahk ")
+
+        Global beeperzDefunctions := %func2exec%(" #Include *i keypress-files\keypress-beeperz-functions.ahk ")
+        If (AlternativeHook2keys=1) && (DisableTypingMode=0) && (ShowSingleKey=1)
+        {
+           Global keyStrokesThread := %func2exec%(" #Include *i keypress-files\keypress-keystrokes-helper.ahk")
+           OnMessage(0x4a, "KeyStrokeReceiver")  ; 0x4a is WM_COPYDATA
+        }
+    } Else
+    {
+        NOahkH := 1
+        Menu, SubSetMenu, Disable, S&ilent mode
+        Menu, SubSetMenu, Disable, &Sounds
+        Menu, SubSetMenu, Disable, &Mouse
+    }
+}
+
 TypedLetter(key,onLatterUp:=0) {
 ;  Sleep, 50 ; megatest
 
@@ -439,7 +464,7 @@ caretMover(direction,inLoop:=0) {
   StringGetPos, CaretPosSelly, typed, %lola2%
   direction2check := (direction=2) ? CaretPos+3 : CaretPos
   testChar := SubStr(typed, direction2check, 1)
-  If RegExMatch(testChar, "[\p{Mn}\p{Cc}\p{Cf}\p{Co}\p{Cs}\p{Sk}]") && (inLoop=0) && (CaretPosSelly<0)
+  If RegExMatch(testChar, "[\p{Mn}\p{Cc}\p{Cf}\p{Co}\p{Cs}]") && (inLoop=0) && (CaretPosSelly<0)
      mustRepeat := 1
 
   If (st_count(typed, lola2)>0)
@@ -485,14 +510,14 @@ caretMoverSel(direction,inLoop:=0) {
      StringGetPos, CaretPos, typed, %cola%
      direction2check := (direction=1) ? CaretPos+3 : CaretPos
      testChar := SubStr(typed, direction2check, 1)
-     If RegExMatch(testChar, "[\p{Mn}\p{Cc}\p{Cf}\p{Co}\p{Cs}\p{Sk}]") && (inLoop=0)
+     If RegExMatch(testChar, "[\p{Mn}\p{Cc}\p{Cf}\p{Co}\p{Cs}]") && (inLoop=0)
         mustRepeat := 1
   } Else
   {
      StringGetPos, CaretPos, typed, %cola2%
      direction2check := (direction=1) ? CaretPos+3 : CaretPos
      testChar := SubStr(typed, direction2check, 1)
-     If RegExMatch(testChar, "[\p{Mn}\p{Cc}\p{Cf}\p{Co}\p{Cs}\p{Sk}]") && (inLoop=0)
+     If RegExMatch(testChar, "[\p{Mn}\p{Cc}\p{Cf}\p{Co}\p{Cs}]") && (inLoop=0)
         mustRepeat := 1
      CaretPos := (direction=1) ? CaretPos + 1 : CaretPos
   }
@@ -585,7 +610,7 @@ caretJumper(direction) {
   StringGetPos, CaretPoza, typed, %lola%
   direction2check := CaretPoza+2
   testChar := SubStr(typed, direction2check, 1)
-  If RegExMatch(testChar, "[\p{Mn}\p{Cc}\p{Cf}\p{Co}\p{Cs}\p{Sk}]")
+  If RegExMatch(testChar, "[\p{Mn}\p{Cc}\p{Cf}\p{Co}\p{Cs}]")
      caretMover(direction*2,1)
 }
 
@@ -608,7 +633,7 @@ caretJumpSelector(direction) {
   StringGetPos, CaretPoza, typed, %lola2%
   direction2check := CaretPoza+2
   testChar := SubStr(typed, direction2check, 1)
-  If RegExMatch(testChar, "[\p{Mn}\p{Cc}\p{Cf}\p{Co}\p{Cs}\p{Sk}]")
+  If RegExMatch(testChar, "[\p{Mn}\p{Cc}\p{Cf}\p{Co}\p{Cs}]")
      caretMoverSel(direction,1)
 }
 
@@ -752,6 +777,18 @@ OnRLeftPressed() {
 
         If (DisableTypingMode=1) || prefixed && !((key ~= "i)^(.?Shift \+)"))
            typed := (OnlyTypingMode=1) ? typed : ""
+    }
+
+    If (EnforceSluggishSynch=1) && (SecondaryTypingMode=0)
+    {
+       If (A_ThisHotkey="Left")
+          SendInput, {Left}
+       If (A_ThisHotkey="Right")
+          SendInput, {Right}
+       If (A_ThisHotkey="+Left")
+          SendInput, +{Left}
+       If (A_ThisHotkey="+Right")
+          SendInput, +{Right}
     }
 }
 
@@ -1752,7 +1789,7 @@ OnBspPressed() {
             Global lastTypedSince := A_TickCount
             StringGetPos, CaretPos, typed, %lola%
             testChar := SubStr(typed, CaretPos, 1)
-            If RegExMatch(testChar, "[\p{Cs}\p{Sk}]")
+            If RegExMatch(testChar, "[\p{Cs}]")
             {
                 typed := st_delete(typed, CaretPos-1, 2)
                 CalcVisibleText()
@@ -1797,6 +1834,9 @@ OnDelPressed() {
     If (sendKeysRealTime=1) && (SecondaryTypingMode=1)
        ControlSend, , {Del}, %Window2Activate%
 
+    If (EnforceSluggishSynch=1) && (SecondaryTypingMode=0) && (A_ThisHotkey="Del")
+       SendInput, {Del}
+
     try
     {
         key := GetKeyStr()
@@ -1825,7 +1865,7 @@ OnDelPressed() {
             If (CaretPos >= StrLen(typed)-2 )
                endReached := 1
 
-            If InStr(typed, lola "▫") || RegExMatch(testChar, "[\p{Mn}\p{Cc}\p{Cf}\p{Co}\p{Cs}\p{Sk}]")
+            If InStr(typed, lola "▫") || RegExMatch(testChar, "[\p{Mn}\p{Cc}\p{Cf}\p{Co}\p{Cs}]")
                deleteNext := 1
 
             If (endReached!=1) && InStr(typed, lola)
@@ -2279,60 +2319,73 @@ CreateHotkey() {
     Static mods_list := ["!", "!#", "!#^", "!#^+", "!+", "#", "#!", "#!+", "#!^", "#+^", "#^", "+#", "+^", "^"]
     Static megaDeadKeysList := DKaltGR_list "." DKshift_list "." DKnotShifted_list
 
-    Hotkey, ~*Left, OnRLeftPressed, useErrorLevel
-    Hotkey, ~*Left Up, OnKeyUp, useErrorLevel
-    Hotkey, ~*Right, OnRLeftPressed, useErrorLevel
-    Hotkey, ~*Right Up, OnKeyUp, useErrorLevel
-    Hotkey, ~*Up, OnUpDownPressed, useErrorLevel
-    Hotkey, ~*Up Up, OnKeyUp, useErrorLevel
-    Hotkey, ~*Down, OnUpDownPressed, useErrorLevel
-    Hotkey, ~*Down Up, OnKeyUp, useErrorLevel
-    Hotkey, ~*PgUp, OnPGupDnPressed, useErrorLevel
-    Hotkey, ~*PgUp Up, OnKeyUp, useErrorLevel
-    Hotkey, ~*PgDn, OnPGupDnPressed, useErrorLevel
-    Hotkey, ~*PgDn Up, OnKeyUp, useErrorLevel
-    Hotkey, ~*Del, OnDelPressed, useErrorLevel
-    Hotkey, ~*Del Up, OnKeyUp, useErrorLevel
-    Hotkey, ~*BackSpace, OnBspPressed, useErrorLevel
-    Hotkey, ~*BackSpace Up, OnKeyUp, useErrorLevel
-    Hotkey, ~*Space, OnSpacePressed, useErrorLevel
-    Hotkey, ~*Space Up, OnKeyUp, useErrorLevel
-    Hotkey, ~*Home, OnHomeEndPressed, useErrorLevel
-    Hotkey, ~+Home, OnHomeEndPressed, useErrorLevel
-    Hotkey, ~*Home Up, OnKeyUp, useErrorLevel
-    Hotkey, ~*End, OnHomeEndPressed, useErrorLevel
-    Hotkey, ~+End, OnHomeEndPressed, useErrorLevel
-    Hotkey, ~*End Up, OnKeyUp, useErrorLevel
-    Hotkey, ~^vk41, OnCtrlAup, useErrorLevel
-    Hotkey, ~^vk43, OnCtrlCup, useErrorLevel
-    Hotkey, ~^vk56, OnCtrlVup, useErrorLevel
-    Hotkey, ~^vk58, OnCtrlXup, useErrorLevel
-    Hotkey, ~^vk5A, OnCtrlZup, useErrorLevel
+; bind keys relevant to the typing mode
+    If (DisableTypingMode=0)
+    {
+        Hotkey, ~*Left, OnRLeftPressed, useErrorLevel
+        Hotkey, ~*Left Up, OnKeyUp, useErrorLevel
+        Hotkey, ~*Right, OnRLeftPressed, useErrorLevel
+        Hotkey, ~*Right Up, OnKeyUp, useErrorLevel
+        Hotkey, ~*Up, OnUpDownPressed, useErrorLevel
+        Hotkey, ~*Up Up, OnKeyUp, useErrorLevel
+        Hotkey, ~*Down, OnUpDownPressed, useErrorLevel
+        Hotkey, ~*Down Up, OnKeyUp, useErrorLevel
+        Hotkey, ~*PgUp, OnPGupDnPressed, useErrorLevel
+        Hotkey, ~*PgUp Up, OnKeyUp, useErrorLevel
+        Hotkey, ~*PgDn, OnPGupDnPressed, useErrorLevel
+        Hotkey, ~*PgDn Up, OnKeyUp, useErrorLevel
+        Hotkey, ~*Del, OnDelPressed, useErrorLevel
+        Hotkey, ~*Del Up, OnKeyUp, useErrorLevel
+        Hotkey, ~*BackSpace, OnBspPressed, useErrorLevel
+        Hotkey, ~*BackSpace Up, OnKeyUp, useErrorLevel
+        Hotkey, ~*Space, OnSpacePressed, useErrorLevel
+        Hotkey, ~*Space Up, OnKeyUp, useErrorLevel
+        Hotkey, ~*Home, OnHomeEndPressed, useErrorLevel
+        Hotkey, ~+Home, OnHomeEndPressed, useErrorLevel
+        Hotkey, ~*Home Up, OnKeyUp, useErrorLevel
+        Hotkey, ~*End, OnHomeEndPressed, useErrorLevel
+        Hotkey, ~+End, OnHomeEndPressed, useErrorLevel
+        Hotkey, ~*End Up, OnKeyUp, useErrorLevel
+        Hotkey, ~^vk41, OnCtrlAup, useErrorLevel
+        Hotkey, ~^vk43, OnCtrlCup, useErrorLevel
+        Hotkey, ~^vk56, OnCtrlVup, useErrorLevel
+        Hotkey, ~^vk58, OnCtrlXup, useErrorLevel
+        Hotkey, ~^vk5A, OnCtrlZup, useErrorLevel
 
-    If (MediateNavKeys=1) && (DisableTypingMode=0)
-    {
-        Hotkey, Home, OnHomeEndPressed, useErrorLevel
-        Hotkey, +Home, OnHomeEndPressed, useErrorLevel
-        Hotkey, End, OnHomeEndPressed, useErrorLevel
-        Hotkey, +End, OnHomeEndPressed, useErrorLevel
-    }
+        If (MediateNavKeys=1) && (DisableTypingMode=0)
+        {
+            Hotkey, Home, OnHomeEndPressed, useErrorLevel
+            Hotkey, +Home, OnHomeEndPressed, useErrorLevel
+            Hotkey, End, OnHomeEndPressed, useErrorLevel
+            Hotkey, +End, OnHomeEndPressed, useErrorLevel
+        }
 
-    If (sendJumpKeys=0)
-    {
-       Hotkey, ~^BackSpace, OnCtrlDelBack, useErrorLevel
-       Hotkey, ~^Del, OnCtrlDelBack, useErrorLevel
-       Hotkey, ~^Left, OnCtrlRLeft, useErrorLevel
-       Hotkey, ~^Right, OnCtrlRLeft, useErrorLevel
-       Hotkey, ~+^Left, OnCtrlRLeft, useErrorLevel
-       Hotkey, ~+^Right, OnCtrlRLeft, useErrorLevel
-    } Else
-    {
-       Hotkey, ^BackSpace, OnCtrlDelBack, useErrorLevel
-       Hotkey, ^Del, OnCtrlDelBack, useErrorLevel
-       Hotkey, ^Left, OnCtrlRLeft, useErrorLevel
-       Hotkey, ^Right, OnCtrlRLeft, useErrorLevel
-       Hotkey, +^Left, OnCtrlRLeft, useErrorLevel
-       Hotkey, +^Right, OnCtrlRLeft, useErrorLevel
+        If (sendJumpKeys=0)
+        {
+           Hotkey, ~^BackSpace, OnCtrlDelBack, useErrorLevel
+           Hotkey, ~^Del, OnCtrlDelBack, useErrorLevel
+           Hotkey, ~^Left, OnCtrlRLeft, useErrorLevel
+           Hotkey, ~^Right, OnCtrlRLeft, useErrorLevel
+           Hotkey, ~+^Left, OnCtrlRLeft, useErrorLevel
+           Hotkey, ~+^Right, OnCtrlRLeft, useErrorLevel
+        } Else
+        {
+           Hotkey, ^BackSpace, OnCtrlDelBack, useErrorLevel
+           Hotkey, ^Del, OnCtrlDelBack, useErrorLevel
+           Hotkey, ^Left, OnCtrlRLeft, useErrorLevel
+           Hotkey, ^Right, OnCtrlRLeft, useErrorLevel
+           Hotkey, +^Left, OnCtrlRLeft, useErrorLevel
+           Hotkey, +^Right, OnCtrlRLeft, useErrorLevel
+        }
+
+        If (EnforceSluggishSynch=1)
+        {
+           Hotkey, Del, OnDelPressed, useErrorLevel
+           Hotkey, Left, OnRLeftPressed, useErrorLevel
+           Hotkey, Right, OnRLeftPressed, useErrorLevel
+           Hotkey, +Left, OnRLeftPressed, useErrorLevel
+           Hotkey, +Right, OnRLeftPressed, useErrorLevel
+        }
     }
 
 ; bind to the list of possible letters/chars
@@ -2367,11 +2420,14 @@ CreateHotkey() {
         }
 
         Hotkey, % "~*vk" code, OnLetterPressed, useErrorLevel
-        Hotkey, % "~+vk" code, OnLetterPressed, useErrorLevel
-        Hotkey, % "~^!vk" code, OnLetterPressed, useErrorLevel
-        Hotkey, % "~<^>!vk" code, OnLetterPressed, useErrorLevel
-        Hotkey, % "~+^!vk" code, OnLetterPressed, useErrorLevel
-        Hotkey, % "~+<^>!vk" code, OnLetterPressed, useErrorLevel
+        If (DisableTypingMode=0)
+        {
+            Hotkey, % "~+vk" code, OnLetterPressed, useErrorLevel
+            Hotkey, % "~^!vk" code, OnLetterPressed, useErrorLevel
+            Hotkey, % "~<^>!vk" code, OnLetterPressed, useErrorLevel
+            Hotkey, % "~+^!vk" code, OnLetterPressed, useErrorLevel
+            Hotkey, % "~+<^>!vk" code, OnLetterPressed, useErrorLevel
+        }
         Hotkey, % "~*vk" code " Up", OnLetterUp, useErrorLevel
         If (errorlevel!=0) && (audioAlerts=1)
            SoundBeep, 1900, 50
@@ -2552,6 +2608,8 @@ CreateHotkey() {
 
     Otherkeys := "WheelDown|WheelUp|WheelLeft|WheelRight|XButton1|XButton2|Browser_Forward|Browser_Back|Browser_Refresh|Browser_Stop|Browser_Search|Browser_Favorites|Browser_Home|Volume_Mute|Volume_Down|Volume_Up|Media_Next|Media_Prev|Media_Stop|Media_Play_Pause|Launch_Mail|Launch_Media|Launch_App1|Launch_App2|Help|Sleep|PrintScreen|CtrlBreak|Break|AppsKey|Tab|Enter|Esc"
                . "|Insert|CapsLock|ScrollLock|NumLock|Pause|sc146|sc123"
+    If (DisableTypingMode=1)           
+       Otherkeys .= "|Left|Right|Up|Down|BackSpace|Del|Home|End|PgUp|PgDn|space"
     Loop, Parse, Otherkeys, |
     {
         Hotkey, % "~*" A_LoopField, OnKeyPressed, useErrorLevel
@@ -2974,24 +3032,25 @@ IdentifyKBDlayout() {
      kbLayoutRaw := (ForcedKBDlayout = 0) ? ForcedKBDlayout1 : ForcedKBDlayout2
 
   #Include *i %A_Scriptdir%\keypress-files\keypress-osd-languages.ini
-  If (!FileExist("keypress-files\keypress-osd-languages.ini") && (AutoDetectKBD=1) && (loadedLangz!=1) && !A_IsCompiled) || (FileExist("keypress-files\keypress-osd-languages.ini") && (AutoDetectKBD=1) && (loadedLangz!=1) && !A_IsCompiled)
+  IniRead, Attempt2DownLang, %IniFile%, TempSettings, Attempt2DownLang, 0
+
+  If (AutoDetectKBD=1) && (loadedLangz!=1) && !A_IsCompiled && (Attempt2DownLang<2)
   {
-      SoundBeep
+      If (audioAlerts=1) && (SilentMode=0)
+         SoundBeep
       ShowLongMsg("Downloading language definitions file... Please wait.")
       downLangFile()
       SetTimer, HideGUI, % -DisplayTime*2
   }
 
-  If (A_IsCompiled && (loadedLangz!=1))
+  If A_IsCompiled && (loadedLangz!=1)
   {
       ReloadCounter := 1000
       IniWrite, %ReloadCounter%, %IniFile%, TempSettings, ReloadCounter
       ForceKBD := 0
-      AutoDetectKBD := 0
-      SoundBeep
-      IniWrite, %AutoDetectKBD%, %IniFile%, SavedSettings, AutoDetectKBD
+      If (audioAlerts=1) && (SilentMode=0)
+         SoundBeep
       IniWrite, %ForceKBD%, %IniFile%, SavedSettings, ForceKBD
-      MsgBox, File compiled without language definitions.
   }
 
   check_kbd_exact := StrLen(LangRaw_%kbLayoutRaw%)>2 ? 1 : 0
@@ -3012,6 +3071,11 @@ IdentifyKBDlayout() {
       }
       SetTimer, HideGUI, % -DisplayTime
       SoundBeep, 500, 900
+  } Else if (check_kbd_exact=0) && (loadedLangz!=1)
+  {
+      CurrentKBD := "Auto-detected: " langFriendlySysName ". " kbLayoutRaw
+      If (SilentDetection=0)
+         ShowLongMsg("Layout detected: " langFriendlySysName)
   }
 
   If (DeadKeysPresent_%kbLayoutRaw%=1)
@@ -3045,7 +3109,7 @@ IdentifyKBDlayout() {
       }
   }
 
-    If (AutoDetectKBD=1) && (loadedLangz=1)
+    If (AutoDetectKBD=1)
     {
        identifiedKbdName := (check_kbd_exact=0) ? "! " langFriendlySysName : LangRaw_%kbLayoutRaw%
        StringLeft, clayout, identifiedKbdName, 25
@@ -3054,7 +3118,7 @@ IdentifyKBDlayout() {
        Menu, Tray, Add
     }
 
-    If (ConstantAutoDetect=1) && (AutoDetectKBD=1) && (loadedLangz=1) && (ForceKBD=0)
+    If (ConstantAutoDetect=1) && (AutoDetectKBD=1) && (ForceKBD=0)
        SetTimer, dummyDelayer, 5000, 915
 }
 
@@ -3100,6 +3164,8 @@ checkInstalledLangs() {
 }
 
 ForceSpecificLanguage() {
+    If (loadedLangz!=1)
+       Return
     ForceKBD := 1
     AutoDetectKBD := 1
     StringLeft, MenuSelected, A_ThisMenuItem, 5
@@ -3223,9 +3289,10 @@ CreateGlobalShortcuts() {
        KBDTglForceLang := RegisterGlobalShortcuts(KBDTglForceLang,"ToggleForcedLanguage", "!+^F7")
        KBDTglNeverOSD := RegisterGlobalShortcuts(KBDTglNeverOSD,"ToggleNeverDisplay", "!+^F8")
        KBDTglPosition := RegisterGlobalShortcuts(KBDTglPosition,"TogglePosition", "!+^F9")
+       KBDTglSilence := RegisterGlobalShortcuts(KBDTglSilence,"ToggleSilence", "!+^F10")
        KBDidLangNow := RegisterGlobalShortcuts(KBDidLangNow,"DetectLangNow", "!+^F11")
        KBDReload := RegisterGlobalShortcuts(KBDReload,"ReloadScriptNow", "!+^F12")
-       KBDTglCap2Text := RegisterGlobalShortcuts(KBDTglCap2Text,"ToggleCapture2Text", "!Pause")
+       KBDCapText := RegisterGlobalShortcuts(KBDCapText,"CaptureTextNow", "Disabled")
      }
 }
 
@@ -3379,9 +3446,12 @@ SuspendScript() {        ; Shift+Pause/Break
    backTypeCtrl := ""
    backTypdUndo := ""
    ShowLongMsg("KeyPress OSD toggled")
-   mouseFonctiones.ahkReload[]
-   beeperzDefunctions.ahkReload[]
-   mouseRipplesThread.ahkReload[]
+   If (NOahkH!=1)
+   {
+      mouseFonctiones.ahkReload[]
+      beeperzDefunctions.ahkReload[]
+      mouseRipplesThread.ahkReload[]
+   }
    SetTimer, HideGUI, % -DisplayTime/6
    Sleep, DisplayTime/6+15
    Suspend
@@ -3448,7 +3518,7 @@ TogglePosition() {
         ShowLongMsg("OSD position: " niceNaming )
         Sleep, 450
         ShowLongMsg("OSD position: " niceNaming )
-        SetTimer, HideGUI, % -DisplayTime/3
+        SetTimer, HideGUI, % -DisplayTime/2
         Gui, OSD: Destroy
         Sleep, 20
         CreateOSDGUI()
@@ -3478,19 +3548,43 @@ ToggleSilence() {
     mouseFonctiones.ahkReload[]
     beeperzDefunctions.ahkReload[]
     Menu, SubSetMenu, % (SilentMode=0 ? "Uncheck" : "Check"), S&ilent mode
-    Sleep, 400
+    ShowLongMsg("Silent mode = " SilentMode)
+    SetTimer, HideGUI, % -DisplayTime
 }
 
 ToggleCaptureText() {
-    If !FileExist("keypress-files\keypress-acc-viewer-functions.ahk")
-       Return
+    If !FileExist("keypress-files\keypress-acc-viewer-functions.ahk") && !A_IsCompiled || !FileExist("keypress-files\UIA_Interface.ahk") && !A_IsCompiled
+    {
+      ShowLongMsg("ERROR: Missing files...")
+      SoundBeep, 300, 900
+      SetTimer, HideGUI, % -DisplayTime
+      Return
+    }
     TextZoomer := !TextZoomer
     Menu, tray, % (TextZoomer=0 ? "Uncheck" : "Check"), Mouse text collector
-    If (TextZoomer=1)
-       SetTimer, GetAccInfo, 120, 50, UseErrorLevel
-    else
-       SetTimer, GetAccInfo, off
+    gay := "GetAccInfo"
+    If IsFunc(gay)
+    {
+        If (TextZoomer=1)
+          SetTimer, %gay%, 120, 50
+        else
+          SetTimer, %gay%, off
+    }
     Sleep, 400
+}
+
+CaptureTextNow() {
+    If !FileExist("keypress-files\keypress-acc-viewer-functions.ahk") && !A_IsCompiled || !FileExist("keypress-files\UIA_Interface.ahk") && !A_IsCompiled
+    {
+      ShowLongMsg("ERROR: Missing files...")
+      SoundBeep, 300, 900
+      SetTimer, HideGUI, % -DisplayTime/2
+      Return
+    }
+    gay := "GetAccInfo"
+    If IsFunc(gay)
+       %gay%()
+    Else SoundBeep, 300, 900
 }
 
 ToggleLargeFonts() {
@@ -3686,22 +3780,22 @@ InitializeTray() {
     If !FileExist("keypress-files\keypress-mouse-functions.ahk")
        Menu, SubSetMenu, Disable, &Mouse
 
-    Menu, tray, tip, KeyPress OSD v%version%
-    Menu, tray, NoStandard
+    Menu, Tray, Tip, KeyPress OSD v%version%
+    Menu, Tray, NoStandard
 
     kbdList_count := DllCall("GetMenuItemCount", "Ptr", MenuGetHandle("kbdList"))
-    If (AutoDetectKBD=1) && (ForceKBD=0) && (loadedLangz=1) && (kbdList_count>1)
+    If (AutoDetectKBD=1) && (ForceKBD=0) && (kbdList_count>1)
     {
        Menu, Tray, Add, &Monitor keyboard layout, ToggleConstantDetection
-       Menu, tray, check, &Monitor keyboard layout
+       Menu, Tray, check, &Monitor keyboard layout
        If (ConstantAutoDetect=0)
-          Menu, tray, uncheck, &Monitor keyboard layout
+          Menu, Tray, uncheck, &Monitor keyboard layout
     }
 
-    If (loadedLangz=1) && (kbdList_count>1)
+    If (kbdList_count>1)
        Menu, Tray, Add, &Installed keyboard layouts, :kbdList
 
-    If (ConstantAutoDetect=0) && (ForceKBD=0) && (loadedLangz=1)
+    If (ConstantAutoDetect=0) && (ForceKBD=0)
     {
        Menu, Tray, Add, &Detect keyboard layout now, DetectLangNow
        If (kbdList_count>1)
@@ -3738,8 +3832,8 @@ InitializeTray() {
     If (NeverDisplayOSD=1)
        Menu, tray, Check, &Never show the OSD
 
-    If !FileExist("keypress-files\keypress-acc-viewer-functions.ahk")
-       Menu, tray, Disable, Capture text
+    If !FileExist("keypress-files\keypress-acc-viewer-functions.ahk") && !A_IsCompiled
+       Menu, tray, Disable, Mouse text collector
 
     faqHtml := "keypress-files\help\faq.html"
     If !FileExist(faqHtml)
@@ -3770,12 +3864,12 @@ KillScript(showMSG:=1) {
    Thread, Priority, 50
    Critical, on
    thisFile := A_ScriptName
-   If FileExist(thisFile) && (showMSG=1)
+   If FileExist(thisFile) && showMSG
    {
       ShaveSettings()
       ShowLongMsg("Bye byeee :-)")
       Sleep, 350
-   } Else if (showMSG=1)
+   } Else if showMSG
    {
       ShowLongMsg("Adiiooosss :-(((")
       Sleep, 1550
@@ -3848,46 +3942,42 @@ ShowTypeSettings() {
     Gui, Add, Checkbox, x+15 y+15 gVerifyTypeOptions Checked%ShowSingleKey% vShowSingleKey, Show single keys in the OSD (mandatory for the main typing mode)
     Gui, Add, Checkbox, y+7 gVerifyTypeOptions Checked%enableAltGr% venableAltGr, Enable {Ctrl + Alt} / {AltGr} support
     Gui, Add, Checkbox, y+7 gVerifyTypeOptions Checked%DisableTypingMode% vDisableTypingMode, Disable main typing mode
-    Gui, Add, Checkbox, y+7 gVerifyTypeOptions Checked%MediateNavKeys% vMediateNavKeys, Mediate {Home} / {End} keys presses
+    Gui, Add, Checkbox, y+7 Section gVerifyTypeOptions Checked%EnforceSluggishSynch% vEnforceSluggishSynch, Attempt to synchronize with sluggish host apps (for slow PCs only)
     If (showHelp=1)
-    {
+       Gui, Add, Text, xp+15 y+5 w%txtWid%, It applies only for Left, Right and Delete keys. If the caret positions do not stay in synch when pressing repetitively these keys, this option can help.
+    Gui, Add, Checkbox, xs+0 y+7 gVerifyTypeOptions Checked%MediateNavKeys% vMediateNavKeys, Mediate {Home} / {End} keys presses
+    If (showHelp=1)
        Gui, Add, Text, xp+15 y+5 w%txtWid%, This can ensure a stricter synchronization with the host app when typing in short multi-line text fields. Key strokes will be sent to the host app that attempt to reproduce the caret location from the OSD.
-       Gui, Add, Checkbox, xp-15 y+10 gVerifyTypeOptions Checked%OnlyTypingMode% vOnlyTypingMode, Typing mode only
-    } Else Gui, Add, Checkbox, y+10 gVerifyTypeOptions Checked%OnlyTypingMode% vOnlyTypingMode, Typing mode only
+    Gui, Add, Checkbox, xs+0 y+10 gVerifyTypeOptions Checked%OnlyTypingMode% vOnlyTypingMode, Typing mode only
 
     If (showHelp=1)
     {
        Gui, Add, Text, xp+15 y+5 w%txtWid%, The main typing mode works by attempting to shadow the host app. KeyPress will attempt to reproduce text cursor actions to mimmick text fields.
        Gui, Add, Checkbox, xp-15 y+10 gVerifyTypeOptions Checked%alternateTypingMode% valternateTypingMode, Enable global keyboard shortcut to enter in alternate typing mode
        Gui, Add, Text, xp+15 y+5 w%txtWid%, Default shortcut: {Ctrl + CapsLock}. Type through KeyPress and send text on {Enter}. This ensures full support for dead keys and full predictability. In other words, what you see is what you typed - once you sent it to the host app. However, in Windows 7 or below, the keyboard layout of the host app might not match with the one of the OSD.
-       Gui, Add, Checkbox, y+7 gVerifyTypeOptions Checked%pasteOnClick% vpasteOnClick, Paste on click what you typed
     } Else
     {
        Gui, Add, Checkbox, y+12 gVerifyTypeOptions Checked%alternateTypingMode% valternateTypingMode, Enable global keyboard shortcut to enter in alternate typing mode
        Gui, Add, Text, xp+15 y+5 w%txtWid%, Type through KeyPress OSD and send text on {Enter}. Full support for dead keys and predictable results.
-       Gui, Add, Checkbox, y+7 gVerifyTypeOptions Checked%pasteOnClick% vpasteOnClick, Paste on click what you typed
     }
+    Gui, Add, Checkbox, y+7 gVerifyTypeOptions Checked%pasteOnClick% vpasteOnClick, Paste on click what you typed
     Gui, Add, Checkbox, y+7 gVerifyTypeOptions Checked%sendKeysRealTime% vsendKeysRealTime, Send keystrokes in realtime to the host app
-    If (showHelp=1)
-       Gui, Add, Text, xp+15 y+5 w%txtWid%, This does not work with all appllications.
+    Gui, Add, Text, xp+15 y+5 w%txtWid%, This does not work with all appllications.
 
     Gui, Tab, 3  ; behavior
     Gui, Add, Checkbox, x+15 y+15 gVerifyTypeOptions Checked%enableTypingHistory% venableTypingHistory, Typed text history (with {Page Up} / {Page Down})
     Gui, Add, Checkbox, y+7 gVerifyTypeOptions Checked%pgUDasHE% vpgUDasHE, {Page Up} / {Page Down} should behave as {Home} / {End}
-    Gui, Add, Checkbox, y+7 gVerifyTypeOptions Checked%UpDownAsHE% vUpDownAsHE, {Up} / {Down} arrow keys should behave as {Home} / {End}
+    Gui, Add, Checkbox, y+7 Section gVerifyTypeOptions Checked%UpDownAsHE% vUpDownAsHE, {Up} / {Down} arrow keys should behave as {Home} / {End}
     Gui, Add, Checkbox, xp+15 y+7 gVerifyTypeOptions Checked%UpDownAsLR% vUpDownAsLR, ... or as the {Left} / {Right} keys
+    Gui, Add, Checkbox, xp-15 y+12 gVerifyTypeOptions Checked%pasteOSDcontent% vpasteOSDcontent, Enable global shortcuts to paste the OSD content into the active text area
     If (showHelp=1)
-       Gui, Add, Checkbox, xp-15 y+12 w%txtWid% gVerifyTypeOptions Checked%pasteOSDcontent% vpasteOSDcontent, Enable global shortcuts to paste the OSD content into the active text area. The default global keyboard shortcuts are {Ctrl + Shift + Insert} and {Ctrl + Alt + Insert}.
-    else
-       Gui, Add, Checkbox, xp-15 y+12 gVerifyTypeOptions Checked%pasteOSDcontent% vpasteOSDcontent, Enable global shortcuts to paste the OSD content into the active text area
-    Gui, Add, Checkbox, y+7 gVerifyTypeOptions Checked%synchronizeMode% vsynchronizeMode, Synchronize using {Shift + Up} && {Shift + Home} key sequence
+       Gui, Add, Text, xp+15 y+5 w%txtWid%, The default keyboard shortcuts are {Ctrl + Shift + Insert} and {Ctrl + Alt + Insert}.
+    Gui, Add, Checkbox, xs+0 y+7 Section gVerifyTypeOptions Checked%synchronizeMode% vsynchronizeMode, Synchronize using {Shift + Up} && {Shift + Home} key sequence
     If (showHelp=1)
-    {
         Gui, Add, Text, xp+15 y+5 w%txtWid%, By default, {Ctrl + A}, select all, is used to capture the text from the host app. The default global keyboard shortcuts to synchronize are: {Winkey + Insert} and {Winkey + Alt + Insert}.
-        Gui, Add, Checkbox, xp-15 y+10 gVerifyTypeOptions Checked%enterErasesLine% venterErasesLine, In "only typing" mode, {Enter} and {Escape} erase text from KeyPress
-    } Else Gui, Add, Checkbox, y+10 gVerifyTypeOptions Checked%enterErasesLine% venterErasesLine, In "only typing" mode, {Enter} and {Escape} erase text from KeyPress
+    Gui, Add, Checkbox, xs+0 y+10 gVerifyTypeOptions Checked%enterErasesLine% venterErasesLine, In "only typing" mode, {Enter} and {Escape} erase text from KeyPress
 
-    Gui, Add, Checkbox, y+10 section gVerifyTypeOptions Checked%alternativeJumps% valternativeJumps, Alternative rules to jump between words with {Ctrl + Bksp / Del / Left / Right}
+    Gui, Add, Checkbox, y+10 Section gVerifyTypeOptions Checked%alternativeJumps% valternativeJumps, Alternative rules to jump between words with {Ctrl + Bksp / Del / Left / Right}
     If (showHelp=1)
     {
         Gui, Add, Text, xp+15 y+5, Please note, applications have inconsistent rules for this.
@@ -3927,6 +4017,10 @@ ShowTypeSettings() {
 
     Gui, Font, Bold
     Gui, Add, Text, xp-15 y+15, Keyboard layout status: %deadKstatus%
+    If (loadedLangz!=1)
+       Gui, Add, Text, y+8 w%txtWid%, WARNING: Language definitions file is missing. Support for dead keys is limited.
+    If !FileExist("keypress-files\keypress-keystrokes-helper.ahk")
+       Gui, Add, Text, y+8 w%txtWid%, WARNING: Some option(s) are disabled because files are missing.
     Gui, Font, Normal
     Gui, Add, Text, y+10 w%txtWid%, %CurrentKBD%.
     Gui, Tab
@@ -3953,7 +4047,7 @@ verifySettingsWindowSize() {
        IfMsgBox, Yes
        {
            ToggleLargeFonts()
-           SwitchPreferences()
+           SwitchPreferences(1)
        }
     }
 }
@@ -3969,17 +4063,25 @@ TypeOptionsShowHelp() {
     Global reopen := 0
 }
 
-SwitchPreferences() {
-    testPrefWind := CurrentPrefWindow
+SwitchPreferences(forceReopenSame:=0) {
+    testPrefWind := (forceReopenSame=1) ? "lol" : CurrentPrefWindow
     GuiControlGet, CurrentPrefWindow
-    if (testPrefWind=CurrentPrefWindow)
+    If (testPrefWind=CurrentPrefWindow)
        Return
-    If !FileExist("keypress-files\keypress-beeperz-functions.ahk") && (CurrentPrefWindow=3) || !FileExist("keypress-files\keypress-mouse-functions.ahk") && (CurrentPrefWindow=4)
+
+    If (NOahkH=1) && (CurrentPrefWindow=4) || (NOahkH=1) && (CurrentPrefWindow=3)
+    {
+      ShowLongMsg("ERROR: AHK_L detected. Features unavailable.")
+      SoundBeep, 300, 900
+      SetTimer, HideGUI, % -DisplayTime
+      Return
+    }
+
+    If !FileExist("keypress-files\keypress-beeperz-functions.ahk") && (CurrentPrefWindow=3) || !FileExist("keypress-files\keypress-mouse-functions.ahk") && (CurrentPrefWindow=4) || (NOahkH=1) && (CurrentPrefWindow=4) || (NOahkH=1) && (CurrentPrefWindow=3)
     {
       ShowLongMsg("ERROR: Missing files...")
       SoundBeep, 300, 900
-      Sleep, 500
-      HideGUI()
+      SetTimer, HideGUI, % -DisplayTime
       Return
     }
     GuiControlGet, ApplySettingsBTN, Enabled
@@ -4063,6 +4165,7 @@ VerifyTypeOptions(enableApply:=1) {
        GuiControl, Disable, enterErasesLine
        GuiControl, Disable, AltHook2keysUser
        GuiControl, Disable, MediateNavKeys
+       GuiControl, Disable, EnforceSluggishSynch
        GuiControl, Disable, editF1
        GuiControl, Disable, editF2
     } Else
@@ -4084,6 +4187,7 @@ VerifyTypeOptions(enableApply:=1) {
        GuiControl, Enable, MediateNavKeys
        GuiControl, Enable, AltHook2keysUser
        GuiControl, Enable, UpDownAsLR
+       GuiControl, Enable, EnforceSluggishSynch
        GuiControl, Enable, editF1
        GuiControl, Enable, editF2
     }
@@ -4106,6 +4210,7 @@ VerifyTypeOptions(enableApply:=1) {
        GuiControl, Disable, enterErasesLine
        GuiControl, Disable, AltHook2keysUser
        GuiControl, Disable, MediateNavKeys
+       GuiControl, Disable, EnforceSluggishSynch
        GuiControl, Disable, editF1
        GuiControl, Disable, editF2
     } Else if (ShowSingleKey!=0)
@@ -4126,14 +4231,9 @@ VerifyTypeOptions(enableApply:=1) {
        GuiControl, Enable, UpDownAsHE
        GuiControl, Enable, UpDownAsLR
        GuiControl, Enable, AltHook2keysUser
+       GuiControl, Enable, EnforceSluggishSynch
        GuiControl, Enable, editF1
        GuiControl, Enable, editF2
-    }
-
-    If ((ForceKBD=0) && (AutoDetectKBD=0))
-    {
-       GuiControl, Disable, enableAltGr
-       GuiControl, Disable, ShowDeadKeys
     }
 
     If (OnlyTypingMode=0)
@@ -4148,7 +4248,6 @@ VerifyTypeOptions(enableApply:=1) {
        GuiControl, Disable, ShowDeadKeys
 
     GuiControl, % (DoNotBindDeadKeys=1 ? "Enable" : "Disable"), DoNotBindAltGrDeadKeys
-
     If (UpDownAsHE=1)
        GuiControl, , UpDownAsLR, 0
 
@@ -4174,6 +4273,13 @@ VerifyTypeOptions(enableApply:=1) {
        GuiControl, Disable, MediateNavKeys
        GuiControl, Disable, enableTypingHistory
        GuiControl, Enable, pgUDasHE
+    }
+
+    If !FileExist("keypress-files\keypress-keystrokes-helper.ahk") || (NOahkH=1)
+    {
+       GuiControl, Disable, AltHook2keysUser
+       GuiControl, , AltHook2keysUser, 0
+       GuiControl, Enable, ShowDeadKeys
     }
 }
 
@@ -4213,10 +4319,12 @@ ShowShortCutsSettings() {
     Gui, Add, Text, x+5, Toggle never display OSD
     Gui, Add, Edit, xs+0 y+10 w75 gVerifyShortcutOptions r1 limit20 -multi -wantReturn -wantTab -wrap vKBDTglPosition, %KBDTglPosition%
     Gui, Add, Text, x+5, Toggle OSD positions (A / B)
-    Gui, Add, Edit, xs+0 y+10 w75 gVerifyShortcutOptions r1 limit20 -multi -wantReturn -wantTab -wrap vKBDTglCap2Text, %KBDTglCap2Text%
-    Gui, Add, Text, x+5, Toggle Capture2Text
+    Gui, Add, Edit, xs+0 y+10 w75 gVerifyShortcutOptions r1 limit20 -multi -wantReturn -wantTab -wrap vKBDTglSilence, %KBDTglSilence%
+    Gui, Add, Text, x+5, Toggle silent mode
     Gui, Add, Edit, xs+0 y+10 w75 gVerifyShortcutOptions r1 limit20 -multi -wantReturn -wantTab -wrap vKBDidLangNow, %KBDidLangNow%
     Gui, Add, Text, x+5, Detect keyboard layout
+    Gui, Add, Edit, xs+0 y+10 w75 gVerifyShortcutOptions r1 limit20 -multi -wantReturn -wantTab -wrap vKBDCapText, %KBDCapText%
+    Gui, Add, Text, x+5, Capture text underneath the mouse
     Gui, Add, Edit, xs+0 y+10 w75 gVerifyShortcutOptions r1 limit20 -multi -wantReturn -wantTab -wrap vKBDReload, %KBDReload%
     Gui, Add, Text, x+5, Restart / reload KeyPress OSD
     Gui, Add, Edit, xs+0 y+10 w75 gVerifyShortcutOptions r1 limit20 -multi -wantReturn -wantTab -wrap vKBDsuspend, %KBDsuspend%
@@ -4255,7 +4363,8 @@ VerifyShortcutOptions(enableApply:=1) {
     {
        GuiControl, Disable, KBDsynchApp1
        GuiControl, Disable, KBDsynchApp2
-       GuiControl, Disable, KBDTglCap2Text
+       GuiControl, Disable, KBDCapText
+       GuiControl, Disable, KBDTglSilence
        GuiControl, Disable, KBDTglForceLang
        GuiControl, Disable, KBDTglNeverOSD
        GuiControl, Disable, KBDTglPosition
@@ -4268,7 +4377,8 @@ VerifyShortcutOptions(enableApply:=1) {
           GuiControl, Enable, KBDsynchApp1
           GuiControl, Enable, KBDsynchApp2
        }
-       GuiControl, Enable, KBDTglCap2Text
+       GuiControl, Enable, KBDCapText
+       GuiControl, Enable, KBDTglSilence
        GuiControl, Enable, KBDTglForceLang
        GuiControl, Enable, KBDTglNeverOSD
        GuiControl, Enable, KBDTglPosition
@@ -4400,6 +4510,8 @@ ShowKBDsettings() {
         If (doNotOpen=1)
            Return
     }
+    Attempt2DownLang := 1
+    IniWrite, %Attempt2DownLang%, %IniFile%, TempSettings, Attempt2DownLang
     Global CurrentPrefWindow := 1
     Global EditF22
     txtWid := 250
@@ -4422,8 +4534,8 @@ ShowKBDsettings() {
     Gui, Add, Edit, xp+20 y+5 gVerifyKeybdOptions w180 r1 -multi -wantReturn -wantTab -wrap vIgnorekeysList, %IgnorekeysList%
     Gui, font, bold
     Gui, Add, Text, xp-20 y+7 w%txtWid%, Status: %CurrentKBD%
-    If !FileExist("keypress-files\keypress-osd-languages.ini")
-       Gui, Add, Text, y+7 w%txtWid%, WARNING: Languages definitions file is missing. Support for dead keys is limited. Otherwise, everything should be fine.
+    If (loadedLangz!=1)
+       Gui, Add, Text, y+7 w%txtWid%, WARNING: Language definitions file is missing. Support for dead keys is limited. Otherwise, everything should be fine.
     Gui, font, normal
 
     Gui, Tab, 2 ; behavior
@@ -4545,10 +4657,9 @@ VerifyKeybdOptions(enableApply:=1) {
         GuiControl, Disable, DifferModifiers
     }
 
-    If !FileExist("keypress-files\keypress-osd-languages.ini")
+    If (loadedLangz!=1)
     {
-       GuiControl, Disable, AutoDetectKBD
-       GuiControl, , AutoDetectKBD, 0
+       GuiControl, Disable, ForceKBD
        GuiControl, , ForceKBD, 0
     }
 }
@@ -4590,6 +4701,8 @@ ShowMouseSettings() {
     Gui, Add, UpDown, vMouseRippleMaxSize gVerifyMouseOptions Range90-400, %MouseRippleMaxSize%
     Gui, Add, Edit, x+5 w55 r1 limit2 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF9, %MouseRippleThickness%
     Gui, Add, UpDown, vMouseRippleThickness gVerifyMouseOptions Range5-50, %MouseRippleThickness%
+    If !FileExist("keypress-files\keypress-beeperz-functions.ahk") || !FileExist("keypress-files\keypress-mouse-ripples-functions.ahk")
+       Gui, Add, Text, x+5, Some option(s) are disabled because files are missing.
 
     Gui, Tab, 2 ; location
     Gui, Add, Checkbox, gVerifyMouseOptions section x+15 y+15 Checked%ShowMouseHalo% vShowMouseHalo, Mouse halo / highlight
@@ -4728,6 +4841,12 @@ VerifyMouseOptions(enableApply:=1) {
        GuiControl, Enable, editF8
        GuiControl, Enable, editF9
     }
+
+    If !FileExist("keypress-files\keypress-beeperz-functions.ahk")
+       GuiControl, Disable, MouseBeeper
+
+    If !FileExist("keypress-files\keypress-mouse-ripples-functions.ahk")
+       GuiControl, Disable, MouseClickRipples
 }
 
 UpdateFntNow() {
@@ -5090,11 +5209,12 @@ downLangFile() {
      langyFile := "keypress-files\" langyFileName
      langyFileURL := baseURL langyFileName
      IniRead, ReloadCounter, %IniFile%, TempSettings, ReloadCounter, 0
+     IniRead, Attempt2DownLang, %IniFile%, TempSettings, Attempt2DownLang, 0
 
      If (!FileExist(langyFile) || (ForceDownloadExternalFiles=1))
      {
          UrlDownloadToFile, %langyFileURL%, %langyFile%
-         Sleep, 5000
+         Sleep, 4000
      }
 
      If FileExist(langyFile)
@@ -5106,36 +5226,26 @@ downLangFile() {
              If InStr(contents, "// KeyPress OSD - language definitions")
              {
                 langFileDownloaded := 1
+                ShowLongMsg("File succesfully downloaded.")
                 Sleep, 300
              } Else
              {
                 langFileDownloaded := 0
-                SoundBeep
                 FileDelete, %langyFile%
-                MsgBox, Incorrect contents for the downloaded file: %langyFile%. File deleted. Automatic keyboard detection is now disabled.
              }
          }
-     } Else 
-     {
-         langFileDownloaded := 0
-         SoundBeep
-         MsgBox, Missing file: %langyFile%. The attempt to download it seems to have failed. Automatic keyboard detection is now disabled.
-     }
+     } Else (langFileDownloaded := 0)
 
      If (langFileDownloaded!=1)
      {
         ForceKBD := 0
-        AutoDetectKBD := 0
-        IniWrite, %AutoDetectKBD%, %IniFile%, SavedSettings, AutoDetectKBD
         IniWrite, %ForceKBD%, %IniFile%, SavedSettings, ForceKBD
-        Sleep, 200
-        If (ReloadCounter<3)
-        {
-           ReloadCounter := ReloadCounter+1
-           IniWrite, %ReloadCounter%, %IniFile%, TempSettings, ReloadCounter
-           ReloadScript()
-        }
+        ShowLongMsg("Download of language definitions file FAILED.")
+        Sleep, 600
+        HideGUI()
      }
+     Attempt2DownLang := Attempt2DownLang+1
+     IniWrite, %Attempt2DownLang%, %IniFile%, TempSettings, Attempt2DownLang
 
      If (langFileDownloaded=1) && (ReloadCounter<3)
      {
@@ -5262,7 +5372,7 @@ updateNow() {
 
      If (completeFailure=1)
      {
-        MsgBox, 4, Error, Unable to download any file. Server is offline or no Internet connection. Do you want to try again?
+        MsgBox, 4, Error, Unable to download any file. `n Server is offline or no Internet connection. `n`nDo you want to try again?
         IfMsgBox, Yes
            updateNow()
      }
@@ -5275,7 +5385,7 @@ updateNow() {
 
      If (completeSucces=1)
      {
-        MsgBox, Update seems to be succesful. No errors detected. The script will now reload.
+        MsgBox, Update seems to be succesful. No errors detected. `nThe script will now reload.
         verifyNonCrucialFilesRan := 1
         IniWrite, %verifyNonCrucialFilesRan%, %inifile%, TempSettings, verifyNonCrucialFilesRan
         If A_IsCompiled && (ahkDownloaded=1)
@@ -5287,7 +5397,7 @@ updateNow() {
 
      If (someErrors=1)
      {
-        MsgBox, Errors occured during the update. The script will now reload.
+        MsgBox, Errors occured during the update. `nThe script will now reload.
         verifyNonCrucialFilesRan := 1
         IniWrite, %verifyNonCrucialFilesRan%, %inifile%, TempSettings, verifyNonCrucialFilesRan
         If A_IsCompiled && (ahkDownloaded=1)
@@ -5341,7 +5451,8 @@ verifyNonCrucialFiles() {
     FilePack := "beepersFile,ripplesFile,mouseFile,historyFile,faqHtml,presentationHtml,shortcutsHtml,featuresHtml"
 
     IniRead, ScriptelSuspendel, %inifile%, TempSettings, ScriptelSuspendel, %ScriptelSuspendel%
-    If (ScriptelSuspendel!=1) {
+    If (ScriptelSuspendel!=1)
+    {
        GetTextExtentPoint("Initializing", FontName, FontSize, 1)
        Sleep, 50
        ShowLongMsg("Initializing...")
@@ -5372,10 +5483,10 @@ verifyNonCrucialFiles() {
       IniWrite, %verifyNonCrucialFilesRan%, %inifile%, TempSettings, verifyNonCrucialFilesRan
     }
 
-    If (downloadPackNow=1) && (verifyNonCrucialFilesRan>3)
+    If (downloadPackNow=1) && (verifyNonCrucialFilesRan>2)
        Return
 
-    If (downloadPackNow=1) && (verifyNonCrucialFilesRan<4)
+    If (downloadPackNow=1) && (verifyNonCrucialFilesRan<3)
     {
        verifyNonCrucialFilesRan := verifyNonCrucialFilesRan+1
        IniWrite, %verifyNonCrucialFilesRan%, %inifile%, TempSettings, verifyNonCrucialFilesRan
@@ -5597,10 +5708,11 @@ ShaveSettings() {
   IniWrite, %KBDpasteOSDcnt2%, %inifile%, SavedSettings, KBDpasteOSDcnt2
   IniWrite, %KBDsynchApp1%, %inifile%, SavedSettings, KBDsynchApp1
   IniWrite, %KBDsynchApp2%, %inifile%, SavedSettings, KBDsynchApp2
-  IniWrite, %KBDTglCap2Text%, %inifile%, SavedSettings, KBDTglCap2Text
+  IniWrite, %KBDCapText%, %inifile%, SavedSettings, KBDCapText
   IniWrite, %KBDsuspend%, %inifile%, SavedSettings, KBDsuspend
   IniWrite, %KBDTglForceLang%, %inifile%, SavedSettings, KBDTglForceLang
   IniWrite, %KBDTglNeverOSD%, %inifile%, SavedSettings, KBDTglNeverOSD
+  IniWrite, %KBDTglSilence%, %inifile%, SavedSettings, KBDTglSilence
   IniWrite, %KBDTglPosition%, %inifile%, SavedSettings, KBDTglPosition
   IniWrite, %KBDidLangNow%, %inifile%, SavedSettings, KBDidLangNow
   IniWrite, %KBDReload%, %inifile%, SavedSettings, KBDReload
@@ -5609,6 +5721,7 @@ ShaveSettings() {
   IniWrite, %mouseOSDbehavior%, %inifile%, SavedSettings, mouseOSDbehavior
   IniWrite, %prefsLargeFonts%, %IniFile%, SavedSettings, prefsLargeFonts
   IniWrite, %OSDshowLEDs%, %IniFile%, SavedSettings, OSDshowLEDs
+  IniWrite, %EnforceSluggishSynch%, %IniFile%, SavedSettings, EnforceSluggishSynch
 }
 
 LoadSettings() {
@@ -5713,10 +5826,11 @@ LoadSettings() {
   IniRead, KBDpasteOSDcnt2, %inifile%, SavedSettings, KBDpasteOSDcnt2, %KBDpasteOSDcnt2%
   IniRead, KBDsynchApp1, %inifile%, SavedSettings, KBDsynchApp1, %KBDsynchApp1%
   IniRead, KBDsynchApp2, %inifile%, SavedSettings, KBDsynchApp2, %KBDsynchApp2%
-  IniRead, KBDTglCap2Text, %inifile%, SavedSettings, KBDTglCap2Text, %KBDTglCap2Text%
+  IniRead, KBDCapText, %inifile%, SavedSettings, KBDCapText, %KBDCapText%
   IniRead, KBDsuspend, %inifile%, SavedSettings, KBDsuspend, %KBDsuspend%
   IniRead, KBDTglForceLang, %inifile%, SavedSettings, KBDTglForceLang, %KBDTglForceLang%
   IniRead, KBDTglNeverOSD, %inifile%, SavedSettings, KBDTglNeverOSD, %KBDTglNeverOSD%
+  IniRead, KBDTglSilence, %inifile%, SavedSettings, KBDTglSilence, %KBDTglSilence%
   IniRead, KBDTglPosition, %inifile%, SavedSettings, KBDTglPosition, %KBDTglPosition%
   IniRead, KBDidLangNow, %inifile%, SavedSettings, KBDidLangNow, %KBDidLangNow%
   IniRead, KBDReload, %inifile%, SavedSettings, KBDReload, %KBDReload%
@@ -5725,6 +5839,7 @@ LoadSettings() {
   IniRead, mouseOSDbehavior, %inifile%, SavedSettings, mouseOSDbehavior, %mouseOSDbehavior%
   IniRead, prefsLargeFonts, %inifile%, SavedSettings, prefsLargeFonts, %prefsLargeFonts%
   IniRead, OSDshowLEDs, %inifile%, SavedSettings, OSDshowLEDs, %OSDshowLEDs%
+  IniRead, EnforceSluggishSynch, %inifile%, SavedSettings, EnforceSluggishSynch, %EnforceSluggishSynch%
 
   CheckSettings()
   GuiX := (GUIposition=1) ? GuiXa : GuiXb
@@ -5798,6 +5913,7 @@ CheckSettings() {
     MediateNavKeys := (MediateNavKeys=0 || MediateNavKeys=1) ? MediateNavKeys : 0
     prefsLargeFonts := (prefsLargeFonts=0 || prefsLargeFonts=1) ? prefsLargeFonts : 0
     OSDshowLEDs := (OSDshowLEDs=0 || OSDshowLEDs=1) ? OSDshowLEDs : 1
+    EnforceSluggishSynch := (EnforceSluggishSynch=0 || EnforceSluggishSynch=1) ? EnforceSluggishSynch : 0
 
     If (mouseOSDbehavior=1)
     {
@@ -5827,6 +5943,7 @@ CheckSettings() {
        OnlyTypingMode := 0
        MediateNavKeys := 0
        sendJumpKeys := 0
+       EnforceSluggishSynch := 0
     }
 
     If (OnlyTypingMode=1) && (enterErasesLine=0)
@@ -5844,6 +5961,9 @@ CheckSettings() {
 
     If (ForceKBD=1) || (AutoDetectKBD=0)
        ConstantAutoDetect := 0
+
+    If !FileExist("keypress-files\keypress-keystrokes-helper.ahk") || (NOahkH=1)
+       AltHook2keysUser := 0
 
 ; verify If numeric values, otherwise, defaults
   If ClickScaleUser is not digit
@@ -6633,20 +6753,31 @@ st_overwrite(overwrite, into, pos=1) {
 }
 ;============================================================ String Things by tidbit
 
-dummy() {
-    MsgBox, This feature is not yet available. :-)
-}
-
 Cleanup() {
     OnMessage(0x4a, "")
     OnMessage(0x200, "")
     OnMessage(0x102, "")
     OnMessage(0x103, "")
     Fnt_DeleteFont(hFont)
-    mouseFonctiones.ahkTerminate[], ahkThread_Free(mouseFonctiones), mouseFonctiones := ""
-    beeperzDefunctions.ahkTerminate[], ahkThread_Free(beeperzDefunctions), beeperzDefunctions := ""
-    mouseRipplesThread.ahkTerminate[], ahkThread_Free(mouseRipplesThread), mouseRipplesThread := ""
-    keyStrokesThread.ahkTerminate[], ahkThread_Free(keyStrokesThread), keyStrokesThread := ""
+    func2exec := "ahkThread_Free"
+    If (NOahkH!=1)
+    {
+        mouseFonctiones.ahkTerminate[]
+        %func2exec%(mouseFonctiones)
+        mouseFonctiones := ""
+
+        beeperzDefunctions.ahkTerminate[]
+        %func2exec%(beeperzDefunctions)
+        beeperzDefunctions := ""
+        
+        mouseRipplesThread.ahkTerminate[]
+        %func2exec%(mouseRipplesThread)
+        mouseRipplesThread := ""
+        
+        keyStrokesThread.ahkTerminate[]
+        %func2exec%(keyStrokesThread)
+        keyStrokesThread := ""
+    }
 }
 
 #SPACE::
@@ -6666,4 +6797,10 @@ SettingsGUIAGuiClose:
       Gui, SettingsGUIA: Destroy
 Return
 
+dummy() {
+    MsgBox, This feature is not yet available. :-)
+    ahkThread_Free(deleteME)   ; comment this line to execute this script with AHK_L
+}
+
 #Include *i %A_Scriptdir%\keypress-files\keypress-acc-viewer-functions.ahk
+#Include *i %A_Scriptdir%\keypress-files\UIA_Interface.ahk

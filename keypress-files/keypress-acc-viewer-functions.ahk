@@ -1,5 +1,3 @@
-#Include *i %A_Scriptdir%\keypress-files\UIA_Interface.ahk
-
 ; Accessible Info Viewer
 ; by Sean and jethrow
 ; http://www.autohotkey.com/board/topic/77888-accessible-info-viewer-alpha-release-2012-09-20/
@@ -49,9 +47,8 @@ UpdateAccInfo(Acc, ChildId, Obj_Path="") {
   if (AccViewName=CtrlTextVar) || (AccViewValue=CtrlTextVar)
      CtrlTextVar := ""
 
-  otherDetails := Acc_GetRoleText(Acc.accRole(ChildId)) " | " Acc_GetStateText(Acc.accState(ChildId)) " | " Acc.accDefaultAction(ChildId) " | " Acc.accDescription(ChildId) " | " Acc.accHelp(ChildId)
+  otherDetails := Acc_GetRoleText(Acc.accRole(ChildId)) " " Acc_GetStateText(Acc.accState(ChildId)) " " Acc.accDefaultAction(ChildId) " " Acc.accDescription(ChildId) " " Acc.accHelp(ChildId)
   NewInputMsg := AccViewName " " AccViewValue " " CtrlTextVar " " otherDetails
- ; NewInputMsg := NewCtrlTextVar "||" controla2 "||" WinGetAll("Class")
   StringReplace, NewInputMsg, NewInputMsg, %A_TAB%, %A_SPACE%, All
   StringReplace, NewInputMsg, NewInputMsg, %A_SPACE%%A_SPACE%, %A_SPACE%, All
   if (NewInputMsg!=InputMsg)
