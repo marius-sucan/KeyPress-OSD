@@ -2,6 +2,10 @@
 
 <p>This program is an On-Screen Display or a Heads-Up Display for keys. It displays every key or mouse button press at a clearly visible text size. I developed it for people like me, with poor eye sight or low vision. It is meant to aid desktop computer usage. It is especially useful while chatting or for occasional typing. The user no longer has to squint at the screen or zoom in the entire screen to see what s/he wrote for every text field.</p>
 
+<p>
+  <iframe width="560" height="315" src="https://www.youtube.com/embed/_prbTMoUWug?rel=0" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+</p>
+
 <p>Numerous options and settings are available in the different Preferences windows provided in the program, such that everyone can find a way to adapt it to personal needs.</p>
 
 <p>This application has support only for Cyrillic and Latin-based keyboards. I did not test or developed it having in mind support for Chinese, Arabic or Japanese scripts.</p>
