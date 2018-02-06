@@ -9,21 +9,13 @@
 ; Script written for AHK_H / AHK_L v1.1.27 Unicode.
 ;--------------------------------------------------------------------------------------------------------------------------
 ;
-; Keyboard language definitions file:
-;   keypress-osd-languages.ini
-;   http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-languages.ini
-;   File must be placed in the keypress-files folder by the script.
-;   It adds support for dead keys for around 110 keyboard layouts covering about 55 languages.;
-;
 ; Change log file:
 ;   keypress-osd-changelog.txt
 ;   http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-changelog.txt
-;
-;
 /*
 <p>How it works:</p>
 <p>When the script initializes, it goes through all the Virtual Key codes and tests with ToUnicodeEx() and GetKeyName() if there is something to bind to (a key name). </p>
-<p>In the language file, I made list of VKs for dead keys, for around 70 keyboard layouts. I made it to bind distinctively to this type of keys. At initialization, the script generates a list of dead key names that later, is used to display the appropriate symbol. One cannot use ToUnicodeEx() each time such a key is pressed, to display their name/symbol, because they no longer function properly in host apps.</p>
+<p>At init, it also identifies dead keys and makes a list of them and their names. These lists, for each installed layout, are saved in an INI file, a language file. They are used to bind to dead keys in a disctintive manner and to display their symbols. One cannot use ToUnicodeEx() each time such a key is pressed, because they no longer function properly in host apps.</p>
 
 <p>The main typing mode hooks to each key using the Hotkey command from AHK, by Virtual Key (vk) and different modifiers. For the Shift and AltGr key combinations, the script binds distinctively, because it must be able to catch these keys orderly and always be able to determine what key name to display using ToUnicodeEx(). If it would bind simply with the (*) wildcard, dead keys cease to function and on slow systems, modifiers detection becomes unreliable. By binding specifically to each modifier and key, based on the prefixes from the built-in variable %A_THISHOTKEY%, it can always determine what to display.</p>
 
@@ -177,13 +169,13 @@
  , TextZoomer            := 0
  , UseINIfile            := 1
  , IniFile               := "keypress-osd.ini"
- , version               := "4.18.3"
- , releaseDate := "2018 / 02 / 04"
+ , version               := "4.19.1"
+ , releaseDate := "2018 / 02 / 06"
 
 ; Initialization variables. Altering these may lead to undesired results.
 
     checkIfRunning()
-    Sleep, 50
+    Sleep, 25
     IniRead, firstRun, %IniFile%, SavedSettings, firstRun, 1
     If (firstRun=0) && (UseINIfile=1)
     {
@@ -217,6 +209,7 @@ Global typed := "" ; hack used to determine If user is writing
  , externalKeyStrokeReceived := ""    ; for alternative hooks
  , visibleTextField := ""
  , text_width := 60
+ , langfile := "keypress-osd-languages.ini"
  , CaretPos := "1"
  , SecondaryTypingMode := 0
  , maxTextChars := "4"
@@ -260,7 +253,7 @@ Global typed := "" ; hack used to determine If user is writing
 
 CreateOSDGUI()
 verifyNonCrucialFiles()
-Sleep, 250
+Sleep, 25
 CreateGlobalShortcuts()
 CreateHotkey()
 CheckInstalledLangs()
@@ -281,7 +274,7 @@ Return
 
 initAHKhThreads() {
     func2exec := "ahkThread"
-    If StrLen(A_GlobalStruct)>3 
+    If StrLen(A_GlobalStruct)>3
     {
         If ((VisualMouseClicks=1) || (FlashIdleMouse=1) || (ShowMouseHalo=1) || (hostCaretHighlight=1))
            Global mouseFonctiones := %func2exec%(" #Include *i keypress-files\keypress-mouse-functions.ahk ")
@@ -2081,7 +2074,7 @@ OnMudPressed() {
 
    If ((StrLen(typed)>1) && (OSDvisible=1) && (A_TickCount-lastTypedSince < 4000)) || (ShowSingleKey = 0) || ((A_TickCount-tickcount_start > 1800) && (OSDvisible=1) && !typed && keycount>7) || (OnlyTypingMode=1)
    {
-      Sleep, 0
+      Sleep, 1
    } Else
    {
       If (ShowSingleModifierKey=1)
@@ -2317,7 +2310,7 @@ CreateHotkey() {
 
     Static mods_noShift := ["!", "!#", "!#^", "!#^+", "!+", "!+^", "^!", "#", "#!", "#!+", "#!^", "#+^", "#^", "+#", "+^", "^"]
     Static mods_list := ["!", "!#", "!#^", "!#^+", "!+", "#", "#!", "#!+", "#!^", "#+^", "#^", "+#", "+^", "^"]
-    Static megaDeadKeysList := DKaltGR_list "." DKshift_list "." DKnotShifted_list
+    megaDeadKeysList := DKaltGR_list "." DKshift_list "." DKnotShifted_list
 
 ; bind keys relevant to the typing mode
     If (DisableTypingMode=0)
@@ -2530,44 +2523,6 @@ CreateHotkey() {
             }
         }
     }  ; dead keys parser
-
-; get dead key symbols
-
-    If (DeadKeys=1) && (DoNotBindDeadKeys=0)
-    {
-       Loop, Parse, DKnotShifted_list, .
-       {
-               backupSymbol := SubStr(A_LoopField, InStr(A_LoopField, "vk")+2, 2)
-               vk := "0x0" SubStr(A_LoopField, InStr(A_LoopField, "vk", 0, 0)+2)
-               sc := "0x0" GetKeySc("vk" vk)
-               If toUnicodeExtended(vk, sc)
-               {
-                  SCnames2 .= toUnicodeExtended(vk, sc) "~" A_LoopField
-               } Else if GetKeyName("vk" backupSymbol)
-               {
-                  SCnames2 .= GetKeyName("vk" backupSymbol) "~" A_LoopField
-               }
-       }
-
-       Loop, Parse, DKShift_list, .
-       {
-               vk := "0x0" SubStr(A_LoopField, InStr(A_LoopField, "vk", 0, 0)+2)
-               sc := "0x0" GetKeySc("vk" vk)
-               If toUnicodeExtended(vk, sc, 1)
-                  SCnames2 .= toUnicodeExtended(vk, sc, 1) "~+" A_LoopField
-       }
-       Loop, Parse, DKaltGR_list, .
-       {
-               vk := "0x0" SubStr(A_LoopField, InStr(A_LoopField, "vk", 0, 0)+2)
-               sc := "0x0" GetKeySc("vk" vk)
-               If toUnicodeExtended(vk, sc, 0, 1)
-               {
-                  SCnames2 .= toUnicodeExtended(vk, sc, 0, 1) "~^!" A_LoopField
-                  SCnames2 .= toUnicodeExtended(vk, sc, 0, 1) "~+^!" A_LoopField
-                  SCnames2 .= toUnicodeExtended(vk, sc, 0, 1) "~<^>!" A_LoopField
-               }
-       }
-    }
 
     If (OnlyTypingMode!=1)
     {
@@ -2782,7 +2737,7 @@ GetKeyStr() {
 
     modifiers_temp := 0
     Static FriendlyKeyNames := {NumpadDot:"[ . ]", NumpadDiv:"[ / ]", NumpadMult:"[ * ]", NumpadAdd:"[ + ]", NumpadSub:"[ - ]", numpad0:"[ 0 ]", numpad1:"[ 1 ]", numpad2:"[ 2 ]", numpad3:"[ 3 ]", numpad4:"[ 4 ]", numpad5:"[ 5 ]", numpad6:"[ 6 ]", numpad7:"[ 7 ]", numpad8:"[ 8 ]", numpad9:"[ 9 ]", NumpadEnter:"[Enter]", NumpadDel:"[Delete]", NumpadIns:"[Insert]", NumpadHome:"[Home]", NumpadEnd:"[End]", NumpadUp:"[Up]", NumpadDown:"[Down]", NumpadPgdn:"[Page Down]", NumpadPgup:"[Page Up]", NumpadLeft:"[Left]", NumpadRight:"[Right]", NumpadClear:"[Clear]", Media_Play_Pause:"Media_Play/Pause", MButton:"Middle Click", RButton:"Right Click", Del:"Delete", PgUp:"Page Up", PgDn:"Page Down"}
-    for i, mod in MainModsList
+    For i, mod in MainModsList
     {
         If GetKeyState(mod)
            prefix .= mod "+"
@@ -3024,108 +2979,128 @@ GetKeyChar(Key) {
     Return StrGet(&char, n, "utf-16")
 }
 
-IdentifyKBDlayout() {
-  If (AutoDetectKBD=1) && (ForceKBD=0)
-    kbLayoutRaw := checkWindowKBD()
+GenerateDKnames() {
+     Loop, Parse, DKnotShifted_list, .
+     {
+           backupSymbol := SubStr(A_LoopField, InStr(A_LoopField, "vk")+2, 2)
+           vk := "0x0" SubStr(A_LoopField, InStr(A_LoopField, "vk", 0, 0)+2)
+           sc := "0x0" GetKeySc("vk" vk)
+           If toUnicodeExtended(vk, sc)
+           {
+              SCnames2 .= toUnicodeExtended(vk, sc) "~" A_LoopField
+           } Else if GetKeyName("vk" backupSymbol)
+           {
+              SCnames2 .= GetKeyName("vk" backupSymbol) "~" A_LoopField
+           }
+     }
 
-  If (ForceKBD=1)
-     kbLayoutRaw := (ForcedKBDlayout = 0) ? ForcedKBDlayout1 : ForcedKBDlayout2
+     Loop, Parse, DKShift_list, .
+     {
+           vk := "0x0" SubStr(A_LoopField, InStr(A_LoopField, "vk", 0, 0)+2)
+           sc := "0x0" GetKeySc("vk" vk)
+           If toUnicodeExtended(vk, sc, 1)
+              SCnames2 .= toUnicodeExtended(vk, sc, 1) "~+" A_LoopField
+     }
+     Loop, Parse, DKaltGR_list, .
+     {
+           vk := "0x0" SubStr(A_LoopField, InStr(A_LoopField, "vk", 0, 0)+2)
+           sc := "0x0" GetKeySc("vk" vk)
+           If toUnicodeExtended(vk, sc, 0, 1)
+           {
+              SCnames2 .= toUnicodeExtended(vk, sc, 0, 1) "~^!" A_LoopField
+              SCnames2 .= toUnicodeExtended(vk, sc, 0, 1) "~+^!" A_LoopField
+              SCnames2 .= toUnicodeExtended(vk, sc, 0, 1) "~<^>!" A_LoopField
+           }
+     }
+}
 
-  #Include *i %A_Scriptdir%\keypress-files\keypress-osd-languages.ini
-  IniRead, Attempt2DownLang, %IniFile%, TempSettings, Attempt2DownLang, 0
-
-  If (AutoDetectKBD=1) && (loadedLangz!=1) && !A_IsCompiled && (Attempt2DownLang<2)
-  {
-      If (audioAlerts=1) && (SilentMode=0)
-         SoundBeep
-      ShowLongMsg("Downloading language definitions file... Please wait.")
-      downLangFile()
-      SetTimer, HideGUI, % -DisplayTime*2
-  }
-
-  If A_IsCompiled && (loadedLangz!=1)
-  {
-      ReloadCounter := 1000
-      IniWrite, %ReloadCounter%, %IniFile%, TempSettings, ReloadCounter
-      ForceKBD := 0
-      If (audioAlerts=1) && (SilentMode=0)
-         SoundBeep
-      IniWrite, %ForceKBD%, %IniFile%, SavedSettings, ForceKBD
-  }
-
-  check_kbd_exact := StrLen(LangRaw_%kbLayoutRaw%)>2 ? 1 : 0
-  langFriendlySysName := GetLayoutDisplayName(kbLayoutRaw)
-  if (StrLen(langFriendlySysName)<2)
-     RegRead, langFriendlySysName, HKEY_LOCAL_MACHINE, SYSTEM\CurrentControlSet\Control\Keyboard Layouts\%langRealInstalled%, Layout Text
-  StringRight, kbLayoutRawShort, kbLayoutRaw, 5
-  If (check_kbd_exact=0) && (loadedLangz=1)
-  {
-      If (StrLen(langFriendlySysName)<2)
-      {
-         ShowLongMsg("Unrecognized layout: (" kbLayoutRaw ")")
-         CurrentKBD := kbLayoutRaw ". Layout unrecognized."
-      } Else
-      {
-         ShowLongMsg("Unsupported: " langFriendlySysName " (" kbLayoutRaw ")")
-         CurrentKBD := langFriendlySysName " ("  kbLayoutRaw "). Layout unsupported."
-      }
-      SetTimer, HideGUI, % -DisplayTime
-      SoundBeep, 500, 900
-  } Else if (check_kbd_exact=0) && (loadedLangz!=1)
-  {
-      CurrentKBD := "Auto-detected: " langFriendlySysName ". " kbLayoutRaw
-      If (SilentDetection=0)
-         ShowLongMsg("Layout detected: " langFriendlySysName)
-  }
-
-  If (DeadKeysPresent_%kbLayoutRaw%=1)
+tehDKcollector() {
+  IniRead, hasDKs, %langFile%, %kbLayoutRaw%, hasDKs
+  If (hasDKs=1)
   {
       DeadKeys := 1
-      If DKaltGR_%kbLayoutRaw%
-         DKaltGR_list := DKaltGR_%kbLayoutRaw%
-      If DKshift_%kbLayoutRaw%
-         DKshift_list := DKshift_%kbLayoutRaw%
-      If DKnotShifted_%kbLayoutRaw%
-         DKnotShifted_list := DKnotShifted_%kbLayoutRaw%
-  } Else if (check_kbd_exact=1)
-  {
-      AlternativeHook2keys := 0
-  }
-
-  If (check_kbd_exact=1) && (loadedLangz=1)
-  {
-      identifiedKbdName := LangRaw_%kbLayoutRaw%
-      CurrentKBD := "Auto-detected: " identifiedKbdName ". " kbLayoutRaw
-      If (ForceKBD=1)
-         CurrentKBD := "Enforced: " identifiedKbdName ". " kbLayoutRaw
-
-      If (SilentDetection=0)
+      loadedLangz := 1
+      IniRead, DKnotShifted_list, %langFile%, %kbLayoutRaw%, DK, %A_Space%
+      IniRead, DKshift_list, %langFile%, %kbLayoutRaw%, DKshift, %A_Space%
+      IniRead, DKaltGR_list, %langFile%, %kbLayoutRaw%, DKaltGr, %A_Space%
+      IniRead, DKshAltGr, %langFile%, %kbLayoutRaw%, DKshAltGr, %A_Space%
+      IniRead, SCnames2, %langFile%, %kbLayoutRaw%, DKnamez, %A_Space%
+      If (StrLen(DKshAltGr)>1)
+         DKaltGR_list := DKaltGR_list "." DKshAltGr
+      If (StrLen(SCnames2)<2)
       {
-          If (ForceKBD!=1)
-             ShowLongMsg("Layout detected: " identifiedKbdName)
-          else
-             ShowLongMsg("Enforced layout: " identifiedKbdName)
-          SetTimer, HideGUI, % -DisplayTime/2
+         GenerateDKnames()
+         IniWrite, %SCnames2%, %langFile%, %kbLayoutRaw%, DKnamez
       }
+  } Else if (hasDKs=0)
+  {
+      DeadKeys := 0
+      loadedLangz := 1
+      AlternativeHook2keys := 0
+  } Else if (hasDKs="ERROR")
+  {
+      loadedLangz := 0
+      troubledWaterz := 10
+  }
+  Return troubledWaterz
+}
+
+IdentifyKBDlayout() {
+  If (ForceKBD=0)
+    kbLayoutRaw := checkWindowKBD()
+  else
+    kbLayoutRaw := (ForcedKBDlayout = 0) ? ForcedKBDlayout1 : ForcedKBDlayout2
+
+  If !FileExist(langfile)
+  {
+      dbg := GetLayoutsInfo()
+      dbg := "[Options]`nloadedLangz=1`n`n" dbg
+      FileAppend, %dbg%, %langfile%, UTF-16
+      Sleep, 100
+  }
+  testLangExist := tehDKcollector()
+  If (testLangExist=10)
+  {
+      hkl := GetInputHKL()
+      Sleep, 300
+      dbg := GetLayoutInfo(kbLayoutRaw, hkl)
+      IniRead, loadedLangz, %langFile%, Options, loadedLangz
+      If (loadedLangz="ERROR")
+         dbg := "[Options]`nloadedLangz=1`n`n" dbg
+      FileAppend, %dbg%, %langfile%, UTF-16
+      Sleep, 100
+      tehDKcollector()
   }
 
-    If (AutoDetectKBD=1)
-    {
-       identifiedKbdName := (check_kbd_exact=0) ? "! " langFriendlySysName : LangRaw_%kbLayoutRaw%
-       StringLeft, clayout, identifiedKbdName, 25
-       Menu, Tray, Add, %clayout%, dummy
-       Menu, Tray, Disable, %clayout%
-       Menu, Tray, Add
-    }
+  langFriendlySysName := GetLayoutDisplayName(kbLayoutRaw)
+  If (StrLen(langFriendlySysName)<2)
+     RegRead, langFriendlySysName, HKEY_LOCAL_MACHINE, SYSTEM\CurrentControlSet\Control\Keyboard Layouts\%langRealInstalled%, Layout Text
 
-    If (ConstantAutoDetect=1) && (AutoDetectKBD=1) && (ForceKBD=0)
-       SetTimer, dummyDelayer, 5000, 915
+  CurrentKBD := "Auto-detected: " langFriendlySysName ". " kbLayoutRaw
+  If (ForceKBD=1)
+     CurrentKBD := "Enforced: " langFriendlySysName ". " kbLayoutRaw
+
+  If (SilentDetection=0)
+  {
+      If (ForceKBD!=1)
+         ShowLongMsg("Layout detected: " langFriendlySysName)
+      else
+         ShowLongMsg("Enforced layout: " langFriendlySysName)
+      SetTimer, HideGUI, % -DisplayTime/2
+  }
+
+  StringLeft, clayout, langFriendlySysName, 25
+  Menu, Tray, Add, %clayout%, dummy
+  Menu, Tray, Disable, %clayout%
+  Menu, Tray, Add
+
+  If (ConstantAutoDetect=1) && (AutoDetectKBD=1) && (ForceKBD=0)
+     SetTimer, dummyDelayer, 5000, 915
 }
 
 checkInstalledLangs() {
-  #IncludeAgain *i %A_Scriptdir%\keypress-files\keypress-osd-languages.ini
 
-  Loop, 30
+  Loop, 35
   {
     RegRead, langInstalled, HKEY_CURRENT_USER, Keyboard Layout\Preload, %A_Index%
     If (ErrorLevel=1)
@@ -3140,19 +3115,15 @@ checkInstalledLangs() {
     StringRight, ShortKBDcode, langRealInstalled, 5
     StringUpper, ShortKBDcode, ShortKBDcode
 
-    If (LangRaw_%langRealInstalled%)
-    {
-       niceMenuName := LangRaw_%langRealInstalled%
-       Menu, kbdList, add, %ShortKBDcode%: %niceMenuName%, ForceSpecificLanguage
-       If (langRealInstalled = kbLayoutRaw) && (AutoDetectKBD=1)
-          Menu, kbdList, Check, %ShortKBDcode%: %niceMenuName%
-    } Else if StrLen(langFriendlySysName)>1
+    if StrLen(langFriendlySysName)>1
     {
        niceMenuName := langFriendlySysName
        Menu, kbdList, add, %ShortKBDcode%: %niceMenuName%, dummy
-       Menu, kbdList, Disable, %ShortKBDcode%: %niceMenuName%
        If (langRealInstalled = kbLayoutRaw) && (AutoDetectKBD=1)
           Menu, kbdList, Check, %ShortKBDcode%: %niceMenuName%
+       IniRead, hasDKs, %langFile%, %langRealInstalled%, hasDKs
+       If (hasDKs!=1)
+          Menu, kbdList, Disable, %ShortKBDcode%: %niceMenuName%
     } Else if (langRealInstalled)
     {
        Menu, kbdList, add, %ShortKBDcode% unrecognized layout, dummy
@@ -3452,8 +3423,8 @@ SuspendScript() {        ; Shift+Pause/Break
       beeperzDefunctions.ahkReload[]
       mouseRipplesThread.ahkReload[]
    }
-   SetTimer, HideGUI, % -DisplayTime/6
-   Sleep, DisplayTime/6+15
+   SetTimer, HideGUI, % -DisplayTime/5
+   Sleep, 50
    Suspend
 }
 
@@ -3621,7 +3592,7 @@ ReloadScript(silent:=1) {
         If (silent!=1)
         {
            ShowLongMsg("Restarting...")
-           Sleep, 1100
+           Sleep, 600
         }
         prefOpen := 0
         IniWrite, %prefOpen%, %inifile%, TempSettings, prefOpen
@@ -3853,7 +3824,9 @@ DeleteSettings() {
     IfMsgBox, Yes
     {
        FileSetAttrib, -R, %IniFile%
+       FileSetAttrib, -R, %langfile%
        FileDelete, %IniFile%
+       FileDelete, %langfile%
        verifyNonCrucialFilesRan := 2
        IniWrite, %verifyNonCrucialFilesRan%, %inifile%, TempSettings, verifyNonCrucialFilesRan
        ReloadScriptNow()
@@ -3929,7 +3902,7 @@ ShowTypeSettings() {
         Global editF1, editF2, editF3
         Global showHelp := 0
     }
-    deadKstatus := (DeadKeys=1) ? "Dead keys present." : "."
+    deadKstatus := (DeadKeys=1) ? "Dead keys present." : "No dead keys detected."
     Global CurrentPrefWindow := 2
     txtWid := 350
     If (prefsLargeFonts=1)
@@ -5202,62 +5175,48 @@ changelog() {
      }
 }
 
-downLangFile() {
-
-     baseURL := "http://marius.sucan.ro/media/files/blog/ahk-scripts/"
-     langyFileName := "keypress-osd-languages.ini"
-     langyFile := "keypress-files\" langyFileName
-     langyFileURL := baseURL langyFileName
-     IniRead, ReloadCounter, %IniFile%, TempSettings, ReloadCounter, 0
-     IniRead, Attempt2DownLang, %IniFile%, TempSettings, Attempt2DownLang, 0
-
-     If (!FileExist(langyFile) || (ForceDownloadExternalFiles=1))
-     {
-         UrlDownloadToFile, %langyFileURL%, %langyFile%
-         Sleep, 4000
-     }
-
-     If FileExist(langyFile)
-     {
-         FileRead, Contents, %langyFile%
-         If !ErrorLevel
-         {
-             StringLeft, Contents, Contents, 100
-             If InStr(contents, "// KeyPress OSD - language definitions")
-             {
-                langFileDownloaded := 1
-                ShowLongMsg("File succesfully downloaded.")
-                Sleep, 300
-             } Else
-             {
-                langFileDownloaded := 0
-                FileDelete, %langyFile%
-             }
-         }
-     } Else (langFileDownloaded := 0)
-
-     If (langFileDownloaded!=1)
-     {
-        ForceKBD := 0
-        IniWrite, %ForceKBD%, %IniFile%, SavedSettings, ForceKBD
-        ShowLongMsg("Download of language definitions file FAILED.")
-        Sleep, 600
-        HideGUI()
-     }
-     Attempt2DownLang := Attempt2DownLang+1
-     IniWrite, %Attempt2DownLang%, %IniFile%, TempSettings, Attempt2DownLang
-
-     If (langFileDownloaded=1) && (ReloadCounter<3)
-     {
-        ReloadCounter := ReloadCounter+1
-        IniWrite, %ReloadCounter%, %IniFile%, TempSettings, ReloadCounter
-        ReloadScript()
-     }
-}
-
 Is64BitExe(path) {
   DllCall("GetBinaryType", "AStr", path, "UInt*", type)
   return (6 = type)
+}
+
+checkUpdateExists() {
+  baseURL := "http://marius.sucan.ro/media/files/blog/ahk-scripts/"
+  iniURL := baseURL IniFile
+  iniTMP := "externINI.ini"
+  UrlDownloadToFile, %iniURL%, %iniTmp%
+  Sleep, 500
+  Global lastTypedSince := A_TickCount
+  If FileExist(iniTMP)
+  {
+     IniRead, checkVersion, %iniTmp%, SavedSettings, version
+     IniRead, newDate, %iniTmp%, SavedSettings, releaseDate
+     Sleep, 25
+     FileDelete, %iniTMP%
+  } Else
+  {
+     Sleep, 25
+     FileDelete, %iniTMP%
+     MsgBox, 4,, Unable to determine if a new version is available. Force an update attempt?
+     IfMsgBox, Yes
+        Return 1
+  }
+  If (checkVersion="ERROR")
+  {
+     MsgBox, 4,, Unable to determine if a new version is available. Force an update attempt?
+     IfMsgBox, Yes
+        Return 1
+  } Else if (version!=checkVersion)
+  {
+     ShowLongMsg("Version available online: v" checkVersion " - " newDate)
+     Sleep, 1500
+     Return 1
+  } Else if (version=checkVersion)
+  {
+     ShowLongMsg("No new version is available.")
+     Sleep, 1500
+     Return 0
+  }
 }
 
 updateNow() {
@@ -5267,6 +5226,9 @@ updateNow() {
         WinActivate, KeyPress OSD
         Return
      }
+     continueExec := checkUpdateExists()
+     If (continueExec=0)
+        Return
 
      binaryUpdater := "updater.bat"
      If !FileExist(binaryUpdater) && A_IsCompiled
@@ -5409,6 +5371,8 @@ updateNow() {
 }
 
 verifyNonCrucialFiles() {
+     If StrLen(A_GlobalStruct)<4   ; testing for AHK_H presence
+        Return
      baseURL := "http://marius.sucan.ro/media/files/blog/ahk-scripts/"
      binaryUpdater := "updater.bat"
      binaryUpdaterURL := baseURL binaryUpdater
@@ -5454,7 +5418,7 @@ verifyNonCrucialFiles() {
     If (ScriptelSuspendel!=1)
     {
        GetTextExtentPoint("Initializing", FontName, FontSize, 1)
-       Sleep, 50
+       Sleep, 25
        ShowLongMsg("Initializing...")
        SetTimer, HideGUI, % -DisplayTime*2
     }
@@ -6311,9 +6275,153 @@ KeyStrokeReceiver(wParam, lParam) {
     Return true
 }
 
+GetInputHKL(win := "") {
+; [CLASS] Lyt - Keyboard layout (language) operation
+; by Stealzy from: https://autohotkey.com/boards/viewtopic.php?t=28258
+
+  If (win = 0)
+     Return,, ErrorLevel := "Window not found"
+  hWnd := (win = "")
+          ? WinExist("A")
+          : win + 0
+            ? WinExist("ahk_id" win)
+            : WinExist(win)
+  If (hWnd = 0)
+      Return,, ErrorLevel := "Window " win " not found"
+
+  WinGetClass, class
+  if (class == "ConsoleWindowClass") {
+      WinGet, consolePID, PID
+      DllCall("AttachConsole", Ptr, consolePID)
+      VarSetCapacity(KLID, 16)
+      DllCall("GetConsoleKeyboardLayoutName", Str, KLID)
+      DllCall("FreeConsole")
+      this.KLID := KLID
+      Return 0
+  } else {
+    ; Dvorak on OSx64 0xfffffffff0020409 = -268303351   ->   0xf0020409 = 4026663945 Dvorak on OSx86
+    HKL_8B := DllCall("GetKeyboardLayout", Ptr, DllCall("GetWindowThreadProcessId", Ptr, hWnd, UInt, 0, Ptr), Ptr)
+    Return (A_PtrSize = 4) ? HKL_8B & 0xFFFFffff : HKL_8B
+  }
+}
+
 ;================================================================
 ; functions by Drugwash. Direct contribuitor to this script. Many thanks!
 ; ===============================================================
+
+GetLayoutInfo(KLID, hkl) {
+    Global dbg
+    Static MODei := ",shift,altGr,shAltGr"
+
+    dbg .= "[" KLID "]`n"
+    cl := ""
+    Loop, Parse, MODei, CSV
+    {
+      If DK := GetDeadKeys(HKL, A_Index)
+         cl .= "DK" A_LoopField "=" DK "`n"
+    }
+    dbg .= (cl ? "hasDKs=1`n" cl :"hasDKs=0`n")
+    Return dbg
+}
+
+GetLayoutsInfo() {
+    Global dbg
+    Static mod := ",shift,altGr,shAltGr"
+
+    currHKL := DllCall("GetKeyboardLayout", "UInt", 0, "Ptr")  ; Get layout for current thread
+    While DllCall("msvcrt\_kbdhit", "CDecl")
+      DllCall("msvcrt\_getche", "CDecl")      ; Clear keyboard buffer
+    dbg := ""
+    if count := DllCall("GetKeyboardLayoutList", "UInt", 0, "Ptr", 0)
+      {
+      VarSetCapacity(hklbuf, count*A_PtrSize, 0)
+      if count := DllCall("GetKeyboardLayoutList", "UInt", count, "UPtr", &hklbuf)
+        {
+        Loop, %count%
+          {
+          HKL := NumGet(hklbuf, A_PtrSize*(A_Index-1), "Ptr")
+          if DllCall("ActivateKeyboardLayout", "Ptr", HKL, "UInt", 0)  ; 0x100=KLF_SETFORPROCESS
+            if DllCall("GetKeyboardLayoutName", "Str", KLID:="00000000")
+              {
+              dbg .= "[" KLID "]`n"
+              cl := ""
+              Loop, Parse, mod, CSV
+                {
+                if DK := GetDeadKeys(HKL, A_Index)
+                  cl .= "DK" A_LoopField "=" DK "`n"
+                }
+                dbg .= (cl ? "hasDKs=1`n" cl :"hasDKs=0`n")
+              }
+          }
+        }
+      VarSetCapacity(hklbuf, 0)
+      }
+    ;SetTimer, check, -5
+    While DllCall("msvcrt\_kbdhit", "CDecl")
+      DllCall("msvcrt\_getche", "CDecl")      ; Clear keyboard buffer
+    DllCall("ActivateKeyboardLayout", "Ptr", currHKL, "UInt", 0)  ; Restore layout for current thread
+    Return dbg
+}
+
+GetDeadKeys(hkl, i, c:=0) {
+    Static A_CharSize := A_IsUnicode ? 2 : 1
+    Loop, 256
+      {
+      uScanCode := A_Index-1
+      VarSetCapacity(lpKeyState,256,0), VarSetCapacity(pwszBuff, A_CharSize*(cchBuff:=5), 0)
+      if i=2
+        NumPut(0x80, lpKeyState, 0x10, "UChar")  ; VK_SHIFT
+      else if i=3
+        {
+        NumPut(0x80, lpKeyState, 0x11, "UChar")  ; VK_CONTROL
+        NumPut(0x80, lpKeyState, 0x12, "UChar")  ; VK_MENU
+        }
+      else if i=4
+        {
+        NumPut(0x80, lpKeyState, 0x10, "UChar")  ; VK_SHIFT
+        NumPut(0x80, lpKeyState, 0x11, "UChar")  ; VK_CONTROL
+        NumPut(0x80, lpKeyState, 0x12, "UChar")  ; VK_MENU
+        }
+      uVirtKey := DllCall("MapVirtualKeyEx"
+        , "UInt", uScanCode
+        , "UInt", 3                 ; MAPVK_VSC_TO_VK_EX=3
+        , "Ptr", hkl)
+      if !n := DllCall("ToUnicodeEx"    ; -1=dead key, 0=no trans, 1=1 char, 2+=uncombined dead char+char
+        , "UInt"  , uVirtKey
+        , "UInt"  , uScanCode
+        , "UPtr"  , &lpKeyState
+        , "UPtr"  , &pwszBuff
+        , "Int"    , cchBuff
+        , "UInt"  , 0
+        , "Ptr"    , hkl)
+        continue
+      if n<0
+        {
+        n := DllCall("ToUnicodeEx"
+        , "UInt"  , uVirtKey      ; VK_SPACE 0x20
+        , "UInt"  , uScanCode    ; 0x39
+        , "UPtr"  , &lpKeyState
+        , "UPtr"  , &pwszBuff
+        , "Int"    , cchBuff
+        , "UInt"  , 0
+        , "Ptr"    , hkl)
+        n//=2
+        if c
+          kstr .= StrGet(&pwszBuff, n, "UTF-16") "."
+        else kstr .= "vk" Hex2Str(uVirtKey, 2) "."
+        }
+      }
+    StringTrimRight, kstr, kstr, 1
+    Return kstr
+}
+
+Hex2Str(val, len, x:=false, caps:=true) {
+    SetFormat, IntegerFast, D
+    VarSetCapacity(out, len*2, 32), c := caps ? "X" : "x"
+    DllCall("msvcrt\sprintf", "AStr", out, "AStr", "%0" len "I64" c, "UInt64", val, "CDecl")
+    Return x ? "0x" out : out
+}
+
 SHLoadIndirectString(in) {
     ; uses WStr for both in and out
     VarSetCapacity(out, 2*(sz:=128), 0)
@@ -6799,7 +6907,7 @@ Return
 
 dummy() {
     MsgBox, This feature is not yet available. :-)
-    ahkThread_Free(deleteME)   ; comment this line to execute this script with AHK_L
+    ahkThread_Free(deleteME)   ; comment/delete this line to execute this script with AHK_L
 }
 
 #Include *i %A_Scriptdir%\keypress-files\keypress-acc-viewer-functions.ahk
