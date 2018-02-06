@@ -1,7 +1,7 @@
 // KeyPress OSD - CHANGELOG
 // keypress-osd-changelog.txt
 
-[b]On GitHub:[/b]  https://github.com/marius-sucan/KeyPress-OSD
+[b]On GitHub:[/b] https://github.com/marius-sucan/KeyPress-OSD
 
 [b]Main AHK file:[/b]
 http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd.ahk
@@ -11,6 +11,13 @@ http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip
 
 by Marius Sucan (robodesign.ro)
 
+  v4.19.1 (2018-02-06)
+  - [new] it now checks if a new version is available before updating. Suggested by ozzii and others ;-).
+  - the script now initializes considerably faster
+
+  v4.19 (2018-02-05)
+  - [improvement] language file no longer needed; it is automatically generated when KeyPress is executed; it discovers automatically the dead keys of the current layout; MANY thanks to Drugwash for his magic coding!!!!
+  
   v4.18.3 (2018-02-04)
   - [improvement] the main file can be executed with AHK_L, if the line with "ahkThread_Free(deleteME)" is commented or deleted; [this line is at the end of the file :-) ]
   - [fixed] a minor bug with caret navigation
@@ -713,9 +720,6 @@ https://autohotkey.com/board/topic/53672-get-the-text-content-of-a-tool-tip-wind
 - Go through older posts. Check what's done. 
 - separate FAQs into sections
 
-- make a youtube demo video
-https://hotkeyit.github.io/v2/docs/AHKH_Features.htm
-
 - add comments through the source. Present the [lack of] code structure
 - window spy, get texts underneath the mouse using Narrator's accessibility APIs
   https://autohotkey.com/board/topic/57431-get-text-under-mouse-cursor/
@@ -727,7 +731,6 @@ https://hotkeyit.github.io/v2/docs/AHKH_Features.htm
 Glitches to fix or think of possible solutions:
 - make the OSD text field non-selectable
 - OSD is never on top of Start menu in Windows 10
-- could all the defined dead keys for different kbd layouts in keypress-osd-languages.ini be replaced by DLL calls and APIs? now they are all hard-coded...
 
 
 https://regex101.com/r/QKXvg9/1
