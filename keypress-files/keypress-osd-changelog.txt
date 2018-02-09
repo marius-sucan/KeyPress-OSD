@@ -11,8 +11,22 @@ http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip
 
 by Marius Sucan (robodesign.ro)
 
+  v4.19.7 (2018-02-08)
+  - improved keyboard detection, further more; now it can detect keyboard layouts with IME and mark them as unsupported :-).
+  
+  v4.19.5 (2018-02-08)
+  - [new] partial support for Right-to-Left writing, for Arabic languages [thanks to drugwash for the RTL detection]
+  - [new] a window to list the currently installed keyboard layouts, instead of the Tray menu list
+  - further improved support for Indic writing systems
+  - removed the option to force a specific keyboard layout; there's nothing hard-coded, so this option/feature made no sense anymore
+
+  v4.19.2 (2018-02-07)
+  - improved support for Bengali, Assamese, Devanagari, Hindi and other related writing scripts
+  - it now detects what kinds of keyboard layouts it supports or not [again, MANY THANKS @ drugwash]
+
   v4.19.1 (2018-02-06)
-  - [new] it now checks if a new version is available before updating. Suggested by ozzii and others ;-).
+  - [new] it now checks if a new version is available before updating. Suggested by ozzii and others ;-)
+  - made small changes to how the language definitions INI file is generated
   - the script now initializes considerably faster
 
   v4.19 (2018-02-05)
@@ -731,6 +745,8 @@ https://autohotkey.com/board/topic/53672-get-the-text-content-of-a-tool-tip-wind
 Glitches to fix or think of possible solutions:
 - make the OSD text field non-selectable
 - OSD is never on top of Start menu in Windows 10
+- support for Bengali, Assamese and other similar scripts is shady
+
 
 
 https://regex101.com/r/QKXvg9/1
