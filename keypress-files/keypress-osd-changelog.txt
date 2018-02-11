@@ -11,9 +11,12 @@ http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip
 
 by Marius Sucan (robodesign.ro)
 
-  v4.19.7 (2018-02-08)
+  v4.19.8 (2018-02-11)
+  - fixed keyboard layout detection... now it properly detects IMEs, layouts with IMEs are not supported
+
+  v4.19.7 (2018-02-09)
   - improved keyboard detection, further more; now it can detect keyboard layouts with IME and mark them as unsupported :-).
-  
+
   v4.19.5 (2018-02-08)
   - [new] partial support for Right-to-Left writing, for Arabic languages [thanks to drugwash for the RTL detection]
   - [new] a window to list the currently installed keyboard layouts, instead of the Tray menu list
@@ -716,6 +719,11 @@ Features to implement:
   - separate UI settings and tray menu? separate files with include
   - download latest AHK_H
   - make a github release
+
+
+- altgr dead keys, English India? bugs?
+  - jumpy caret?
+
 
 - capture text to-do:
   - wm-getobject, send message [chrome]
