@@ -11,8 +11,16 @@ http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip
 
 by Marius Sucan (robodesign.ro)
 
+  v4.20 (2018-02-13)
+  - [new] Shortcuts configuration is now user-friendly; each shortcut is redefined on what you press. With Esc, the shortcut returns to its default, with Delete, you disable it.
+  - [new] PayPal button for donations at About window: https://www.paypal.me/MariusSucan/15 .
+
+  v4.19.9 (2018-02-12)
+  - [new] string generator for hotkeys in Global shortcuts; to make it easier to change shortcuts, for beginners
+  - minor bug fixes
+
   v4.19.8 (2018-02-11)
-  - fixed keyboard layout detection... now it properly detects IMEs, layouts with IMEs are not supported
+  - fixed keyboard layout detection... now it properly detects IMEs, layouts with IMEs are not supported; [again, many thanks to Drugwash for the help offered with this]
 
   v4.19.7 (2018-02-09)
   - improved keyboard detection, further more; now it can detect keyboard layouts with IME and mark them as unsupported :-).
@@ -720,10 +728,8 @@ Features to implement:
   - download latest AHK_H
   - make a github release
 
-
 - altgr dead keys, English India? bugs?
   - jumpy caret?
-
 
 - capture text to-do:
   - wm-getobject, send message [chrome]
