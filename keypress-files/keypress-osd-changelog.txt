@@ -11,8 +11,16 @@ http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip
 
 by Marius Sucan (robodesign.ro)
 
+  v4.20.2 (2018-02-15)
+  - [overhaul] the entire Keyboard shortcut customization panel redone from scratch, it should work this time and, should also be user friendly
+
+  v4.20.1 (2018-02-14)
+  - [new] option to save and update in real time changes you make at Mouse preferences, this is meant to facilitate configuration
+
+  - [new] Shortcuts configuration/customization is now user-friendly; each shortcut is redefined on what you press. With Esc, the shortcut returns to its default, with Delete, you disable it.
+  - [new] PayPal button for donations at About window: https://www.paypal.me/MariusSucan/15 .
   v4.20 (2018-02-13)
-  - [new] Shortcuts configuration is now user-friendly; each shortcut is redefined on what you press. With Esc, the shortcut returns to its default, with Delete, you disable it.
+  - [new] Shortcuts configuration/customization is now user-friendly; each shortcut is redefined on what you press. With Esc, the shortcut returns to its default, with Delete, you disable it.
   - [new] PayPal button for donations at About window: https://www.paypal.me/MariusSucan/15 .
 
   v4.19.9 (2018-02-12)
@@ -727,6 +735,8 @@ Features to implement:
   - separate UI settings and tray menu? separate files with include
   - download latest AHK_H
   - make a github release
+https://github.com/Pulover/Class_Toolbar
+https://autohotkey.com/boards/viewtopic.php?f=6&t=138
 
 - altgr dead keys, English India? bugs?
   - jumpy caret?

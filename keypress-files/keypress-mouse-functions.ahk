@@ -35,7 +35,6 @@ Global VisualMouseClicks := 0     ; shows visual indicators for different mouse 
  , hostCaretHighlight    := 0
  , IniFile               := "keypress-osd.ini"
  , visible := 0
- , ClickScale := ClickScaleUser/10
  , MouseClickCounter := 0
  , ScriptelSuspendel := 0
  , SilentMode        := 0
@@ -60,8 +59,12 @@ Global VisualMouseClicks := 0     ; shows visual indicators for different mouse 
   IniRead, MouseBeeper, %inifile%, SavedSettings, MouseBeeper, %MouseBeeper%
   IniRead, MouseVclickColor, %inifile%, SavedSettings, MouseVclickColor, %MouseVclickColor%
   IniRead, MouseIdleColor, %inifile%, SavedSettings, MouseIdleColor, %MouseIdleColor%
+  global ClickScale := ClickScaleUser/10
 
 if (ScriptelSuspendel=1)
+   Return
+
+if (VisualMouseClicks=0) && (FlashIdleMouse=0) && (ShowMouseHalo=0) && (hostCaretHighlight=0)
    Return
 
 if (hostCaretHighlight=1)
@@ -212,8 +215,8 @@ ShowMouseClick(clicky) {
     Gui, Mouser: Hide
     MouseClickCounter := (MouseClickCounter > 10) ? 1 : 11
     TransparencyLevel := MouseVclickAlpha - MouseClickCounter*6
-    BoxW := 15*ClickScale
-    BoxH := 40*ClickScale
+    BoxW := 15 * ClickScale
+    BoxH := 40 * ClickScale
     MouseDistance := 10 * ClickScale
     Loop, 2
     {
@@ -256,7 +259,7 @@ ShowMouseClick(clicky) {
           Gui, Mouser: Color, %OuterColor%  ; outer rectangle
           Gui, Mouser: Add, Progress, x%BorderSize% y%BorderSize% w%RectW% h%RectH% Background%InnerColor% c%InnerColor%, 100   ; inner rectangle
           isMouser := 1
-      }  else
+      } else
       {
           GuiControl, Mouser:Move, msctls_progress321, w%RectW% h%RectH%
           Gui, Mouser: Show, NoActivate x%mX% y%mY% w%BoxW% h%BoxH%, MousarWin
