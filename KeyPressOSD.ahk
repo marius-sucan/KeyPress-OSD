@@ -55,6 +55,7 @@
  , enableAltGr           := 1
  , AltHook2keysUser      := 1
  , typingDelaysScaleUser := 7
+ , UseMUInames           := 1
  
  , lola                  := "│"
  , lola2                 := "║"
@@ -167,8 +168,8 @@
  , TextZoomer            := 0
  , UseINIfile            := 1
  , IniFile               := "keypress-osd.ini"
- , version               := "4.20.2"
- , releaseDate := "2018 / 02 / 15"
+ , version               := "4.20.3"
+ , releaseDate := "2018 / 02 / 16"
 
 ; Initialization variables. Altering these may lead to undesired results.
 
@@ -218,7 +219,7 @@ Global typed := "" ; hack used to determine if user is writing
  , editField3 := " "
  , backTypeCtrl := ""
  , backTypdUndo := ""
- , CurrentKBD := "Default: English US"
+ , CurrentKBD := "KeyPress OSD default: English US."
  , loadedLangz := 0
  , globalNewKBD := "{Empty}"
  , kbLayoutRaw := 0
@@ -286,9 +287,9 @@ initAHKhThreads() {
     } Else
     {
         NOahkH := 1
-        Menu, SubSetMenu, Disable, S&ilent mode
-        Menu, SubSetMenu, Disable, &Sounds
-        Menu, SubSetMenu, Disable, &Mouse
+        Menu, PrefsMenu, Disable, S&ilent mode
+        Menu, PrefsMenu, Disable, &Sounds
+        Menu, PrefsMenu, Disable, &Mouse
     }
 }
 
@@ -3042,7 +3043,8 @@ tehDKcollector() {
 
 initLangFile(forceIT:=0) {
   IniRead, KLIDlist, %langFile%, Options, KLIDlist, -
-  if !InStr(KLIDlist, kbLayoutRaw)
+  IniRead, UseMUInames2, %langFile%, Options, UseMUInames, -
+  if !InStr(KLIDlist, kbLayoutRaw) || (UseMUInames2!=UseMUInames)
      FileDelete, %langFile%
 
   If !FileExist(langfile) || (forceIT=1)
@@ -3057,6 +3059,7 @@ initLangFile(forceIT:=0) {
       Sort, KLIDlist, U D,
       IniWrite, %KLIDlist%, %langFile%, Options, KLIDlist
       IniDelete, %langFile%, Options, KLIDlist2
+      IniWrite, %UseMUInames%, %langFile%, Options, UseMUInames
   } Else (loadedLangz := 1)
 }
 
@@ -3491,7 +3494,7 @@ ToggleSilence() {
     IniWrite, %SilentMode%, %IniFile%, SavedSettings, SilentMode
     mouseFonctiones.ahkReload[]
     beeperzDefunctions.ahkReload[]
-    Menu, SubSetMenu, % (SilentMode=0 ? "Uncheck" : "Check"), S&ilent mode
+    Menu, PrefsMenu, % (SilentMode=0 ? "Uncheck" : "Check"), S&ilent mode
     ShowLongMsg("Silent mode = " SilentMode)
     SetTimer, HideGUI, % -DisplayTime
 }
@@ -3534,7 +3537,7 @@ CaptureTextNow() {
 ToggleLargeFonts() {
     prefsLargeFonts := !prefsLargeFonts
     IniWrite, %prefsLargeFonts%, %IniFile%, SavedSettings, prefsLargeFonts
-    Menu, SubSetMenu, % (prefsLargeFonts=0 ? "Uncheck" : "Check"), Large UI fonts
+    Menu, PrefsMenu, % (prefsLargeFonts=0 ? "Uncheck" : "Check"), Large UI fonts
     Sleep, 200
 }
 
@@ -3683,41 +3686,41 @@ ClipChanged(Type) {
 }
 
 InitializeTray() {
-    Menu, SubSetMenu, Add, &Keyboard, ShowKBDsettings
-    Menu, SubSetMenu, Add, &Typing mode, ShowTypeSettings
-    Menu, SubSetMenu, Add, &Sounds, ShowSoundsSettings
-    Menu, SubSetMenu, Add, &Mouse, ShowMouseSettings
-    Menu, SubSetMenu, Add, &OSD appearance, ShowOSDsettings
-    Menu, SubSetMenu, Add, &Global shortcuts, ShowShortCutsSettings
-    Menu, SubSetMenu, Add
-    Menu, SubSetMenu, Add, S&ilent mode, ToggleSilence
-    Menu, SubSetMenu, Add, Large UI fonts, ToggleLargeFonts
-    Menu, SubSetMenu, Add, Start at boot, SetStartUp
-    Menu, SubSetMenu, Add
-    Menu, SubSetMenu, Add, Restore defaults, DeleteSettings
-    Menu, SubSetMenu, Add
-    Menu, SubSetMenu, Add, Key &history, KeyHistoryWindow
-    Menu, SubSetMenu, Add
-    Menu, SubSetMenu, Add, &Check for updates, updateNow
+    Menu, PrefsMenu, Add, &Keyboard, ShowKBDsettings
+    Menu, PrefsMenu, Add, &Typing mode, ShowTypeSettings
+    Menu, PrefsMenu, Add, &Sounds, ShowSoundsSettings
+    Menu, PrefsMenu, Add, &Mouse, ShowMouseSettings
+    Menu, PrefsMenu, Add, &OSD appearance, ShowOSDsettings
+    Menu, PrefsMenu, Add, &Global shortcuts, ShowShortCutsSettings
+    Menu, PrefsMenu, Add
+    Menu, PrefsMenu, Add, S&ilent mode, ToggleSilence
+    Menu, PrefsMenu, Add, Large UI fonts, ToggleLargeFonts
+    Menu, PrefsMenu, Add, Start at boot, SetStartUp
+    Menu, PrefsMenu, Add
+    Menu, PrefsMenu, Add, Restore defaults, DeleteSettings
+    Menu, PrefsMenu, Add
+    Menu, PrefsMenu, Add, Key &history, KeyHistoryWindow
+    Menu, PrefsMenu, Add
+    Menu, PrefsMenu, Add, &Check for updates, updateNow
 
     regEntry := """" A_ScriptFullPath """"
     RegRead, currentReg, HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Run, KeyPressOSD
     If (currentReg=regEntry)
-       Menu, SubSetMenu, Check, Start at boot
+       Menu, PrefsMenu, Check, Start at boot
 
     If (SilentMode=1)
-       Menu, SubSetMenu, Check, S&ilent mode
+       Menu, PrefsMenu, Check, S&ilent mode
 
     If (prefsLargeFonts=1)
-       Menu, SubSetMenu, Check, Large UI fonts
+       Menu, PrefsMenu, Check, Large UI fonts
 
     If !FileExist("keypress-files\keypress-beeperz-functions.ahk")
     {
-       Menu, SubSetMenu, Disable, S&ilent mode
-       Menu, SubSetMenu, Disable, &Sounds
+       Menu, PrefsMenu, Disable, S&ilent mode
+       Menu, PrefsMenu, Disable, &Sounds
     }
     If !FileExist("keypress-files\keypress-mouse-functions.ahk")
-       Menu, SubSetMenu, Disable, &Mouse
+       Menu, PrefsMenu, Disable, &Mouse
 
     Menu, Tray, Tip, KeyPress OSD v%version%
     Menu, Tray, NoStandard
@@ -3737,7 +3740,7 @@ InitializeTray() {
        Menu, Tray, Add, &Monitor keyboard layout, ToggleConstantDetection
     }
     Menu, Tray, Add
-    Menu, Tray, Add, &Preferences, :SubSetMenu
+    Menu, Tray, Add, &Preferences, :PrefsMenu
     Menu, Tray, Add
 
     If (ConstantAutoDetect=0) && (loadedLangz=1)
@@ -3752,7 +3755,7 @@ InitializeTray() {
     Menu, tray, Check, &KeyPress activated
     Menu, Tray, Add, &Restart, ReloadScriptNow
     Menu, Tray, Add
-    Menu, Tray, Add, &Troubleshooting, HelpFAQstarter
+    Menu, Tray, Add, &Help / Troubleshoot, HelpFAQstarter
     Menu, Tray, Add, &About, AboutWindow
     Menu, Tray, Add
     Menu, Tray, Add, E&xit, KillScript
@@ -3764,9 +3767,9 @@ InitializeTray() {
     If !FileExist("keypress-files\keypress-acc-viewer-functions.ahk") && !A_IsCompiled
        Menu, tray, Disable, Mouse text collector
 
-    faqHtml := "keypress-files\help\faq.html"
+    faqHtml := "keypress-files\help\presentation.html"
     If !FileExist(faqHtml)
-       Menu, tray, Disable, &Troubleshooting
+       Menu, tray, Disable, &Help / Troubleshoot
 }
 
 KeyHistoryWindow() {
@@ -3774,7 +3777,7 @@ KeyHistoryWindow() {
 }
 
 HelpFaqStarter() {
-  Run, %A_WorkingDir%\keypress-files\help\faq.html
+  Run, %A_WorkingDir%\keypress-files\help\presentation.html
 }
 
 DeleteSettings() {
@@ -4228,7 +4231,7 @@ ShowShortCutsSettings() {
            Return
     }
 
-    ComboList := "(Disabled)|(Restore Default)|[[ 0-9 / Numbers ]]|[[ Letters ]]|Right|Left|Up|Down|Home|End|PgDn|PgUp|Backspace|Space|Tab|Delete|Enter|Escape|Insert|CapsLock|NumLock|ScrollLock|LButton|MButton|RButton|PrintScreen|Pause|Break|CtrlBreak|AppsKey|F1|F2|F3|F4|F5|F6|F7|F8|F9|F10|F11|F12|Browser_Back|Browser_Favorites|Browser_Forward|Browser_Home|Browser_Refresh|Browser_Search|Browser_Stop|Help|Launch_App1|Launch_App2|Launch_Mail|Launch_Media|Media_Next|Media_Play_Pause|Media_Prev|Media_Stop|Numpad0|Numpad1|Numpad2|Numpad3|Numpad4|Numpad5|Numpad6|Numpad7|Numpad8|Numpad9|NumpadAdd|NumpadClear|NumpadDel|NumpadDiv|NumpadDot|NumpadDown|NumpadEnd|NumpadEnter|NumpadHome|NumpadIns|NumpadLeft|NumpadMult|NumpadPgDn|NumpadPgUp|NumpadRight|NumpadSub|NumpadUp|Sleep|Volume_Mute|Volume_Down|Volume_Up|WheelDown|WheelLeft|WheelRight|WheelUp|[[ VK nnn ]]|[[ SC nnn ]]"
+    ComboList := "(Disabled)|(Restore Default)|[[ 0-9 / Digits ]]|[[ Letters ]]|Right|Left|Up|Down|Home|End|Page_Down|Page_Up|Backspace|Space|Tab|Delete|Enter|Escape|Insert|CapsLock|NumLock|ScrollLock|L_Click|M_Click|R_Click|PrintScreen|Pause|Break|CtrlBreak|AppsKey|F1|F2|F3|F4|F5|F6|F7|F8|F9|F10|F11|F12|Nav_Back|Nav_Favorites|Nav_Forward|Nav_Home|Nav_Refresh|Nav_Search|Nav_Stop|Help|Launch_App1|Launch_App2|Launch_Mail|Launch_Media|Media_Next|Media_Play_Pause|Media_Prev|Media_Stop|Pad0|Pad1|Pad2|Pad3|Pad4|Pad5|Pad6|Pad7|Pad8|Pad9|PadClear|PadDel|PadDiv|PadDot|PadHome|PadEnd|PadEnter|PadIns|PadLeft|PadRight|PadAdd|PadSub|PadMult|PadPage_Down|PadPage_Up|PadUp|PadDown|Sleep|Volume_Mute|Volume_Up|Volume_Down|WheelUp|WheelDown|WheelLeft|WheelRight|[[ VK nnn ]]|[[ SC nnn ]]"
     CurrentPrefWindow := 6
     CBchoKBDaltTypeMode := ProcessChoiceKBD(KBDaltTypeMode)
     CBchoKBDpasteOSDcnt1 := ProcessChoiceKBD(KBDpasteOSDcnt1)
@@ -4292,99 +4295,101 @@ ShowShortCutsSettings() {
     WinKBDsuspend := InStr(KBDsuspend, "#")
 
     col1width := 290
-    col2width := 100
+    col2width := 90
+    modBtnWidth := 32
     If (prefsLargeFonts=1)
     {
+       modBtnWidth := 45
        col1width := 430
-       col2width := 150
+       col2width := 140
        Gui, font, s%LargeUIfontValue%
     }
     Gui, Add, Text, x15 y15 Section, All the shortcuts listed in this panel are available globally, in any application.
 
     Gui, Add, Checkbox, xs+0 y+10 w%col1width% gVerifyShortcutOptions Checked%alternateTypingMode% valternateTypingMode, Enter alternate typing mode
-    Gui, Add, Checkbox, x+0 Checked%CtrlKBDaltTypeMode% gGenerateHotkeyStrS vCtrlKBDaltTypeMode, Ctrl
-    Gui, Add, Checkbox, x+0 Checked%ShiftKBDaltTypeMode% gGenerateHotkeyStrS vShiftKBDaltTypeMode, Shift
-    Gui, Add, Checkbox, x+0 Checked%AltKBDaltTypeMode% gGenerateHotkeyStrS vAltKBDaltTypeMode, Alt
-    Gui, Add, Checkbox, x+0 Checked%WinKBDaltTypeMode% gGenerateHotkeyStrS vWinKBDaltTypeMode, Win
     Gui, Add, ComboBox, x+0 w%col2width% gProcessComboKBD vComboKBDaltTypeMode, %ComboList%|%CBchoKBDaltTypeMode%||
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%CtrlKBDaltTypeMode% gGenerateHotkeyStrS vCtrlKBDaltTypeMode, Ctrl
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%ShiftKBDaltTypeMode% gGenerateHotkeyStrS vShiftKBDaltTypeMode, Shift
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%AltKBDaltTypeMode% gGenerateHotkeyStrS vAltKBDaltTypeMode, Alt
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%WinKBDaltTypeMode% gGenerateHotkeyStrS vWinKBDaltTypeMode, Win
 
     Gui, Add, Checkbox, xs+0 y+1 w%col1width% gVerifyShortcutOptions Checked%pasteOSDcontent% vpasteOSDcontent, Paste the OSD content in the active text area
-    Gui, Add, Checkbox, x+0 Checked%CtrlKBDpasteOSDcnt1% gGenerateHotkeyStrS vCtrlKBDpasteOSDcnt1, Ctrl
-    Gui, Add, Checkbox, x+0 Checked%ShiftKBDpasteOSDcnt1% gGenerateHotkeyStrS vShiftKBDpasteOSDcnt1, Shift
-    Gui, Add, Checkbox, x+0 Checked%AltKBDpasteOSDcnt1% gGenerateHotkeyStrS vAltKBDpasteOSDcnt1, Alt
-    Gui, Add, Checkbox, x+0 Checked%WinKBDpasteOSDcnt1% gGenerateHotkeyStrS vWinKBDpasteOSDcnt1, Win
     Gui, Add, ComboBox, x+0 w%col2width% gProcessComboKBD vComboKBDpasteOSDcnt1, %ComboList%|%CBchoKBDpasteOSDcnt1%||
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%CtrlKBDpasteOSDcnt1% gGenerateHotkeyStrS vCtrlKBDpasteOSDcnt1, Ctrl
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%ShiftKBDpasteOSDcnt1% gGenerateHotkeyStrS vShiftKBDpasteOSDcnt1, Shift
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%AltKBDpasteOSDcnt1% gGenerateHotkeyStrS vAltKBDpasteOSDcnt1, Alt
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%WinKBDpasteOSDcnt1% gGenerateHotkeyStrS vWinKBDpasteOSDcnt1, Win
 
     Gui, Add, Text, xs+0 y+1 w%col1width%, %A_Space%Replace entire text from the active text area with the OSD content
-    Gui, Add, Checkbox, x+0 Checked%CtrlKBDpasteOSDcnt2% gGenerateHotkeyStrS vCtrlKBDpasteOSDcnt2, Ctrl
-    Gui, Add, Checkbox, x+0 Checked%ShiftKBDpasteOSDcnt2% gGenerateHotkeyStrS vShiftKBDpasteOSDcnt2, Shift
-    Gui, Add, Checkbox, x+0 Checked%AltKBDpasteOSDcnt2% gGenerateHotkeyStrS vAltKBDpasteOSDcnt2, Alt
-    Gui, Add, Checkbox, x+0 Checked%WinKBDpasteOSDcnt2% gGenerateHotkeyStrS vWinKBDpasteOSDcnt2, Win
     Gui, Add, ComboBox, x+0 w%col2width% gProcessComboKBD vComboKBDpasteOSDcnt2, %ComboList%|%CBchoKBDpasteOSDcnt2%||
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%CtrlKBDpasteOSDcnt2% gGenerateHotkeyStrS vCtrlKBDpasteOSDcnt2, Ctrl
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%ShiftKBDpasteOSDcnt2% gGenerateHotkeyStrS vShiftKBDpasteOSDcnt2, Shift
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%AltKBDpasteOSDcnt2% gGenerateHotkeyStrS vAltKBDpasteOSDcnt2, Alt
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%WinKBDpasteOSDcnt2% gGenerateHotkeyStrS vWinKBDpasteOSDcnt2, Win
 
     Gui, Add, Checkbox, xs+0 y+25 w%col1width% gVerifyShortcutOptions Checked%KeyboardShortcuts% vKeyboardShortcuts, Other global keyboard shortcuts
     Gui, Add, Text, xs+0 y+10 w%col1width%, Capture text from active text area (preffered choice)
-    Gui, Add, Checkbox, x+0 Checked%CtrlKBDsynchApp1% gGenerateHotkeyStrS vCtrlKBDsynchApp1, Ctrl
-    Gui, Add, Checkbox, x+0 Checked%ShiftKBDsynchApp1% gGenerateHotkeyStrS vShiftKBDsynchApp1, Shift
-    Gui, Add, Checkbox, x+0 Checked%AltKBDsynchApp1% gGenerateHotkeyStrS vAltKBDsynchApp1, Alt
-    Gui, Add, Checkbox, x+0 Checked%WinKBDsynchApp1% gGenerateHotkeyStrS vWinKBDsynchApp1, Win
     Gui, Add, ComboBox, x+0 w%col2width% gProcessComboKBD vComboKBDsynchApp1, %ComboList%|%CBchoKBDsynchApp1%||
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%CtrlKBDsynchApp1% gGenerateHotkeyStrS vCtrlKBDsynchApp1, Ctrl
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%ShiftKBDsynchApp1% gGenerateHotkeyStrS vShiftKBDsynchApp1, Shift
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%AltKBDsynchApp1% gGenerateHotkeyStrS vAltKBDsynchApp1, Alt
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%WinKBDsynchApp1% gGenerateHotkeyStrS vWinKBDsynchApp1, Win
 
     Gui, Add, Text, xs+0 y+1 w%col1width%, Capture text from active text area [only the current line]
-    Gui, Add, Checkbox, x+0 Checked%CtrlKBDsynchApp2% gGenerateHotkeyStrS vCtrlKBDsynchApp2, Ctrl
-    Gui, Add, Checkbox, x+0 Checked%ShiftKBDsynchApp2% gGenerateHotkeyStrS vShiftKBDsynchApp2, Shift
-    Gui, Add, Checkbox, x+0 Checked%AltKBDsynchApp2% gGenerateHotkeyStrS vAltKBDsynchApp2, Alt
-    Gui, Add, Checkbox, x+0 Checked%WinKBDsynchApp2% gGenerateHotkeyStrS vWinKBDsynchApp2, Win
     Gui, Add, ComboBox, x+0 w%col2width% gProcessComboKBD vComboKBDsynchApp2, %ComboList%|%CBchoKBDsynchApp2%||
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%CtrlKBDsynchApp2% gGenerateHotkeyStrS vCtrlKBDsynchApp2, Ctrl
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%ShiftKBDsynchApp2% gGenerateHotkeyStrS vShiftKBDsynchApp2, Shift
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%AltKBDsynchApp2% gGenerateHotkeyStrS vAltKBDsynchApp2, Alt
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%WinKBDsynchApp2% gGenerateHotkeyStrS vWinKBDsynchApp2, Win
 
     Gui, Add, Text, xs+0 y+1 w%col1width%, Toggle never display OSD
-    Gui, Add, Checkbox, x+0 Checked%CtrlKBDTglNeverOSD% gGenerateHotkeyStrS vCtrlKBDTglNeverOSD, Ctrl
-    Gui, Add, Checkbox, x+0 Checked%ShiftKBDTglNeverOSD% gGenerateHotkeyStrS vShiftKBDTglNeverOSD, Shift
-    Gui, Add, Checkbox, x+0 Checked%AltKBDTglNeverOSD% gGenerateHotkeyStrS vAltKBDTglNeverOSD, Alt
-    Gui, Add, Checkbox, x+0 Checked%WinKBDTglNeverOSD% gGenerateHotkeyStrS vWinKBDTglNeverOSD, Win
     Gui, Add, ComboBox, x+0 w%col2width% gProcessComboKBD vComboKBDTglNeverOSD, %ComboList%|%CBchoKBDTglNeverOSD%||
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%CtrlKBDTglNeverOSD% gGenerateHotkeyStrS vCtrlKBDTglNeverOSD, Ctrl
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%ShiftKBDTglNeverOSD% gGenerateHotkeyStrS vShiftKBDTglNeverOSD, Shift
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%AltKBDTglNeverOSD% gGenerateHotkeyStrS vAltKBDTglNeverOSD, Alt
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%WinKBDTglNeverOSD% gGenerateHotkeyStrS vWinKBDTglNeverOSD, Win
 
     Gui, Add, Text, xs+0 y+1 w%col1width%, Toggle OSD positions (A / B)
-    Gui, Add, Checkbox, x+0 Checked%CtrlKBDTglPosition% gGenerateHotkeyStrS vCtrlKBDTglPosition, Ctrl
-    Gui, Add, Checkbox, x+0 Checked%ShiftKBDTglPosition% gGenerateHotkeyStrS vShiftKBDTglPosition, Shift
-    Gui, Add, Checkbox, x+0 Checked%AltKBDTglPosition% gGenerateHotkeyStrS vAltKBDTglPosition, Alt
-    Gui, Add, Checkbox, x+0 Checked%WinKBDTglPosition% gGenerateHotkeyStrS vWinKBDTglPosition, Win
     Gui, Add, ComboBox, x+0 w%col2width% gProcessComboKBD vComboKBDTglPosition, %ComboList%|%CBchoKBDTglPosition%||
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%CtrlKBDTglPosition% gGenerateHotkeyStrS vCtrlKBDTglPosition, Ctrl
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%ShiftKBDTglPosition% gGenerateHotkeyStrS vShiftKBDTglPosition, Shift
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%AltKBDTglPosition% gGenerateHotkeyStrS vAltKBDTglPosition, Alt
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%WinKBDTglPosition% gGenerateHotkeyStrS vWinKBDTglPosition, Win
 
     Gui, Add, Text, xs+0 y+1 w%col1width%, Toggle silent mode
-    Gui, Add, Checkbox, x+0 Checked%CtrlKBDTglSilence% gGenerateHotkeyStrS vCtrlKBDTglSilence, Ctrl
-    Gui, Add, Checkbox, x+0 Checked%ShiftKBDTglSilence% gGenerateHotkeyStrS vShiftKBDTglSilence, Shift
-    Gui, Add, Checkbox, x+0 Checked%AltKBDTglSilence% gGenerateHotkeyStrS vAltKBDTglSilence, Alt
-    Gui, Add, Checkbox, x+0 Checked%WinKBDTglSilence% gGenerateHotkeyStrS vWinKBDTglSilence, Win
     Gui, Add, ComboBox, x+0 w%col2width% gProcessComboKBD vComboKBDTglSilence, %ComboList%|%CBchoKBDTglSilence%||
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%CtrlKBDTglSilence% gGenerateHotkeyStrS vCtrlKBDTglSilence, Ctrl
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%ShiftKBDTglSilence% gGenerateHotkeyStrS vShiftKBDTglSilence, Shift
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%AltKBDTglSilence% gGenerateHotkeyStrS vAltKBDTglSilence, Alt
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%WinKBDTglSilence% gGenerateHotkeyStrS vWinKBDTglSilence, Win
 
     Gui, Add, Text, xs+0 y+1 w%col1width%, Detect keyboard layout
-    Gui, Add, Checkbox, x+0 Checked%CtrlKBDidLangNow% gGenerateHotkeyStrS vCtrlKBDidLangNow, Ctrl
-    Gui, Add, Checkbox, x+0 Checked%ShiftKBDidLangNow% gGenerateHotkeyStrS vShiftKBDidLangNow, Shift
-    Gui, Add, Checkbox, x+0 Checked%AltKBDidLangNow% gGenerateHotkeyStrS vAltKBDidLangNow, Alt
-    Gui, Add, Checkbox, x+0 Checked%WinKBDidLangNow% gGenerateHotkeyStrS vWinKBDidLangNow, Win
     Gui, Add, ComboBox, x+0 w%col2width% gProcessComboKBD vComboKBDidLangNow, %ComboList%|%CBchoKBDidLangNow%||
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%CtrlKBDidLangNow% gGenerateHotkeyStrS vCtrlKBDidLangNow, Ctrl
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%ShiftKBDidLangNow% gGenerateHotkeyStrS vShiftKBDidLangNow, Shift
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%AltKBDidLangNow% gGenerateHotkeyStrS vAltKBDidLangNow, Alt
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%WinKBDidLangNow% gGenerateHotkeyStrS vWinKBDidLangNow, Win
 
     Gui, Add, Text, xs+0 y+1 w%col1width%, Capture text underneath the mouse
-    Gui, Add, Checkbox, x+0 Checked%CtrlKBDCapText% gGenerateHotkeyStrS vCtrlKBDCapText, Ctrl
-    Gui, Add, Checkbox, x+0 Checked%ShiftKBDCapText% gGenerateHotkeyStrS vShiftKBDCapText, Shift
-    Gui, Add, Checkbox, x+0 Checked%AltKBDCapText% gGenerateHotkeyStrS vAltKBDCapText, Alt
-    Gui, Add, Checkbox, x+0 Checked%WinKBDCapText% gGenerateHotkeyStrS vWinKBDCapText, Win
     Gui, Add, ComboBox, x+0 w%col2width% gProcessComboKBD vComboKBDCapText, %ComboList%|%CBchoKBDCapText%||
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%CtrlKBDCapText% gGenerateHotkeyStrS vCtrlKBDCapText, Ctrl
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%ShiftKBDCapText% gGenerateHotkeyStrS vShiftKBDCapText, Shift
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%AltKBDCapText% gGenerateHotkeyStrS vAltKBDCapText, Alt
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%WinKBDCapText% gGenerateHotkeyStrS vWinKBDCapText, Win
 
     Gui, Add, Text, xs+0 y+1 w%col1width%, Restart / reload KeyPress OSD
-    Gui, Add, Checkbox, x+0 Checked%CtrlKBDReload% gGenerateHotkeyStrS vCtrlKBDReload, Ctrl
-    Gui, Add, Checkbox, x+0 Checked%ShiftKBDReload% gGenerateHotkeyStrS vShiftKBDReload, Shift
-    Gui, Add, Checkbox, x+0 Checked%AltKBDReload% gGenerateHotkeyStrS vAltKBDReload, Alt
-    Gui, Add, Checkbox, x+0 Checked%WinKBDReload% gGenerateHotkeyStrS vWinKBDReload, Win
     Gui, Add, ComboBox, x+0 w%col2width% gProcessComboKBD vComboKBDReload, %ComboList%|%CBchoKBDReload%||
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%CtrlKBDReload% gGenerateHotkeyStrS vCtrlKBDReload, Ctrl
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%ShiftKBDReload% gGenerateHotkeyStrS vShiftKBDReload, Shift
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%AltKBDReload% gGenerateHotkeyStrS vAltKBDReload, Alt
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%WinKBDReload% gGenerateHotkeyStrS vWinKBDReload, Win
 
     Gui, Add, Text, xs+0 y+1 w%col1width%, Suspend / deactivate KeyPress OSD
-    Gui, Add, Checkbox, x+0 Checked%CtrlKBDsuspend% gGenerateHotkeyStrS vCtrlKBDsuspend, Ctrl
-    Gui, Add, Checkbox, x+0 Checked%ShiftKBDsuspend% gGenerateHotkeyStrS vShiftKBDsuspend, Shift
-    Gui, Add, Checkbox, x+0 Checked%AltKBDsuspend% gGenerateHotkeyStrS vAltKBDsuspend, Alt
-    Gui, Add, Checkbox, x+0 Checked%WinKBDsuspend% gGenerateHotkeyStrS vWinKBDsuspend, Win
     Gui, Add, ComboBox, x+0 w%col2width% gProcessComboKBD vComboKBDsuspend, %ComboList%|%CBchoKBDsuspend%||
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%CtrlKBDsuspend% gGenerateHotkeyStrS vCtrlKBDsuspend, Ctrl
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%ShiftKBDsuspend% gGenerateHotkeyStrS vShiftKBDsuspend, Shift
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%AltKBDsuspend% gGenerateHotkeyStrS vAltKBDsuspend, Alt
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%WinKBDsuspend% gGenerateHotkeyStrS vWinKBDsuspend, Win
 
     Gui, Add, Button, xs+0 y+15 w70 h30 Default gApplySettings vApplySettingsBTN, A&pply
     Gui, Add, Button, x+5 wp hp gCloseSettings, C&ancel
@@ -4518,23 +4523,23 @@ GenerateHotkeyStrS() {
   KBDsuspend .= ShiftKBDsuspend=1 ? "+" : ""
   KBDsuspend .= AltKBDsuspend=1 ? "!" : ""
   KBDsuspend .= WinKBDsuspend=1 ? "#" : ""
-  KBDaltTypeMode .= ComboKBDaltTypeMode
-  KBDpasteOSDcnt1 .= ComboKBDpasteOSDcnt1
-  KBDpasteOSDcnt2 .= ComboKBDpasteOSDcnt2
-  KBDsynchApp1 .= ComboKBDsynchApp1
-  KBDsynchApp2 .= ComboKBDsynchApp2
-  KBDTglNeverOSD .= ComboKBDTglNeverOSD
-  KBDTglPosition .= ComboKBDTglPosition
-  KBDTglSilence .= ComboKBDTglSilence
-  KBDidLangNow .= ComboKBDidLangNow
-  KBDCapText .= ComboKBDCapText
-  KBDReload .= ComboKBDReload
-  KBDsuspend .= ComboKBDsuspend
+  KBDaltTypeMode .= ProcessChoiceKBD2(ComboKBDaltTypeMode)
+  KBDpasteOSDcnt1 .= ProcessChoiceKBD2(ComboKBDpasteOSDcnt1)
+  KBDpasteOSDcnt2 .= ProcessChoiceKBD2(ComboKBDpasteOSDcnt2)
+  KBDsynchApp1 .= ProcessChoiceKBD2(ComboKBDsynchApp1)
+  KBDsynchApp2 .= ProcessChoiceKBD2(ComboKBDsynchApp2)
+  KBDTglNeverOSD .= ProcessChoiceKBD2(ComboKBDTglNeverOSD)
+  KBDTglPosition .= ProcessChoiceKBD2(ComboKBDTglPosition)
+  KBDTglSilence .= ProcessChoiceKBD2(ComboKBDTglSilence)
+  KBDidLangNow .= ProcessChoiceKBD2(ComboKBDidLangNow)
+  KBDCapText .= ProcessChoiceKBD2(ComboKBDCapText)
+  KBDReload .= ProcessChoiceKBD2(ComboKBDReload)
+  KBDsuspend .= ProcessChoiceKBD2(ComboKBDsuspend)
   GuiControl, Enable, ApplySettingsBTN
 }
 
 ProcessComboKBD() {
-  ComboList := "(Disabled)|(Restore Default)|[[ 0-9 / Numbers ]]|[[ Letters ]]|Right|Left|Up|Down|Home|End|PgDn|PgUp|Backspace|Space|Tab|Delete|Enter|Escape|Insert|CapsLock|NumLock|ScrollLock|LButton|MButton|RButton|PrintScreen|Pause|Break|CtrlBreak|AppsKey|F1|F2|F3|F4|F5|F6|F7|F8|F9|F10|F11|F12|Browser_Back|Browser_Favorites|Browser_Forward|Browser_Home|Browser_Refresh|Browser_Search|Browser_Stop|Help|Launch_App1|Launch_App2|Launch_Mail|Launch_Media|Media_Next|Media_Play_Pause|Media_Prev|Media_Stop|Numpad0|Numpad1|Numpad2|Numpad3|Numpad4|Numpad5|Numpad6|Numpad7|Numpad8|Numpad9|NumpadAdd|NumpadClear|NumpadDel|NumpadDiv|NumpadDot|NumpadDown|NumpadEnd|NumpadEnter|NumpadHome|NumpadIns|NumpadLeft|NumpadMult|NumpadPgDn|NumpadPgUp|NumpadRight|NumpadSub|NumpadUp|Sleep|Volume_Mute|Volume_Down|Volume_Up|WheelDown|WheelLeft|WheelRight|WheelUp|[[ VK nnn ]]|[[ SC nnn ]]"
+  ComboList := "(Disabled)|(Restore Default)|[[ 0-9 / Digits ]]|[[ Letters ]]|Right|Left|Up|Down|Home|End|Page_Down|Page_Up|Backspace|Space|Tab|Delete|Enter|Escape|Insert|CapsLock|NumLock|ScrollLock|L_Click|M_Click|R_Click|PrintScreen|Pause|Break|CtrlBreak|AppsKey|F1|F2|F3|F4|F5|F6|F7|F8|F9|F10|F11|F12|Nav_Back|Nav_Favorites|Nav_Forward|Nav_Home|Nav_Refresh|Nav_Search|Nav_Stop|Help|Launch_App1|Launch_App2|Launch_Mail|Launch_Media|Media_Next|Media_Play_Pause|Media_Prev|Media_Stop|Pad0|Pad1|Pad2|Pad3|Pad4|Pad5|Pad6|Pad7|Pad8|Pad9|PadClear|PadDel|PadDiv|PadDot|PadHome|PadEnd|PadEnter|PadIns|PadLeft|PadRight|PadAdd|PadSub|PadMult|PadPage_Down|PadPage_Up|PadUp|PadDown|Sleep|Volume_Mute|Volume_Up|Volume_Down|WheelUp|WheelDown|WheelLeft|WheelRight|[[ VK nnn ]]|[[ SC nnn ]]"
   forbiddenChars := "(\~|\!|\+|\^|\#|\$|\<|\>|\&)"
 
   GuiControlGet, CbEditKBDaltTypeMode,, ComboKBDaltTypeMode
@@ -4590,6 +4595,16 @@ ProcessChoiceKBD(str) {
      StringReplace, str, str,&,
      If !str
         str := "(Disabled)"
+     Return str
+}
+
+ProcessChoiceKBD2(str) {
+     StringReplace, str, str,Pad,Numpad
+     StringReplace, str, str,Page_Up,PgUp
+     StringReplace, str, str,Page_Down,PgDn
+     StringReplace, str, str,Nav_,Browser_
+     StringReplace, str, str,_Click,Button
+     StringReplace, str, str,numnumpad,Numpad
      Return str
 }
 
@@ -4872,6 +4887,12 @@ VerifySoundsOptions(enableApply:=1) {
     }
 }
 
+Switch2KBDsList() {
+  GenerateKBDlistMenu()
+  Sleep, 25
+  Menu, kbdLista, Show
+}
+
 ShowKBDsettings() {
     Global reopen
     If !reopen
@@ -4880,36 +4901,41 @@ ShowKBDsettings() {
         If (doNotOpen=1)
            Return
     }
-    Attempt2DownLang := 1
-    IniWrite, %Attempt2DownLang%, %IniFile%, TempSettings, Attempt2DownLang
     Global CurrentPrefWindow := 1
     Global EditF22
     txtWid := 250
+    btnWid := 130
     If (prefsLargeFonts=1)
     {
        txtWid := 370
+       btnWid := 180
        Gui, font, s%LargeUIfontValue%
     }
     Gui, Add, Tab3,, Keyboard layouts|Behavior
     Gui, Tab, 1 ; layouts
     Gui, Add, Checkbox, x+15 y+15 gVerifyKeybdOptions Checked%AutoDetectKBD% vAutoDetectKBD, Detect keyboard layout at start
     Gui, Add, Checkbox, y+7 gVerifyKeybdOptions Checked%ConstantAutoDetect% vConstantAutoDetect, Continuously detect layout changes
+    Gui, Add, Checkbox, y+7 gVerifyKeybdOptions Checked%UseMUInames% vUseMUInames, Use system default language names for layouts
     Gui, Add, Checkbox, y+7 gVerifyKeybdOptions Checked%SilentDetection% vSilentDetection, Silent detection (no messages)
     Gui, Add, Checkbox, y+7 gVerifyKeybdOptions Checked%audioAlerts% vaudioAlerts, Beep for failed key bindings
     Gui, Add, Checkbox, y+7 Section gVerifyKeybdOptions Checked%enableAltGr% venableAltGr, Enable Ctrl+Alt / AltGr support
     Gui, Add, Checkbox, xs+0 y+7 gVerifyKeybdOptions Checked%IgnoreAdditionalKeys% vIgnoreAdditionalKeys, Ignore specific keys (dot separated)
     Gui, Add, Edit, xp+20 y+5 gVerifyKeybdOptions w180 r1 -multi -wantReturn -wantTab -wrap vIgnorekeysList, %IgnorekeysList%
     Gui, font, bold
-    Gui, Add, Text, xp-20 y+7 w%txtWid%, Status: %CurrentKBD%
+    Gui, Add, Text, xp-20 y+7, Current keyboard layout:
+    Gui, Add, Text, y+7 w%txtWid%, %CurrentKBD%
+    IniRead, KBDsDetected, %langFile%, Options, KBDsDetected, -
+    Gui, Add, Text, y+7, Total layouts detected: %KBDsDetected%
+
     If (loadedLangz!=1) && (AutoDetectKBD=1)
        Gui, Add, Text, y+7 w%txtWid%, WARNING: Language definitions file is missing. Support for dead keys is limited. Otherwise, everything should be fine.
     Gui, font, normal
+    If (KBDsDetected>1)
+       Gui, Add, Button, y+10 w%btnWid% h30 gSwitch2KBDsList, List detected layouts
 
     Gui, Tab, 2 ; behavior
     Gui, Add, Checkbox, x+15 y+15 gVerifyKeybdOptions Checked%ShowSingleKey% vShowSingleKey, Show single keys
-    Gui, Add, Checkbox, y+7 gVerifyKeybdOptions Checked%OSDshowLEDs% vOSDshowLEDs, Show LEDs to indicate key states
-    Gui, Add, text, xp+15 y+5 w%txtWid%, This applies for Alt, Ctrl, Shift, Winkey and Caps / Num / Scroll lock.
-    Gui, Add, Checkbox, xp-15 y+10 gVerifyKeybdOptions Checked%HideAnnoyingKeys% vHideAnnoyingKeys, Hide Left Click and PrintScreen
+    Gui, Add, Checkbox, y+10 gVerifyKeybdOptions Checked%HideAnnoyingKeys% vHideAnnoyingKeys, Hide Left Click and PrintScreen
     Gui, Add, Checkbox, y+7 gVerifyKeybdOptions Checked%ShowSingleModifierKey% vShowSingleModifierKey, Display modifiers
     Gui, Add, Checkbox, y+7 gVerifyKeybdOptions Checked%DifferModifiers% vDifferModifiers, Differ left and right modifiers
     Gui, Add, Checkbox, y+7 gVerifyKeybdOptions Checked%ShowKeyCount% vShowKeyCount, Show key count
@@ -4917,16 +4943,18 @@ ShowKBDsettings() {
     Gui, Add, Checkbox, y+7 section gVerifyKeybdOptions Checked%ShowPrevKey% vShowPrevKey, Show previous key (delay in ms)
     Gui, Add, Edit, x+5 w60 r1 limit3 -multi number -wantCtrlA -wantReturn -wantTab -wrap vEditF22, %ShowPrevKeyDelay%
     Gui, Add, UpDown, vShowPrevKeyDelay gVerifyKeybdOptions Range100-990, %ShowPrevKeyDelay%
+    Gui, Add, Checkbox, xs+0 y+2 gVerifyKeybdOptions Checked%OSDshowLEDs% vOSDshowLEDs, Show LEDs to indicate key states
+    Gui, Add, text, xp+15 y+5 w%txtWid%, This applies for Alt, Ctrl, Shift, Winkey and `nCaps / Num / Scroll lock.
+
+    Gui, Add, Checkbox, xs+0 y+7 gVerifyKeybdOptions Checked%ShiftDisableCaps% vShiftDisableCaps, Shift turns off Caps Lock
+    Gui, Add, Checkbox, y+7 gVerifyKeybdOptions Checked%ClipMonitor% vClipMonitor, Monitor clipboard changes
+    Gui, Add, Checkbox, y+7 gVerifyKeybdOptions w%txtWid% Checked%hostCaretHighlight% vhostCaretHighlight, Highlight text cursor in host app `n(when detectable)
     If (OnlyTypingMode=1)
     {
        Gui, Font, bold
-       Gui, Add, Text, xs+0 y+7 w%txtWid%, Some options are disabled because Only Typing mode is activated.
+       Gui, Add, Text, y+7 w%txtWid%, Some options are disabled because Only Typing mode is activated.
        Gui, Font, normal
     }
-    Gui, Add, Text, xs+0 y+10, Other options:
-    Gui, Add, Checkbox, xp+15 y+7 gVerifyKeybdOptions Checked%ShiftDisableCaps% vShiftDisableCaps, Shift turns off Caps Lock
-    Gui, Add, Checkbox, y+7 gVerifyKeybdOptions Checked%ClipMonitor% vClipMonitor, Monitor clipboard changes
-    Gui, Add, Checkbox, y+7 gVerifyKeybdOptions w%txtWid% Checked%hostCaretHighlight% vhostCaretHighlight, Highlight text cursor in host app (if detectable)
 
     Gui, Tab
     Gui, Add, Button, xm+0 y+10 w70 h30 Default gApplySettings vApplySettingsBTN, A&pply
@@ -4981,9 +5009,6 @@ VerifyKeybdOptions(enableApply:=1) {
     If (AutoDetectKBD=1)
        GuiControl, Enable, ConstantAutoDetect
     Else 
-       GuiControl, Disable, ConstantAutoDetect
-
-    If (AutoDetectKBD=1)
        GuiControl, Disable, ConstantAutoDetect
 
     If (AutoDetectKBD=0)
@@ -5477,7 +5502,6 @@ AboutWindow() {
     btnWid := 100
     Gui, Font, s20 bold, Arial, -wrap
     Gui, Add, Text, x15 y10, KeyPress OSD v%version%
-    Gui, Add, Picture, x+10 yp+0 gDonateNow w90 h30, keypress-files\paypal.png
     Gui, Font
     If (prefsLargeFonts=1)
     {
@@ -5487,14 +5511,15 @@ AboutWindow() {
     }
     Gui, Add, Link, x15 y+4, Script developed by <a href="http://marius.sucan.ro">Marius Șucan</a> on AHK_H v1.1.27.
     Gui, Add, Link, y+4, Based on KeyPressOSD v2.2 by Tmplinshi. <a href="mailto:marius.sucan@gmail.com">Send me feedback</a>.
-    Gui, Add, Text, y+4, Freeware. Open source. For Windows XP, Vista, 7, 8, and 10.
+    Gui, Add, Text, y+4, Freeware. Open source. For Windows 7 and 10.
     Gui, Add, Text, y+10 w%txtWid%, My gratitude to Drugwash for directly contributing with considerable improvements and code to this project.
     Gui, Add, Text, y+10 w%txtWid%, Many thanks to the great people from #ahk (irc.freenode.net), in particular to Phaleth, Tidbit and Saiapatsu. Special mentions to: Burque505 / Winter (for continued feedback) and Neuromancer.
-    Gui, Add, Text, y+10 w%txtWid%, This contains code also from: Maestrith (color picker), Alguimist (font list generator), VxE (GuiGetSize), Sean (GetTextExtentPoint), Helgef (toUnicodeEx), Jess Harpur (Extract2Folder), Tidbit (String Things), jballi (Font Library 3) and Lexikos.
+    Gui, Add, Text, y+10 w%txtWid% Section, This contains code also from: Maestrith (color picker), Alguimist (font list generator), VxE (GuiGetSize), Sean (GetTextExtentPoint), Helgef (toUnicodeEx), Jess Harpur (Extract2Folder), Tidbit (String Things), jballi (Font Library 3) and Lexikos.
     Gui, font, bold
-    Gui, Add, Link, y+10, To keep the development going, <a href="https://www.paypal.me/MariusSucan/15">please donate</a> using PayPal.
+    Gui, Add, Link, xp+25 y+10, To keep the development going, `n<a href="https://www.paypal.me/MariusSucan/15">please donate</a> through PayPal.
+    Gui, Add, Picture, x+5 yp+0 gDonateNow w95 hp, keypress-files\paypal.png
     Gui, font, normal
-    Gui, Add, Button, y+20 w75 Default gCloseWindow, &Close
+    Gui, Add, Button, xs+0 y+20 w75 Default gCloseWindow, &Close
     Gui, Add, Button, x+5 w%btnWid% gChangeLog, Version &history
     Gui, Add, Text, x+8 hp +0x200, Released: %releaseDate%
     Gui, Show, AutoSize, About KeyPress OSD v%version%
@@ -5523,6 +5548,34 @@ listIMEs(save:=0) {
     Return listDummyKBDs
 }
 
+GenerateKBDlistMenu() {
+    Static ListGenerated
+    If (ListGenerated=1)
+       Return
+    initLangFile()
+    Sleep, 25
+    IniRead, KLIDlist, %langFile%, Options, KLIDlist, -
+    Loop, Parse, KLIDlist, CSV
+    {
+      If StrLen(A_LoopField)<2
+         Continue
+      IniRead, langFriendlySysName, %langFile%, %A_LoopField%, name, -
+      IniRead, isRTL, %langFile%, %A_LoopField%, isRTL, -
+      IniRead, KBDisUnsupported, %langFile%, %A_LoopField%, KBDisUnsupported, -
+
+      If (KBDisUnsupported=1)
+         KBDisSupported := "(unsupported)"
+      If (KBDisUnsupported=0)
+         KBDisSupported := ""
+      If (isRTL=1)
+         KBDisSupported := "(partial support)"
+      Menu, kbdLista, add, %langFriendlySysName% %KBDisSupported%, dummy
+      If (KBDisUnsupported=1)
+         Menu, kbdLista, Disable, %langFriendlySysName% %KBDisSupported%
+    }
+    ListGenerated := 1
+}
+
 InstalledKBDsWindow() {
     If (prefOpen = 1)
     {
@@ -5533,8 +5586,9 @@ InstalledKBDsWindow() {
     kbLayoutRaw := checkWindowKBD()
     Sleep, 25
     initLangFile()
+    Sleep, 25
     DLC := 1+DllCall("GetKeyboardLayoutList", "UInt", 0, "Ptr", 0) ; detected layouts count
-    DLC := DLC>12 ? 12 : DLC
+    DLC := DLC>9 ? 9 : DLC
     IniWrite, %releaseDate%, %inifile%, SavedSettings, releaseDate
     IniWrite, %version%, %inifile%, SavedSettings, version
     SettingsGUI()
@@ -5545,8 +5599,10 @@ InstalledKBDsWindow() {
        txtWid := 600
        Gui, font, s%LargeUIfontValue%
     }
+    Gui, Font, Bold
     Gui, Add, Text, x15 y10, Current keyboard layout
     Gui, Add, Text, y+5 w%txtWid%, %CurrentKBD%
+    Gui, Font, Normal
     Gui, Add, ListView, y+10 w%txtWid% r%DLC% Grid Sort vListViewKBDs, Layout name|RTL|Dead keys|Supported|KLID
 
     IniRead, KLIDlist, %langFile%, Options, KLIDlist, -
@@ -5580,11 +5636,11 @@ InstalledKBDsWindow() {
     LV_ModifyCol(1, "Left")
     If (prefsLargeFonts=1)
     {
-        LV_ModifyCol(1, 290)
+        LV_ModifyCol(1, 285)
         LV_ModifyCol(5, 65)
     } Else
     {
-        LV_ModifyCol(1, 190)
+        LV_ModifyCol(1, 170)
         LV_ModifyCol(5, 45)
     }
 
@@ -5815,7 +5871,6 @@ updateNow() {
      mainFileTmp := A_IsCompiled ? "new-keypress-osd.exe" : "temp-keypress-osd.ahk"
      mainFile := A_IsCompiled ? mainFileBinary : "keypress-osd.ahk"
      mainFileURL := baseURL mainFile
-;     thisFile := A_ScriptName  ; this is going global, so once it has been loaded the name is remembered even if later renamed/deleted
      zipFile := "keypress-files.zip"
      zipFileTmp := zipFile
      zipUrl := baseURL zipFile
@@ -5834,13 +5889,13 @@ updateNow() {
              If InStr(contents, "; KeypressOSD.ahk - main file") || (InStr(contents, "MZ")=1)
              {
                 ShowLongMsg("Updating files: Main code: OK")
-                 If doBackup
-                   {
+                If doBackup
+                {
                    bkpDir := A_ScriptDir "\bkp-" A_Now
                    FileCreateDir, %bkpDir%
                    FileCopy, %thisFile%, %bkpDir%
-                   }
-               If !A_IsCompiled
+                }
+                If !A_IsCompiled
                    FileMove, %mainFileTmp%, %thisFile%, 1
                 Sleep, 1350
                 ahkDownloaded := 1
@@ -5908,13 +5963,14 @@ updateNow() {
      }
 
 ; delete temporary files and folders in Temp [by Drugwash]
-    Loop
-       If FileExist(tmpDir := A_Temp "\Temporary Directory " A_Index " for " zipFile)
-          {
-          FileSetAttrib, -RH, %tmpDir%, 2
-          FileRemoveDir, %tmpDir%, 1
-          }
-       Else Break
+     Loop
+     {
+        If FileExist(tmpDir := A_Temp "\Temporary Directory " A_Index " for " zipFile)
+        {
+           FileSetAttrib, -RH, %tmpDir%, 2
+           FileRemoveDir, %tmpDir%, 1
+        } Else Break
+     }
 
      If (completeSucces=1)
      {
@@ -6005,7 +6061,7 @@ verifyNonCrucialFiles() {
             downloadSoundPackNow := missingAudios := 1
 
     Loop, Parse, FilePack, CSV
-        If !FileExist(%A_LoopField%)
+         If !FileExist(%A_LoopField%)
             downloadPackNow := 1
 
     FileGetTime, fileDate, %historyFile%
@@ -6138,12 +6194,12 @@ SetStartUp() {
   RegRead, currentReg, HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Run, KeyPressOSD
   If (ErrorLevel=1) || (currentReg!=regEntry)
   {
-     Menu, SubSetMenu, Check, Start at boot
+     Menu, PrefsMenu, Check, Start at boot
      RegWrite, REG_SZ, HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Run, KeyPressOSD, %regEntry%
   } Else
   {
      RegDelete, HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Run, KeyPressOSD
-     Menu, SubSetMenu, unCheck, Start at boot
+     Menu, PrefsMenu, unCheck, Start at boot
   }
 }
 
@@ -6261,6 +6317,7 @@ ShaveSettings() {
   IniWrite, %OSDshowLEDs%, %IniFile%, SavedSettings, OSDshowLEDs
   IniWrite, %EnforceSluggishSynch%, %IniFile%, SavedSettings, EnforceSluggishSynch
   IniWrite, %doBackup%, %inifile%, SavedSettings, BackupOldFiles
+  IniWrite, %UseMUInames%, %inifile%, SavedSettings, UseMUInames
 }
 
 LoadSettings() {
@@ -6375,6 +6432,7 @@ LoadSettings() {
   IniRead, OSDshowLEDs, %inifile%, SavedSettings, OSDshowLEDs, %OSDshowLEDs%
   IniRead, EnforceSluggishSynch, %inifile%, SavedSettings, EnforceSluggishSynch, %EnforceSluggishSynch%
   IniRead, doBackup, %inifile%, SavedSettings, BackupOldFiles, %doBackup%
+  IniRead, UseMUInames, %inifile%, SavedSettings, UseMUInames, %UseMUInames%
 
   CheckSettings()
   GuiX := (GUIposition=1) ? GuiXa : GuiXb
@@ -6447,7 +6505,8 @@ CheckSettings() {
     prefsLargeFonts := (prefsLargeFonts=0 || prefsLargeFonts=1) ? prefsLargeFonts : 0
     OSDshowLEDs := (OSDshowLEDs=0 || OSDshowLEDs=1) ? OSDshowLEDs : 1
     EnforceSluggishSynch := (EnforceSluggishSynch=0 || EnforceSluggishSynch=1) ? EnforceSluggishSynch : 0
-    doBackup := (doBackup=0 || doBackup=1) ? doBackup : 1
+    doBackup := (doBackup=0 || doBackup=1) ? doBackup : 0
+    UseMUInames := (UseMUInames=0 || UseMUInames=1) ? UseMUInames : 1
 
     If (mouseOSDbehavior=1)
     {
@@ -7090,10 +7149,10 @@ SHLoadIndirectString(in) {
     Return out
 }
 
-GetLayoutDisplayName(subkey, usemui:=1) {
+GetLayoutDisplayName(subkey) {
     Static key := "SYSTEM\CurrentControlSet\Control\Keyboard Layouts"
     RegRead, mui, HKLM, %key%\%subkey%, Layout Display Name
-    If (StrLen(mui)<4 || !usemui)
+    If (StrLen(mui)<4 || UseMUInames=0)
        RegRead, Dname, HKLM, %key%\%subkey%, Layout Text
     Else
        Dname := SHLoadIndirectString(mui)
