@@ -11,6 +11,11 @@ http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip
 
 by Marius Sucan (robodesign.ro)
 
+  v4.20.3 (2018-02-16)
+  - [new] option at keyboard preferences to choose what names to display for identified keyboard layouts: in English or system default language
+  - [new] a button to see the list of layouts [at keyboard preferences]
+  - minor bug fixes
+
   v4.20.2 (2018-02-15)
   - [overhaul] the entire Keyboard shortcut customization panel redone from scratch, it should work this time and, should also be user friendly
 
@@ -733,13 +738,14 @@ TO-DO:
 Features to implement:
 - compile the thing! include all scripts inside?
   - separate UI settings and tray menu? separate files with include
-  - download latest AHK_H
   - make a github release
-https://github.com/Pulover/Class_Toolbar
-https://autohotkey.com/boards/viewtopic.php?f=6&t=138
+
+- test compiled version on different systems; crashes?
+  - keypress lite? compiled with AHK_L
 
 - altgr dead keys, English India? bugs?
   - jumpy caret?
+
 
 - capture text to-do:
   - wm-getobject, send message [chrome]
@@ -751,7 +757,6 @@ https://www.chromium.org/developers/design-documents/accessibility#TOC-How-Chrom
 https://github.com/neptercn/Component_AHK/blob/master/uia.ahk
 https://autohotkey.com/board/topic/53672-get-the-text-content-of-a-tool-tip-window/
 
-- test with win 7 x64
 - detect kbd layout without reloads; dynamically unload/remove all hotkeys, and set new ones
 - https://autohotkey.com/boards/viewtopic.php?f=5&t=42933&p=195025#p195025
 
