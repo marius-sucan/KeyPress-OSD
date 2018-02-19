@@ -1,4 +1,4 @@
-; KeypressOSD.ahk - beepers functions file
+﻿; KeypressOSD.ahk - beepers functions file
 ; Latest version at:
 ; http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd.ahk
 ;
@@ -33,6 +33,7 @@ global LowVolBeeps           := 1
  , LastFiredTime := 0
  , toggleLastState := 0
  , skipAbeep := 0
+ , isBeeperzFile := 1
 
   IniRead, ScriptelSuspendel, %inifile%, TempSettings, ScriptelSuspendel, %ScriptelSuspendel%
   IniRead, SilentMode, %inifile%, SavedSettings, SilentMode, %SilentMode%

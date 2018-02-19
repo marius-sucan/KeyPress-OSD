@@ -11,6 +11,18 @@ http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip
 
 by Marius Sucan (robodesign.ro)
 
+  v4.20.5 (2018-02-19)
+  - various bug fixes
+  - improvements for mouse ripples, it now distinguishes between single clicks and double clicks
+  - KeyPress will hold the OSD visible as long as a modifier or a click is pressed down
+  - KeyPress will inform the user when it found no text [after attempting to synch with the host app] an...d when attempting to paste the OSD, if there's is nothing in the OSD, it will show a message informing the user that there is nothing to paste...
+  - the Installed keyboard layouts window is more compact, thanks to Drugwash
+
+  v4.20.4 (2018-02-17)
+  - [new] output OSD content as a tooltip that follows the mouse cursor
+  - various DLL calls and other under the hood improvements by Drugwash; many thanks!!!
+  - various other fixes
+
   v4.20.3 (2018-02-16)
   - [new] option at keyboard preferences to choose what names to display for identified keyboard layouts: in English or system default language
   - [new] a button to see the list of layouts [at keyboard preferences]
@@ -742,6 +754,12 @@ Features to implement:
 
 - test compiled version on different systems; crashes?
   - keypress lite? compiled with AHK_L
+  - win 7 [vm, pc], win 10 [laptop]
+  - cu modificările lui drugwash vs. fără
+
+
+- DLC 9
+- caret jumps and the dead key symbol; bengali and Igbo chars
 
 - altgr dead keys, English India? bugs?
   - jumpy caret?

@@ -1,4 +1,4 @@
-; Accessible Info Viewer
+﻿; Accessible Info Viewer
 ; by Sean and jethrow
 ; http://www.autohotkey.com/board/topic/77888-accessible-info-viewer-alpha-release-2012-09-20/
 ; https://dl.dropbox.com/u/47573473/Accessible%20Info%20Viewer/AccViewer%20Source.ahk
@@ -8,50 +8,52 @@ OnMessage(0x200,"WM_MOUSEMOVE")
 ComObjError(false)
 
 SetTimer, GetAccInfo, 450, 50
-return
+Return
 */
+Global isAcc1File := 1
+
 GetAccInfo() {
   DetectHiddenWindows, On
-  if (A_TickCount-lastTypedSince < DisplayTimeTyping/2) || A_IsSuspended
+  If (A_TickCount-lastTypedSince < DisplayTimeTyping/2) || A_IsSuspended
      Return
   Acc := Acc_ObjectFromPoint(ChildId)
   UpdateAccInfo(Acc, ChildId)
 }
 UpdateAccInfo(Acc, ChildId, Obj_Path="") {
-  global InputMsg, AccViewName, AccViewValue, CtrlTextVar, NewCtrlTextVar
-  global uia := UIA_Interface()
-  global Element := uia.ElementFromPoint()
+  Global InputMsg, AccViewName, AccViewValue, CtrlTextVar, NewCtrlTextVar
+  Global uia := UIA_Interface()
+  Global Element := uia.ElementFromPoint()
   
   MouseGetPos, , , id, controla, 2
   ControlGetText, NewCtrlTextVar , , ahk_id %controla%
-  CtrlTextVar := strlen(NewCtrlTextVar)>1 || !OSDvisible ? NewCtrlTextVar : CtrlTextVar
+  CtrlTextVar := StrLen(NewCtrlTextVar)>1 || !OSDvisible ? NewCtrlTextVar : CtrlTextVar
 
   NewAccViewName := Element.CurrentName
-  if !NewAccViewName
+  If !NewAccViewName
      NewAccViewName := Acc.accName(ChildId)
-  AccViewName := strlen(NewAccViewName)>1 || !OSDvisible ? NewAccViewName : AccViewName
+  AccViewName := StrLen(NewAccViewName)>1 || !OSDvisible ? NewAccViewName : AccViewName
 
-  for each, value in [30093,30092,30045] ; lvalue,lname,value
+  For each, value in [30093,30092,30045] ; lvalue,lname,value
       NewAccViewValue := Element.GetCurrentPropertyValue(value)
-  until r != ""
-  if !NewAccViewValue
+  Until r != ""
+  If !NewAccViewValue
      NewAccViewValue := Acc.accValue(ChildId)
-  AccViewValue := strlen(NewAccViewValue)>1 || !OSDvisible ? NewAccViewValue : AccViewValue
+  AccViewValue := StrLen(NewAccViewValue)>1 || !OSDvisible ? NewAccViewValue : AccViewValue
   CtrlTextVar := RegExReplace(CtrlTextVar, "i)^(\s+)")
   AccViewName := RegExReplace(AccViewName, "i)^(\s+)")
   AccViewValue := RegExReplace(AccViewValue, "i)^(\s+)")
-  if (strlen(AccViewName) = strlen(CtrlTextVar)-1) || (strlen(AccViewName) = strlen(CtrlTextVar)+1)
+  If (StrLen(AccViewName) = StrLen(CtrlTextVar)-1) || (StrLen(AccViewName) = StrLen(CtrlTextVar)+1)
      CtrlTextVar := ""
-  if (AccViewName=AccViewValue)
+  If (AccViewName=AccViewValue)
      AccViewValue := ""
-  if (AccViewName=CtrlTextVar) || (AccViewValue=CtrlTextVar)
+  If (AccViewName=CtrlTextVar) || (AccViewValue=CtrlTextVar)
      CtrlTextVar := ""
 
   otherDetails := Acc_GetRoleText(Acc.accRole(ChildId)) " " Acc_GetStateText(Acc.accState(ChildId)) " " Acc.accDefaultAction(ChildId) " " Acc.accDescription(ChildId) " " Acc.accHelp(ChildId)
   NewInputMsg := AccViewName " " AccViewValue " " CtrlTextVar " " otherDetails
   StringReplace, NewInputMsg, NewInputMsg, %A_TAB%, %A_SPACE%, All
   StringReplace, NewInputMsg, NewInputMsg, %A_SPACE%%A_SPACE%, %A_SPACE%, All
-  if (NewInputMsg!=InputMsg)
+  If (NewInputMsg!=InputMsg)
   {
      ShowLongMsg(NewInputMsg)
      InputMsg := NewInputMsg
@@ -60,91 +62,91 @@ UpdateAccInfo(Acc, ChildId, Obj_Path="") {
 }
 
 GetClassNN(Chwnd, Whwnd) {
-  global _GetClassNN := {}
+  Global _GetClassNN := {}
   _GetClassNN.Hwnd := Chwnd
   Detect := A_DetectHiddenWindows
   WinGetClass, Class, ahk_id %Chwnd%
   _GetClassNN.Class := Class
   DetectHiddenWindows, On
   EnumAddress := RegisterCallback("GetClassNN_EnumChildProc")
-  DllCall("EnumChildWindows", "uint",Whwnd, "uint",EnumAddress)
+  DllCall("user32\EnumChildWindows", "UInt",Whwnd, "UInt",EnumAddress)
   DetectHiddenWindows, %Detect%
-  return, _GetClassNN.ClassNN, _GetClassNN:=""
+  Return, _GetClassNN.ClassNN, _GetClassNN:=""
 }
 
 GetClassNN_EnumChildProc(hwnd, lparam) {
-  static Occurrence
-  global _GetClassNN
+  Static Occurrence
+  Global _GetClassNN
   WinGetClass, Class, ahk_id %hwnd%
-  if _GetClassNN.Class == Class
+  If _GetClassNN.Class == Class
     Occurrence++
-  if Not _GetClassNN.Hwnd == hwnd
-    return true
-  else {
+  If Not _GetClassNN.Hwnd == hwnd
+    Return true
+  Else {
     _GetClassNN.ClassNN := _GetClassNN.Class Occurrence
     Occurrence := 0
-    return false
+    Return false
   }
 }
 TV_Expanded(TVid) {
   For Each, TV_Child_ID in TVobj[TVid].Children
-    if TVobj[TV_Child_ID].need_children
+    If TVobj[TV_Child_ID].need_children
       TV_BuildAccChildren(TVobj[TV_Child_ID].obj, TV_Child_ID)
 }
 TV_BuildAccChildren(AccObj, Parent, Selected_Child="", Flag="") {
   TVobj[Parent].need_children := false
   Parent_Obj_Path := Trim(TVobj[Parent].Obj_Path, ",")
-  for wach, child in Acc_Children(AccObj) {
-    if Not IsObject(child) {
+  For wach, child in Acc_Children(AccObj) {
+    If Not IsObject(child) {
       added := TV_Add("[" A_Index "] " Acc_GetRoleText(AccObj.accRole(child)), Parent)
       TVobj[added] := {is_obj:false, obj:Acc, childid:child, Obj_Path:Parent_Obj_Path}
-      if (child = Selected_Child)
+      If (child = Selected_Child)
         TV_Modify(added, "Select")
     }
-    else {
+    Else {
       added := TV_Add("[" A_Index "] " Acc_Role(child), Parent, "bold")
       TVobj[added] := {is_obj:true, need_children:true, obj:child, childid:0, Children:[], Obj_Path:Trim(Parent_Obj_Path "," A_Index, ",")}
     }
     TVobj[Parent].Children.Insert(added)
-    if (A_Index = Flag)
+    If (A_Index = Flag)
       Flagged_Child := added
   }
-  return Flagged_Child
+  Return Flagged_Child
 }
 GetAccPath(Acc, byref hwnd="") {
   hwnd := Acc_WindowFromObject(Acc)
   WinObj := Acc_ObjectFromWindow(hwnd)
   WinObjPos := Acc_Location(WinObj).pos
-  while Acc_WindowFromObject(Parent:=Acc_Parent(Acc)) = hwnd {
+  While Acc_WindowFromObject(Parent:=Acc_Parent(Acc)) = hwnd {
     t2 := GetEnumIndex(Acc) "." t2
-    if Acc_Location(Parent).pos = WinObjPos
-      return {AccObj:Parent, Path:SubStr(t2,1,-1)}
+    If Acc_Location(Parent).pos = WinObjPos
+      Return {AccObj:Parent, Path:SubStr(t2,1,-1)}
     Acc := Parent
   }
-  while Acc_WindowFromObject(Parent:=Acc_Parent(WinObj)) = hwnd
+  While Acc_WindowFromObject(Parent:=Acc_Parent(WinObj)) = hwnd
     t1.="P.", WinObj:=Parent
-  return {AccObj:Acc, Path:t1 SubStr(t2,1,-1)}
+  Return {AccObj:Acc, Path:t1 SubStr(t2,1,-1)}
 }
 GetEnumIndex(Acc, ChildId=0) {
-  if Not ChildId {
+  If Not ChildId {
     ChildPos := Acc_Location(Acc).pos
     For Each, child in Acc_Children(Acc_Parent(Acc))
-      if IsObject(child) and Acc_Location(child).pos=ChildPos
-        return A_Index
+      If IsObject(child) and Acc_Location(child).pos=ChildPos
+        Return A_Index
   } 
-  else {
+  Else {
     ChildPos := Acc_Location(Acc,ChildId).pos
     For Each, child in Acc_Children(Acc)
-      if Not IsObject(child) and Acc_Location(Acc,child).pos=ChildPos
-        return A_Index
+      If Not IsObject(child) and Acc_Location(Acc,child).pos=ChildPos
+        Return A_Index
   }
 }
 GetAccLocation(AccObj, Child=0, byref x="", byref y="", byref w="", byref h="") {
   AccObj.accLocation(ComObj(0x4003,&x:=0), ComObj(0x4003,&y:=0), ComObj(0x4003,&w:=0), ComObj(0x4003,&h:=0), Child)
-  return  "x" (x:=NumGet(x,0,"int")) "  "
-  .  "y" (y:=NumGet(y,0,"int")) "  "
-  .  "w" (w:=NumGet(w,0,"int")) "  "
-  .  "h" (h:=NumGet(h,0,"int"))
+  Return  "x" (x:=NumGet(x,0,"Int")) "  "
+  .  "y" (y:=NumGet(y,0,"Int")) "  "
+  .  "w" (w:=NumGet(w,0,"Int")) "  "
+  .  "h" (h:=NumGet(h,0,"Int"))
 }
 
 { ; Acc Library
@@ -152,7 +154,7 @@ GetAccLocation(AccObj, Child=0, byref x="", byref y="", byref w="", byref h="") 
   {
     Static  h
     If Not  h
-    h:=DllCall("LoadLibrary","Str","oleacc","Ptr")
+    h:=DllCall("kernel32\LoadLibraryW","Str","oleacc","Ptr")
   }
   Acc_ObjectFromEvent(ByRef _idChild_, hWnd, idObject, idChild)
   {
@@ -163,7 +165,7 @@ GetAccLocation(AccObj, Child=0, byref x="", byref y="", byref w="", byref h="") 
   Acc_ObjectFromPoint(ByRef _idChild_ = "", x = "", y = "")
   {
     Acc_Init()
-    If  DllCall("oleacc\AccessibleObjectFromPoint", "Int64", x==""||y==""?0*DllCall("GetCursorPos","Int64*",pt)+pt:x&0xFFFFFFFF|y<<32, "Ptr*", pacc, "Ptr", VarSetCapacity(varChild,8+2*A_PtrSize,0)*0+&varChild)=0
+    If  DllCall("oleacc\AccessibleObjectFromPoint", "Int64", x==""||y==""?0*DllCall("user32\GetCursorPos","Int64*",pt)+pt:x&0xFFFFFFFF|y<<32, "Ptr*", pacc, "Ptr", VarSetCapacity(varChild,8+2*A_PtrSize,0)*0+&varChild)=0
     Return  ComObjEnwrap(9,pacc,1), _idChild_:=NumGet(varChild,8,"UInt")
   }
   Acc_ObjectFromWindow(hWnd, idObject = 0)
@@ -193,25 +195,25 @@ GetAccLocation(AccObj, Child=0, byref x="", byref y="", byref w="", byref h="") 
   }
   Acc_Role(Acc, ChildId=0)
   {
-    try return ComObjType(Acc,"Name")="IAccessible"?Acc_GetRoleText(Acc.accRole(ChildId)):"invalid object"
+    try Return ComObjType(Acc,"Name")="IAccessible"?Acc_GetRoleText(Acc.accRole(ChildId)):"invalid object"
   }
   Acc_State(Acc, ChildId=0)
   {
-    try return ComObjType(Acc,"Name")="IAccessible"?Acc_GetStateText(Acc.accState(ChildId)):"invalid object"
+    try Return ComObjType(Acc,"Name")="IAccessible"?Acc_GetStateText(Acc.accState(ChildId)):"invalid object"
   }
   Acc_Children(Acc)
   {
-    if ComObjType(Acc,"Name")!="IAccessible"
+    If ComObjType(Acc,"Name")!="IAccessible"
       error_message := "Cause:`tInvalid IAccessible Object`n`n"
-    else
+    Else
     {
       Acc_Init()
       cChildren:=Acc.accChildCount, Children:=[]
-      if DllCall("oleacc\AccessibleChildren", "Ptr", ComObjValue(Acc), "Int", 0, "Int", cChildren, "Ptr", VarSetCapacity(varChildren,cChildren*(8+2*A_PtrSize),0)*0+&varChildren, "Int*", cChildren)=0
+      If DllCall("oleacc\AccessibleChildren", "Ptr", ComObjValue(Acc), "Int", 0, "Int", cChildren, "Ptr", VarSetCapacity(varChildren,cChildren*(8+2*A_PtrSize),0)*0+&varChildren, "Int*", cChildren)=0
       {
         Loop %cChildren%
           i:=(A_Index-1)*(A_PtrSize*2+8)+8, child:=NumGet(varChildren,i), Children.Insert(NumGet(varChildren,i-8)=3?child:Acc_Query(child)), ObjRelease(child)
-      return Children
+      Return Children
       }
     }
     error:=Exception("",-1)
@@ -223,31 +225,31 @@ GetAccLocation(AccObj, Child=0, byref x="", byref y="", byref w="", byref h="") 
   {
     try Acc.accLocation(ComObj(0x4003,&x:=0), ComObj(0x4003,&y:=0), ComObj(0x4003,&w:=0), ComObj(0x4003,&h:=0), ChildId)
     catch
-    return
-    return  {x:NumGet(x,0,"int"), y:NumGet(y,0,"int"), w:NumGet(w,0,"int"), h:NumGet(h,0,"int")
-    ,  pos:"x" NumGet(x,0,"int")" y" NumGet(y,0,"int") " w" NumGet(w,0,"int") " h" NumGet(h,0,"int")}
+    Return
+    Return  {x:NumGet(x,0,"Int"), y:NumGet(y,0,"Int"), w:NumGet(w,0,"Int"), h:NumGet(h,0,"Int")
+    ,  pos:"x" NumGet(x,0,"Int")" y" NumGet(y,0,"Int") " w" NumGet(w,0,"Int") " h" NumGet(h,0,"Int")}
   }
   Acc_Parent(Acc)
   {
     try parent:=Acc.accParent
-    return parent?Acc_Query(parent):
+    Return parent?Acc_Query(parent):
   }
   Acc_Child(Acc, ChildId=0)
   {
     try child:=Acc.accChild(ChildId)
-    return child?Acc_Query(child):
+    Return child?Acc_Query(child):
   }
   Acc_Query(Acc)
   {
-    try return ComObj(9, ComObjQuery(Acc,"{618736e0-3c3d-11cf-810c-00aa00389b71}"), 1)
+    try Return ComObj(9, ComObjQuery(Acc,"{618736e0-3c3d-11cf-810c-00aa00389b71}"), 1)
   }
 }
 
 Anchor(i, a = "", r = false)
 {
-  static c, cs = 12, cx = 255, cl = 0, g, gs = 8, gl = 0, gpi, gw, gh, z = 0, k = 0xffff, ptr
+  Static c, cs := 12, cx := 255, cl := 0, g, gs := 8, gl := 0, gpi, gw, gh, z := 0, k := 0xffff
   If z = 0
-    VarSetCapacity(g, gs * 99, 0), VarSetCapacity(c, cs * cx, 0), ptr := A_PtrSize ? "Ptr" : "UInt", z := true
+    VarSetCapacity(g, gs * 99, 0), VarSetCapacity(c, cs * cx, 0), z := true
   If (!WinExist("ahk_id" . i))
   {
     GuiControlGet, t, Hwnd, %i%
@@ -255,7 +257,7 @@ Anchor(i, a = "", r = false)
     i := t
     Else ControlGet, i, Hwnd, , %i%
   }
-  VarSetCapacity(gi, 68, 0), DllCall("GetWindowInfo", "UInt", gp := DllCall("GetParent", "UInt", i), ptr, &gi)
+  VarSetCapacity(gi, 68, 0), DllCall("user32\GetWindowInfo", "UInt", gp := DllCall("user32\GetParent", "UInt", i), "Ptr", &gi)
   , giw := NumGet(gi, 28, "Int") - NumGet(gi, 20, "Int"), gih := NumGet(gi, 32, "Int") - NumGet(gi, 24, "Int")
   If (gp != gpi)
   {
@@ -284,10 +286,10 @@ Anchor(i, a = "", r = false)
       If A_Index > 1
         av := SubStr(a, as, 1), as += 1 + StrLen(A_LoopField)
         , d%av% += (InStr("yh", av) ? gih : giw) * (A_LoopField + 0 ? A_LoopField : 1)
-    DllCall("SetWindowPos", "UInt", i, "UInt", 0, "Int", dx, "Int", dy
+    DllCall("user32\SetWindowPos", "UInt", i, "UInt", 0, "Int", dx, "Int", dy
     , "Int", InStr(a, "w") ? dw : cw, "Int", InStr(a, "h") ? dh : ch, "Int", 4)
     If r != 0
-      DllCall("RedrawWindow", "UInt", i, "UInt", 0, "UInt", 0, "UInt", 0x0101)
+      DllCall("user32\RedrawWindow", "UInt", i, "UInt", 0, "UInt", 0, "UInt", 0x0101)
     Return
   }
   If cf != 1

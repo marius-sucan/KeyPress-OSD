@@ -1,4 +1,4 @@
-; KeypressOSD.ahk - file used for alternative hooks
+﻿; KeypressOSD.ahk - file used for alternative hooks
 ; Latest version at:
 ; http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd.ahk
 ;
@@ -23,14 +23,18 @@ Critical, on
 global AltHook2keysUser  := 1
  , IniFile               := "keypress-osd.ini"
  , ScriptelSuspendel     := 0
+ , isKeystrokesFile := 1
 
   IniRead, ScriptelSuspendel, %inifile%, TempSettings, ScriptelSuspendel, %ScriptelSuspendel%
   IniRead, AltHook2keysUser, %inifile%, SavedSettings, AltHook2keysUser, %AltHook2keysUser%
 
-if (ScriptelSuspendel=1) || (AlternativeHook2keys=0)
+AlternativeHook2keys := (AltHook2keysUser=0) ? 0 : 1
+
+if (ScriptelSuspendel=1) ; || (AlternativeHook2keys=0)
    Return
 
 MainLoop()
+Return
 
 MainLoop() {
    global TargetScriptTitle := "KeyPressOSDwin"
@@ -42,9 +46,9 @@ MainLoop() {
       EndKey := ErrorLevel
       ; ToolTip, %inputchar%
       Send_WM_COPYDATA(InputChar, TargetScriptTitle)
-      if result = FAIL
+      If (result="FAIL")
           Sleep, 1
-      else if result = 0
+      Else If (result=0)
           Sleep, 0
    }
 }
