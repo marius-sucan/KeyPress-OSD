@@ -12,13 +12,14 @@ Return
 */
 Global isAcc1File := 1
 
-GetAccInfo() {
+GetAccInfo(skipVerification:=0) {
   DetectHiddenWindows, On
-  If (A_TickCount-lastTypedSince < DisplayTimeTyping/2) || A_IsSuspended
+  If (A_TickCount-lastTypedSince < DisplayTimeTyping/2 && skipVerification=0) || A_IsSuspended
      Return
   Acc := Acc_ObjectFromPoint(ChildId)
   UpdateAccInfo(Acc, ChildId)
 }
+
 UpdateAccInfo(Acc, ChildId, Obj_Path="") {
   Global InputMsg, AccViewName, AccViewValue, CtrlTextVar, NewCtrlTextVar
   Global uia := UIA_Interface()
@@ -53,7 +54,7 @@ UpdateAccInfo(Acc, ChildId, Obj_Path="") {
   NewInputMsg := AccViewName " " AccViewValue " " CtrlTextVar " " otherDetails
   StringReplace, NewInputMsg, NewInputMsg, %A_TAB%, %A_SPACE%, All
   StringReplace, NewInputMsg, NewInputMsg, %A_SPACE%%A_SPACE%, %A_SPACE%, All
-  If (NewInputMsg!=InputMsg)
+  If (NewInputMsg!=InputMsg) || (TextZoomer=0)
   {
      ShowLongMsg(NewInputMsg)
      InputMsg := NewInputMsg
