@@ -49,16 +49,13 @@ MouseRippleSetup() {
     MiddleClickRippleColor := 0x33cc33
     MouseIdleRippleColor := LeftClickRippleColor
     DCT := DllCall("user32\GetDoubleClickTime")
-/*
+
     ; initilaization and proper shutdown are done in main KeypressOSD script
     DllCall("kernel32\LoadLibraryW", "Str", "gdiplus.dll")
     VarSetCapacity(buf, 16, 0)
     NumPut(1, buf)
     DllCall("gdiplus\GdiplusStartup", "PtrP", pToken, "Ptr", &buf, "Ptr", 0)
-*/
-    Gui Ripple: -Caption +LastFound +AlwaysOnTop +ToolWindow +Owner +E0x80000
-    Gui Ripple: Show, NA, RippleWin
-    hRippleWin := WinExist("RippleWin")
+
     hRippleDC := DllCall("user32\GetDC", "Ptr", 0)
     VarSetCapacity(buf, 40, 0)
     NumPut(40, buf, 0)
@@ -80,6 +77,12 @@ ShowRipple(_color, _style, _interval:=10) {
     Global
     Static lastClk := A_TickCount
     Static lastEvent
+    Gui Ripple: Destroy
+    Gui Ripple: -Caption +LastFound +AlwaysOnTop +ToolWindow +Owner +E0x80000
+    Gui Ripple: Show, NA, RippleWin
+    WinSet, ExStyle, -0x20, RippleWin
+    hRippleWin := WinExist("RippleWin")
+
     If (RippleVisible)
     	Return
     If (A_TickCount-lastClk<DCT) && (lastEvent=_color) && (WheelColor!=_color)
@@ -115,6 +118,7 @@ RippleTimer:
     {
         RippleVisible := False
         SetTimer RippleTimer, Off
+        Gui Ripple: Destroy
     }
 
     VarSetCapacity(buf, 8)
