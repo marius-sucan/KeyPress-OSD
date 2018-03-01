@@ -10,7 +10,7 @@ ComObjError(false)
 SetTimer, GetAccInfo, 450, 50
 Return
 */
-Global isAcc1File := 1
+isAcc1File := 1
 
 GetAccInfo(skipVerification:=0) {
   DetectHiddenWindows, On
@@ -89,11 +89,13 @@ GetClassNN_EnumChildProc(hwnd, lparam) {
     Return false
   }
 }
+
 TV_Expanded(TVid) {
   For Each, TV_Child_ID in TVobj[TVid].Children
     If TVobj[TV_Child_ID].need_children
       TV_BuildAccChildren(TVobj[TV_Child_ID].obj, TV_Child_ID)
 }
+
 TV_BuildAccChildren(AccObj, Parent, Selected_Child="", Flag="") {
   TVobj[Parent].need_children := false
   Parent_Obj_Path := Trim(TVobj[Parent].Obj_Path, ",")
@@ -114,6 +116,7 @@ TV_BuildAccChildren(AccObj, Parent, Selected_Child="", Flag="") {
   }
   Return Flagged_Child
 }
+
 GetAccPath(Acc, byref hwnd="") {
   hwnd := Acc_WindowFromObject(Acc)
   WinObj := Acc_ObjectFromWindow(hwnd)
@@ -128,6 +131,7 @@ GetAccPath(Acc, byref hwnd="") {
     t1.="P.", WinObj:=Parent
   Return {AccObj:Acc, Path:t1 SubStr(t2,1,-1)}
 }
+
 GetEnumIndex(Acc, ChildId=0) {
   If Not ChildId {
     ChildPos := Acc_Location(Acc).pos
@@ -142,6 +146,7 @@ GetEnumIndex(Acc, ChildId=0) {
         Return A_Index
   }
 }
+
 GetAccLocation(AccObj, Child=0, byref x="", byref y="", byref w="", byref h="") {
   AccObj.accLocation(ComObj(0x4003,&x:=0), ComObj(0x4003,&y:=0), ComObj(0x4003,&w:=0), ComObj(0x4003,&h:=0), Child)
   Return  "x" (x:=NumGet(x,0,"Int")) "  "
@@ -150,60 +155,63 @@ GetAccLocation(AccObj, Child=0, byref x="", byref y="", byref w="", byref h="") 
   .  "h" (h:=NumGet(h,0,"Int"))
 }
 
-{ ; Acc Library
-  Acc_Init()
-  {
+;================================================================
+; Acc Library
+;================================================================
+  Acc_Init(unload:=0) {
     Static  h
     If Not  h
-    h:=DllCall("kernel32\LoadLibraryW","Str","oleacc","Ptr")
+      h:=DllCall("kernel32\LoadLibraryW","Str","oleacc","Ptr")
+   If (h && unload)
+     Dllcall("kernel32\FreeLibrary", "Ptr", h)
   }
-  Acc_ObjectFromEvent(ByRef _idChild_, hWnd, idObject, idChild)
-  {
-  Acc_Init()
-    If  DllCall("oleacc\AccessibleObjectFromEvent", "Ptr", hWnd, "UInt", idObject, "UInt", idChild, "Ptr*", pacc, "Ptr", VarSetCapacity(varChild,8+2*A_PtrSize,0)*0+&varChild)=0
-    Return  ComObjEnwrap(9,pacc,1), _idChild_:=NumGet(varChild,8,"UInt")
+
+  Acc_ObjectFromEvent(ByRef _idChild_, hWnd, idObject, idChild) {
+    Acc_Init()
+    If DllCall("oleacc\AccessibleObjectFromEvent", "Ptr", hWnd, "UInt", idObject, "UInt", idChild, "Ptr*", pacc, "Ptr", VarSetCapacity(varChild,8+2*A_PtrSize,0)*0+&varChild)=0
+       Return  ComObjEnwrap(9,pacc,1), _idChild_:=NumGet(varChild,8,"UInt")
   }
-  Acc_ObjectFromPoint(ByRef _idChild_ = "", x = "", y = "")
-  {
+
+  Acc_ObjectFromPoint(ByRef _idChild_ = "", x = "", y = "") {
     Acc_Init()
     If  DllCall("oleacc\AccessibleObjectFromPoint", "Int64", x==""||y==""?0*DllCall("user32\GetCursorPos","Int64*",pt)+pt:x&0xFFFFFFFF|y<<32, "Ptr*", pacc, "Ptr", VarSetCapacity(varChild,8+2*A_PtrSize,0)*0+&varChild)=0
     Return  ComObjEnwrap(9,pacc,1), _idChild_:=NumGet(varChild,8,"UInt")
   }
-  Acc_ObjectFromWindow(hWnd, idObject = 0)
-  {
+
+  Acc_ObjectFromWindow(hWnd, idObject = 0) {
     Acc_Init()
     If  DllCall("oleacc\AccessibleObjectFromWindow", "Ptr", hWnd, "UInt", idObject&=0xFFFFFFFF, "Ptr", -VarSetCapacity(IID,16)+NumPut(idObject==0xFFFFFFF0?0x46000000000000C0:0x719B3800AA000C81,NumPut(idObject==0xFFFFFFF0?0x0000000000020400:0x11CF3C3D618736E0,IID,"Int64"),"Int64"), "Ptr*", pacc)=0
     Return  ComObjEnwrap(9,pacc,1)
   }
-  Acc_WindowFromObject(pacc)
-  {
-    If  DllCall("oleacc\WindowFromAccessibleObject", "Ptr", IsObject(pacc)?ComObjValue(pacc):pacc, "Ptr*", hWnd)=0
+
+  Acc_WindowFromObject(pacc) {
+    If DllCall("oleacc\WindowFromAccessibleObject", "Ptr", IsObject(pacc)?ComObjValue(pacc):pacc, "Ptr*", hWnd)=0
     Return  hWnd
   }
-  Acc_GetRoleText(nRole)
-  {
+
+  Acc_GetRoleText(nRole) {
     nSize := DllCall("oleacc\GetRoleText", "Uint", nRole, "Ptr", 0, "Uint", 0)
     VarSetCapacity(sRole, (A_IsUnicode?2:1)*nSize)
     DllCall("oleacc\GetRoleText", "Uint", nRole, "str", sRole, "Uint", nSize+1)
-    Return  sRole
+    Return sRole
   }
-  Acc_GetStateText(nState)
-  {
+
+  Acc_GetStateText(nState) {
     nSize := DllCall("oleacc\GetStateText", "Uint", nState, "Ptr", 0, "Uint", 0)
     VarSetCapacity(sState, (A_IsUnicode?2:1)*nSize)
     DllCall("oleacc\GetStateText", "Uint", nState, "str", sState, "Uint", nSize+1)
-    Return  sState
+    Return sState
   }
-  Acc_Role(Acc, ChildId=0)
-  {
+
+  Acc_Role(Acc, ChildId=0) {
     try Return ComObjType(Acc,"Name")="IAccessible"?Acc_GetRoleText(Acc.accRole(ChildId)):"invalid object"
   }
-  Acc_State(Acc, ChildId=0)
-  {
+
+  Acc_State(Acc, ChildId=0) {
     try Return ComObjType(Acc,"Name")="IAccessible"?Acc_GetStateText(Acc.accState(ChildId)):"invalid object"
   }
-  Acc_Children(Acc)
-  {
+
+  Acc_Children(Acc) {
     If ComObjType(Acc,"Name")!="IAccessible"
       error_message := "Cause:`tInvalid IAccessible Object`n`n"
     Else
@@ -222,32 +230,33 @@ GetAccLocation(AccObj, Child=0, byref x="", byref y="", byref w="", byref h="") 
     IfMsgBox, No
       ExitApp
   }
-  Acc_Location(Acc, ChildId=0)
-  {
+
+  Acc_Location(Acc, ChildId=0) {
     try Acc.accLocation(ComObj(0x4003,&x:=0), ComObj(0x4003,&y:=0), ComObj(0x4003,&w:=0), ComObj(0x4003,&h:=0), ChildId)
     catch
     Return
     Return  {x:NumGet(x,0,"Int"), y:NumGet(y,0,"Int"), w:NumGet(w,0,"Int"), h:NumGet(h,0,"Int")
     ,  pos:"x" NumGet(x,0,"Int")" y" NumGet(y,0,"Int") " w" NumGet(w,0,"Int") " h" NumGet(h,0,"Int")}
   }
-  Acc_Parent(Acc)
-  {
+
+  Acc_Parent(Acc) {
     try parent:=Acc.accParent
     Return parent?Acc_Query(parent):
   }
-  Acc_Child(Acc, ChildId=0)
-  {
+
+  Acc_Child(Acc, ChildId=0) {
     try child:=Acc.accChild(ChildId)
     Return child?Acc_Query(child):
   }
-  Acc_Query(Acc)
-  {
+
+  Acc_Query(Acc) {
     try Return ComObj(9, ComObjQuery(Acc,"{618736e0-3c3d-11cf-810c-00aa00389b71}"), 1)
   }
-}
+;================================================================
+; Anchor
+;================================================================
 
-Anchor(i, a = "", r = false)
-{
+Anchor(i, a = "", r = false) {
   Static c, cs := 12, cx := 255, cl := 0, g, gs := 8, gl := 0, gpi, gw, gh, z := 0, k := 0xffff
   If z = 0
     VarSetCapacity(g, gs * 99, 0), VarSetCapacity(c, cs * cx, 0), z := true

@@ -11,9 +11,30 @@ http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip
 
 by Marius Sucan (robodesign.ro)
 
+  v4.22 (2018-03-01)
+  - [new] the user can now set the sound volume for beeps on key presses - MANY thanks to drugwash for his help!
+  - [new] option to generate visual sound event for Windows Accessibility - to flicker the title bar, window or screen [as the user desires]
+
+  v4.21 (2018-02-27)
+  - [new] quick start settings presets
+  - various bug fixes
+  
+  v4.20.7 (2018-02-26)
+  - [new] at Installed KBD layouts, when you double click on a layout, the system layout will change to the selected one
+  - [new] it indicates language code according to ISO-639
+
+  v4.20.6.5 (2018-02-24)
+  - again, much improved IMEs IMEs detection
+  - and other bug fixes
+
+  v4.20.6.3 (2018-02-22)
+  - [new] run in admin mode option.... useful when the user wants KeyPress to work with other elevated processes
+  - better compiled edition [by drugwash]
+  - minor bug fixes. 
+
   v4.20.6 (2018-02-21)
   - bug fixes
-  
+
   v4.20.5 (2018-02-19)
   - various bug fixes
   - improvements for mouse ripples, it now distinguishes between single clicks and double clicks
@@ -760,11 +781,12 @@ Features to implement:
   - cu modificările lui drugwash vs. fără
 
 - DLC 9
-- RippleWin vs. GetACC
-- caret jumps and the dead key symbol; bengali and Igbo chars
+- test TabletPro
+- [bug] lllaaaa       :::sedkweekl [caret jumps, alt. rules]
+- [bug] lang detection; yoruba, crazy IMEs
 
-- altgr dead keys, English India? bugs?
-  - jumpy caret?
+- pune Compiled version in downloads, desktop [win7, win10]
+- mai testează AHK_H v1.1.28
 
 
 - capture text to-do:
