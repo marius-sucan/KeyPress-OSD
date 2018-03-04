@@ -5,10 +5,11 @@
 ; Charset For this file must be UTF 8 with BOM.
 ; it may not function properly otherwise.
 
+#NoEnv
+#SingleInstance, Force
 #Persistent
 #NoTrayIcon
-#SingleInstance force
-#NoEnv
+#WinActivateForce
 #MaxThreads 255
 #MaxThreadsPerHotkey 255
 #MaxHotkeysPerInterval 500
@@ -18,11 +19,10 @@ Global VisualMouseClicks := 0     ; shows visual indicators For different mouse 
  , ClickScaleUser        := 10
  , FlashIdleMouse        := 0     ; locate an idling mouse with a flashing box
  , IdleMouseAlpha        := 70    ; from 0 to 255
- , LowVolBeeps           := 1
  , MouseBeeper           := 0     ; If both, ShowMouseButton and Visual Mouse Clicks are disabled, mouse click beeps will never occur
  , MouseVclickColor      := "555555"
  , MouseHaloAlpha        := 130   ; from 0 to 255
- , MouseHaloColor        := "eedd00"  ; HEX format also accepted
+ , MouseHaloColor        := "EEDD00"  ; HEX format also accepted
  , MouseHaloRadius       := 85
  , MouseIdleAfter        := 10    ; in seconds
  , MouseIdleRadius       := 130
@@ -30,19 +30,19 @@ Global VisualMouseClicks := 0     ; shows visual indicators For different mouse 
  , MouseVclickAlpha      := 150   ; from 0 to 255
  , ShowMouseHalo         := 0     ; constantly highlight mouse cursor
  , CaretHaloAlpha        := 130   ; from 0 to 255
- , CaretHaloColor        := "bbaa99"  ; HEX format also accepted
+ , CaretHaloColor        := "BBAA99"  ; HEX format also accepted
  , CaretHaloRadius       := 70
  , hostCaretHighlight    := 0
+ , SilentMode            := 0
  , IniFile               := "keypress-osd.ini"
  , visible := 0
  , MouseClickCounter := 0
  , ScriptelSuspendel := 0
- , SilentMode        := 0
+ , isMouseFile := 1
  , wa := 0
  , ha := 0
-, isMouseFile := 1
 
-  IniRead, ScriptelSuspendel, %inifile%, TempSettings, ScriptelSuspendel, %ScriptelSuspendel%
+;  IniRead, ScriptelSuspendel, %inifile%, TempSettings, ScriptelSuspendel, %ScriptelSuspendel%
   IniRead, hostCaretHighlight, %inifile%, SavedSettings, hostCaretHighlight, %hostCaretHighlight%
   IniRead, ClickScaleUser, %inifile%, SavedSettings, ClickScaleUser, %ClickScaleUser%
   IniRead, SilentMode, %inifile%, SavedSettings, SilentMode, %SilentMode%
@@ -56,7 +56,6 @@ Global VisualMouseClicks := 0     ; shows visual indicators For different mouse 
   IniRead, MouseVclickAlpha, %inifile%, SavedSettings, MouseVclickAlpha, %MouseVclickAlpha%
   IniRead, VisualMouseClicks, %inifile%, SavedSettings, VisualMouseClicks, %VisualMouseClicks%
   IniRead, IdleMouseAlpha, %inifile%, SavedSettings, IdleMouseAlpha, %IdleMouseAlpha%
-  IniRead, LowVolBeeps, %inifile%, SavedSettings, LowVolBeeps, %LowVolBeeps%
   IniRead, MouseBeeper, %inifile%, SavedSettings, MouseBeeper, %MouseBeeper%
   IniRead, MouseVclickColor, %inifile%, SavedSettings, MouseVclickColor, %MouseVclickColor%
   IniRead, MouseIdleColor, %inifile%, SavedSettings, MouseIdleColor, %MouseIdleColor%
@@ -97,7 +96,7 @@ If (visualMouseClicks=1)
 ShowMouseIdleLocation() {
     Static
 
-    If (FlashIdleMouse=1) && (A_TimeIdle > (MouseIdleAfter*1000)) && !A_IsSuspended
+    If (FlashIdleMouse=1 && (A_TimeIdle > (MouseIdleAfter*1000)) && ScriptelSuspendel!="Y")
     {
        MouseClickCounter := (MouseClickCounter > 10) ? 1 : 11
        AlphaVariator := IdleMouseAlpha - MouseClickCounter*3
@@ -138,19 +137,16 @@ ShowMouseIdleLocation() {
         idleOn := 0
     }
 
-    If (FlashIdleMouse=1) && A_IsSuspended
-    {
+    If (FlashIdleMouse=1 && ScriptelSuspendel="Y")
         Gui, MouseIdlah: Hide
-        FlashIdleMouse := 0
-    }
 }
 
 MouseHalo() {
     Static
     If (A_TimeIdle > 2000)
        Return
-
-    If (ShowMouseHalo=1) && !A_IsSuspended
+  
+    If (ShowMouseHalo=1 && ScriptelSuspendel!="Y")
     {
        MouseGetPos, mX, mY
        BoxW := MouseHaloRadius
@@ -172,15 +168,12 @@ MouseHalo() {
        WinSet, AlwaysOnTop, On, MousarHallo
     }
 
-    If (ShowMouseHalo=1) && A_IsSuspended
-    {
+    If (ShowMouseHalo=1 && ScriptelSuspendel="Y")
        Gui, MouseH: Hide
-       ShowMouseHalo := 0
-    }
 }
 
 OnMousePressed() {
-    If (VisualMouseClicks=1)
+    If (VisualMouseClicks=1 && ScriptelSuspendel!="Y")
     {
        mkey := SubStr(A_ThisHotkey, 3)
        ShowMouseClick(mkey)
@@ -188,8 +181,7 @@ OnMousePressed() {
 }
 
 OnKeyPressed() {
-
-    If (VisualMouseClicks=1)
+    If (VisualMouseClicks=1 && ScriptelSuspendel!="Y")
     {
        mkey := SubStr(A_ThisHotkey, 3)
        If InStr(mkey, "wheel")
@@ -315,7 +307,7 @@ GuiGetSize( ByRef W, ByRef H, vindov) {          ; function by VxE from https://
 CaretHalo() {
     Static
     doNotShow := 0
-    If (hostCaretHighlight=1) && !A_IsSuspended ; && (A_TimeIdle > 200)
+    If (hostCaretHighlight=1 && ScriptelSuspendel!="Y") ; && (A_TimeIdle > 200)
     {
        mX := !A_CaretX ? 2 : A_CaretX - CaretHaloRadius/2
        mY := !A_CaretY ? 2 : A_CaretY - CaretHaloRadius/3
@@ -351,7 +343,34 @@ CaretHalo() {
           }
        }
     }
-
-    If (hostCaretHighlight=1) && A_IsSuspended || (doNotShow=1)
+    If ((hostCaretHighlight=1 && ScriptelSuspendel="Y") || doNotShow=1)
        Gui, CaretH: Hide
+}
+
+ToggleMouseTimerz(forceIT:=0) {
+    If (ScriptelSuspendel="Y" || forceIT="Y")
+    {
+      If (hostCaretHighlight=1)
+         SetTimer, CaretHalo, off
+
+      If (FlashIdleMouse=1)
+         SetTimer, ShowMouseIdleLocation, off
+
+      If (ShowMouseHalo=1)
+         SetTimer, MouseHalo, 40, off
+
+      Gui, MouseIdlah: Hide
+      Gui, MouseH: Hide
+      Gui, CaretH: Hide
+    } Else
+    {
+      If (hostCaretHighlight=1)
+         SetTimer, CaretHalo, 70, -50
+
+      If (FlashIdleMouse=1)
+         SetTimer, ShowMouseIdleLocation, 300, 0
+
+      If (ShowMouseHalo=1)
+         SetTimer, MouseHalo, 40, 0
+    }
 }
