@@ -11,12 +11,20 @@ http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip
 
 by Marius Sucan (robodesign.ro)
 
+  v4.22.5 (2018-03-04)
+  - [new] the ability to automatically expand words, acronyms, abbreviations, such as, but not limited to by the way [btw], do not disturb [dnd], and others. The user can add/remove/edit the list of automatically expanded words at Main Menu > Typing mode > Text expand. 
+
+  v4.22.1 (2018-03-02)
+  - dropped the support for beeps on key presses without WAV files present
+  - various bug fixes and improvements under the hood
+
   v4.22 (2018-03-01)
   - [new] the user can now set the sound volume for beeps on key presses - MANY thanks to drugwash for his help!
+  - [new] added a few more distinctive sounds for page up/down, home/end, arrow keys, clicks and so on
   - [new] option to generate visual sound event for Windows Accessibility - to flicker the title bar, window or screen [as the user desires]
 
   v4.21 (2018-02-27)
-  - [new] quick start settings presets
+  - [new] quick start settings presets; the user can choose between several configuration presets: screen casts, typing mode and so on
   - various bug fixes
   
   v4.20.7 (2018-02-26)
@@ -24,12 +32,12 @@ by Marius Sucan (robodesign.ro)
   - [new] it indicates language code according to ISO-639
 
   v4.20.6.5 (2018-02-24)
-  - again, much improved IMEs IMEs detection
+  - again, much improved IMEs detection [these are unsupported layouts]
   - and other bug fixes
 
   v4.20.6.3 (2018-02-22)
   - [new] run in admin mode option.... useful when the user wants KeyPress to work with other elevated processes
-  - better compiled edition [by drugwash]
+  - better compiled edition [by drugwash - THANKS]
   - minor bug fixes. 
 
   v4.20.6 (2018-02-21)
@@ -774,6 +782,9 @@ TO-DO:
 Features to implement:
 - compile the thing! include all scripts inside?
   - separate UI settings and tray menu? separate files with include
+- mai testează AHK_H v1.1.28 h003
+  - crashes on restart
+  - the compiler fails the x32 edition
 
 - test compiled version on different systems; crashes?
   - keypress lite? compiled with AHK_L
@@ -782,11 +793,17 @@ Features to implement:
 
 - DLC 9
 - test TabletPro
-- [bug] lllaaaa       :::sedkweekl [caret jumps, alt. rules]
-- [bug] lang detection; yoruba, crazy IMEs
+- initMSG does not hide when no OSD
+- show tooltips for help at typing mode
+
+- multi-clippy manager
+
+- auto-correct [with shift+space] - long words; visualize first
+- https://autohotkey.com/board/topic/54987-sift3-super-fast-and-accurate-string-distance-algorithm/
+- https://github.com/first20hours/google-10000-english
+- https://www.sketchengine.co.uk/word-lists/
 
 - pune Compiled version in downloads, desktop [win7, win10]
-- mai testează AHK_H v1.1.28
 
 
 - capture text to-do:

@@ -48,7 +48,6 @@
 ;@Ahk2Exe-AddResource WAVE sounds\num8pad.wav
 ;@Ahk2Exe-AddResource WAVE sounds\num9pad.wav
 ;@Ahk2Exe-AddResource WAVE sounds\numApad.wav
-;@Ahk2Exe-AddResource WAVE sounds\numpad.wav
 ;@Ahk2Exe-AddResource WAVE sounds\numpads.wav
 ;@Ahk2Exe-AddResource WAVE sounds\otherDistinctKeys.wav
 ;@Ahk2Exe-AddResource WAVE sounds\typingkeysArrowsD.wav
@@ -70,8 +69,8 @@
 ;@Ahk2Exe-AddResource Lib\paypal.bmp, 100
 ;@Ahk2Exe-SetMainIcon Lib\keypress.ico
 ;@Ahk2Exe-SetName KeyPress OSD v4
-;@Ahk2Exe-SetDescription KeyPress OSD. On-Screen Display mirroring keyboard and mouse usage.
-;@Ahk2Exe-SetVersion 4.22
+;@Ahk2Exe-SetDescription KeyPress OSD v4
+;@Ahk2Exe-SetVersion 4.22.5
 ;@Ahk2Exe-SetCopyright Marius Şucan (2017-2018)
 ;@Ahk2Exe-SetCompanyName ROBO Design.ro
 ;@Ahk2Exe-SetOrigFilename keypress-osd.ahk
@@ -124,6 +123,7 @@
  , OnlyTypingMode        := 0
  , alternateTypingMode   := 1
  , enableTypingHistory   := 0
+ , expandWords           := 0
  , enterErasesLine       := 1
  , pgUDasHE              := 0    ; page up/down behaves like home/end
  , UpDownAsHE            := 0    ; up/down behaves like home/End
@@ -231,13 +231,13 @@
  , thisFile              := A_ScriptName
  , UseINIfile            := 1
  , IniFile               := "keypress-osd.ini"
- , version               := "4.22"
- , releaseDate := "2018 / 03 / 01"
+ , version               := "4.22.5"
+ , releaseDate := "2018 / 03 / 04"
 
 ; Initialization variables. Altering these may lead to undesired results.
 
     checkIfRunning()
-    Sleep, 10
+    Sleep, 5
     IniRead, firstRun, %IniFile%, SavedSettings, firstRun, 1
     If (firstRun=0 && UseINIfile=1)
     {
@@ -261,6 +261,9 @@ Global typed := "" ; hack used to determine if user is writing
  , pressKeyRecorded := 1
  , typedKeysHistory := ""
  , keyCount := 0
+ , ExpandWordsList := []
+ , ExpandWordsListEdit := ""
+ , lastMatchedExpandPair := ""
  , modifiers_temp := 0
  , doNotRepeatTimer := 0
  , OSDalignment := (GUIposition=1) ? OSDalignment2 : OSDalignment1
@@ -313,21 +316,17 @@ Global typed := "" ; hack used to determine if user is writing
  , hOSD, OSDhandles, colorPickerHandles, nowDraggable, mouseFonctiones, beeperzDefunctions, mouseRipplesThread, keyStrokesThread, NOahkH
  , cclvo := "-E0x200 +Border -Hdr -Multi +ReadOnly Report -Hidden AltSubmit gsetColors"
  , Emojis := "(😝|😐|👄|😭|👋|💯|👽|👶|👙|😎|😋|🙈|🙊|👼|💏|😃|😴|💁|💃|👏|💤|⛄|🌙|👳|😳|😛|🎄|😢|😮|😜|😡|😉|😞|😗|🌜|😙|♥|😩|😆|😚|👍|💋|️|🌸|💖|😈|🌛|☀|💕|😄|😊|😂|😕|🌷|💓|💗|🙏|😍|😔|❤|☹|💞|🙁|🙂|😀|😇|☺|😘)"
- , hGdiplus, pToken   ; used in cleanup() to unload the gdiplus library on exit
  , isMouseFile, isRipplesFile, isBeeperzFile, isKeystrokesFile, isAcc1File, isAcc2File
  , baseURL := "http://marius.sucan.ro/media/files/blog/ahk-scripts/"
- , volR := GetMyVolume(volR)
+ , hWinMM := DllCall("kernel32\LoadLibraryW", "Str", "winmm.dll", "Ptr")
+ , VolR := GetMyVolume(VolL)
+ , ScriptelSuspendel := 0
+ , RunningCompiled := A_IsCompiled ? "Y" : 0
    maxAllowedGuiWidth := (OSDautosize=1) ? maxGuiWidth : GuiWidth
-   ScriptelSuspendel := 0
-   RunningCompiled := A_IsCompiled ? 1 : 0
-   IniWrite, %ScriptelSuspendel%, %IniFile%, TempSettings, ScriptelSuspendel
-   IniWrite, %prefOpen%, %inifile%, TempSettings, prefOpen
-   IniWrite, %RunningCompiled%, %inifile%, TempSettings, RunningCompiled
-   Sleep, 5
-; hGdiplus := initGdiplus(pToken)
+
 CreateOSDGUI()
 verifyNonCrucialFiles()
-Sleep, 10
+Sleep, 5
 CreateGlobalShortcuts()
 CreateHotkey()
 initAHKhThreads()
@@ -340,28 +339,14 @@ If (ClipMonitor=1)
 hCursM := DllCall("user32\LoadCursorW", "Ptr", NULL, "Int", 32646, "Ptr")  ; IDC_SIZEALL
 hCursH := DllCall("user32\LoadCursorW", "Ptr", NULL, "Int", 32649, "Ptr")  ; IDC_HAND
 OnMessage(0x200, "MouseMove")    ; WM_MOUSEMOVE
+If (expandWords=1 && DisableTypingMode=0)
+   InitExpandableWords()
+ModsLEDsIndicatorsManager(1)
 Return
 
 ;================================================================
 ; The script
 ;================================================================
-
-initGdiplus(ByRef pT) {
-    If !hG := DllCall("kernel32\LoadLibraryW", "Str", "gdiplus.dll")
-       Return 0
-    VarSetCapacity(buf, 16, 0)
-    NumPut(1, buf)
-    DllCall("gdiplus\GdiplusStartup", "PtrP", pT, "Ptr", &buf, "Ptr", 0)
-    Return hG
-}
-
-killGdiplus(pT, hG) {
-    If pT
-       DllCall("gdiplus\GdiplusShutdown", "Ptr", pT)
-    Sleep, 150
-    If hG
-       DllCall("kernel32\FreeLibrary", "Ptr", hG)
-}
 
 initAHKhThreads() {
     Static func2exec := "ahkThread"
@@ -373,22 +358,23 @@ initAHKhThreads() {
          {
             GetRes(data, 0, "KEYPRESS-MOUSE-FUNCTIONS.AHK", "LIB"), sTxt := StrGet(&data)
             Global mouseFonctiones := %func2exec%(sTxt)
-            Sleep, 200
+            Sleep, 50
             isMouseFile := mouseFonctiones.ahkgetvar.isMouseFile
          }
          If FindRes(0, "KEYPRESS-MOUSE-RIPPLES-FUNCTIONS.AHK", "LIB")
          {
             GetRes(data, 0, "KEYPRESS-MOUSE-RIPPLES-FUNCTIONS.AHK", "LIB"), sTxt := StrGet(&data)
             Global mouseRipplesThread := %func2exec%(sTxt)
-            Sleep, 200
+            Sleep, 50
             isRipplesFile := mouseRipplesThread.ahkgetvar.isRipplesFile
          }
          If FindRes(0, "KEYPRESS-BEEPERZ-FUNCTIONS.AHK", "LIB")
          {
             GetRes(data, 0, "KEYPRESS-BEEPERZ-FUNCTIONS.AHK", "LIB"), sTxt := StrGet(&data)
             Global beeperzDefunctions := %func2exec%(sTxt)
-            Sleep, 200
+            Sleep, 50
             isBeeperzFile := beeperzDefunctions.ahkgetvar.isBeeperzFile
+            beeperzDefunctions.ahkassign("RunningCompiled", RunningCompiled)
          }
 
          If (DisableTypingMode=0 && ShowSingleKey=1)
@@ -397,18 +383,18 @@ initAHKhThreads() {
             {
               isKeystrokesFile := 1
               If AlternativeHook2keys=1
-                {
+              {
                   GetRes(data, 0, "KEYPRESS-KEYSTROKES-HELPER.AHK", "LIB"), sTxt := StrGet(&data)
                   Global keyStrokesThread := %func2exec%(sTxt)
-                  Sleep, 200
+                  Sleep, 50
                   isKeystrokesFile := keyStrokesThread.ahkgetvar.isKeystrokesFile
                   OnMessage(0x4a, "KeyStrokeReceiver")  ; 0x4a is WM_COPYDATA
-                }
+              }
             }
          }
          VarSetCapacity(data, 0), VarSetCapacity(sTxt, 0)
       } Else
-        {
+      {
           isMouseFile := FileExist("Lib\keypress-mouse-functions.ahk")
           isRipplesFile := FileExist("Lib\keypress-mouse-ripples-functions.ahk")
           isBeeperzFile := FileExist("Lib\keypress-beeperz-functions.ahk")
@@ -417,11 +403,11 @@ initAHKhThreads() {
           Global mouseRipplesThread := %func2exec%(" #Include *i Lib\keypress-mouse-ripples-functions.ahk ")
           Global beeperzDefunctions := %func2exec%(" #Include *i Lib\keypress-beeperz-functions.ahk ")
           If (AlternativeHook2keys=1 && DisableTypingMode=0 && ShowSingleKey=1 && isKeystrokesFile)
-            {
+          {
               Global keyStrokesThread := %func2exec%(" #Include *i Lib\keypress-keystrokes-helper.ahk ")
               OnMessage(0x4a, "KeyStrokeReceiver")  ; 0x4a is WM_COPYDATA
-            }
-        }
+          }
+      }
     } Else (NOahkH := 1)
 }
 
@@ -695,7 +681,7 @@ caretJumpMain(direction) {
      CaretPos := 1.5
 
   theRegEx := "i)((?=[[:space:]|│!""@#$%^&*()_¡°¿+{}\[\]|;:<>?/.,\-=``~])[\p{L}\p{Z}\p{N}\p{P}\p{S}]\b(?=\S)|\s(?!\s)(?=\p{L})|\p{So}(?=\S))"
-  alternativeRegEx := "i)(((\p{Sc}|\p{So}|\p{L}|\p{N}|\w)(?=\S))([\p{Z}!""@#$%^&*()_¡°¿+{}\[\]|;:<>?/.,\-=``~\p{S}\p{C}])|\s+[[:punct:]])"
+  alternativeRegEx := "i)(((\p{Sc}|\p{So}|\p{L}|\p{N}|\w)(?=\S))([\p{Z}!""@#$%^&*()_¡°¿+{}\[\]|;:<>?/.,\-=``~\p{S}\p{C}])|\s\B[[:punct:]]|[[:punct:][:digit:][:alpha:]]\s\B)"
   If (direction=1)
   {
      CaretuPos := RegExMatch(typed, theRegEx, , CaretPos+1) + 1
@@ -1709,6 +1695,9 @@ OnCtrlVup() {
      allGood := 1
   Sleep, 25
   toPaste := Clipboard
+  If ((toPaste ~= "i)^(.?\:\\.?.?)") && StrLen(toPaste)>4 && StrLen(typed)<3)
+     allGood := 0
+
   If (allGood=1 && DisableTypingMode=0 && ShowSingleKey=1 && StrLen(toPaste)>0)
   {
     backTypdUndo := typed
@@ -1824,15 +1813,15 @@ OnCtrlZup() {
 }
 
 OnSpacePressed() {
-    If (sendKeysRealTime=1) && (SecondaryTypingMode=1)
+    If (sendKeysRealTime=1 && SecondaryTypingMode=1)
        ControlSend, , {Space}, %Window2Activate%
 
     try {
-          If (DoNotBindDeadKeys=1) && (AlternativeHook2keys=1) && (SecondaryTypingMode=0) && (DisableTypingMode=0) && (DeadKeys=1)
+          If (DoNotBindDeadKeys=1 && AlternativeHook2keys=1 && SecondaryTypingMode=0 && DisableTypingMode=0 && DeadKeys=1)
              Sleep, 35
 
           key := GetKeyStr()
-          If (A_TickCount-lastTypedSince < ReturnToTypingDelay) && StrLen(typed)>0 && (DisableTypingMode=0) && (ShowSingleKey=1)
+          If ((A_TickCount-lastTypedSince < ReturnToTypingDelay) && StrLen(typed)>0 && DisableTypingMode=0 && ShowSingleKey=1)
           {
              If (typed ~= "i)(▫│)") && (SecondaryTypingMode=0)
              {
@@ -1856,8 +1845,10 @@ OnSpacePressed() {
                    char2insert := OnMSGdeadChar && !OnMSGchar ? OnMSGdeadChar : " "
                 InsertChar2caret(char2insert)
              }
-             Global lastTypedSince := A_TickCount
              deadKeyProcessing()
+             If (expandWords=1)
+                ExpandFeatureFunction()
+             Global lastTypedSince := A_TickCount
              CalcVisibleText()
              ShowHotkey(visibleTextField)
              SetTimer, HideGUI, % -DisplayTimeTyping
@@ -1878,7 +1869,7 @@ OnSpacePressed() {
              typed := (OnlyTypingMode=1) ? typed : ""
     }
 
-    If TrueRmDkSymbol && (StrLen(typed)<2) && (SecondaryTypingMode=0) && (DisableTypingMode=0) && (DoNotBindDeadKeys=0)
+    If (TrueRmDkSymbol && StrLen(typed)<2 && SecondaryTypingMode=0 && DisableTypingMode=0 && DoNotBindDeadKeys=0)
     { 
        Global lastTypedSince := A_TickCount
        InsertChar2caret(TrueRmDkSymbol)
@@ -1892,18 +1883,18 @@ OnSpacePressed() {
 }
 
 OnBspPressed() {
-    If (sendKeysRealTime=1) && (SecondaryTypingMode=1)
+    If (sendKeysRealTime=1 && SecondaryTypingMode=1)
        ControlSend, , {BackSpace}, %Window2Activate%
 
     try
     {
         key := GetKeyStr()
-        If TrueRmDkSymbol && (AlternativeHook2keys=1) && (SecondaryTypingMode=0) && (DisableTypingMode=0) || OnMSGdeadChar && (SecondaryTypingMode=1) && (DisableTypingMode=0) || TrueRmDkSymbol && (AlternativeHook2keys=0) && (SecondaryTypingMode=0) && (DisableTypingMode=0) && (ShowDeadKeys=0)
+        If (TrueRmDkSymbol && AlternativeHook2keys=1 && SecondaryTypingMode=0 && DisableTypingMode=0) || (OnMSGdeadChar && SecondaryTypingMode=1 && DisableTypingMode=0) || (TrueRmDkSymbol && AlternativeHook2keys=0 && SecondaryTypingMode=0 && DisableTypingMode=0 && ShowDeadKeys=0)
         {
            TrueRmDkSymbol := ¨¨
            OnMSGdeadChar := ""
            Return
-        } Else If (typed ~= "i)(▫│)") && TrueRmDkSymbol && (AlternativeHook2keys=0) && (SecondaryTypingMode=0) && (DisableTypingMode=0)
+        } Else If ((typed ~= "i)(▫│)") && TrueRmDkSymbol && AlternativeHook2keys=0 && SecondaryTypingMode=0 && DisableTypingMode=0)
         {
            StringReplace, typed, typed,▫%lola%, %lola%
            TrueRmDkSymbol := ¨¨
@@ -1913,6 +1904,26 @@ OnBspPressed() {
            keycount := 1
            Global lastTypedSince := A_TickCount
            Return
+        }
+
+        If (expandWords=1 && lastMatchedExpandPair && (A_TickCount-lastTypedSince < 3000))
+        {
+           searchThis := SubStr(lastMatchedExpandPair, InStr(lastMatchedExpandPair, "// ")+3)
+           StringReplace, replaceWith, lastMatchedExpandPair, %searchThis%
+           StringReplace, replaceWith, replaceWith, %A_Space%//
+           StringReplace, typed, typed, %searchThis%%A_Space%%lola%, % replaceWith A_Space lola, UseErrorLevel
+           If (ErrorLevel>0)
+           {
+             StringGetPos, CaretPos, typed, %lola%
+             times2pressKey := StrLen(searchThis)
+             SendInput, {BackSpace %times2pressKey% }
+             If (SecondaryTypingMode!=1)
+             {
+                Sleep, 25
+                SendInput, {text}%replaceWith%
+             }
+           }
+           lastMatchedExpandPair := ""
         }
 
         If (A_TickCount-lastTypedSince < ReturnToTypingDelay) && StrLen(typed)>1 && (DisableTypingMode=0) && (ShowSingleKey=1) && (keyCount<10)
@@ -1978,6 +1989,109 @@ OnBspPressed() {
            typed := (OnlyTypingMode=1) ? typed : ""
     }
     OnMSGchar := ""
+}
+CreateWordPairsFile(wordPairsFile) {
+      ExpandPairs =
+      (LTrim
+          afaik // as far as I know
+          aka // also known as
+          asap // as soon as possible
+          bbl // be back later
+          brb // be right back
+          btw // by the way
+          diy // do it yourself
+          dnd // do not disturb
+          eta // estimated time of arrival
+          faq // frequently asked questions
+          fyi // for your information
+          gmo // genetically modified organism
+          imho // in my humble opinion
+          nsfw // not safe for work
+          ocd // obsessive compulsive disorder
+          omg // oh my God
+          pls // please
+          tba // to be announced
+          tbd // to be decided
+          thx // thanks
+          tldr // too long, did not read
+          ttyl // talk to you later
+          wtf // what the f*ck
+          yolo // you only live once
+      )
+      FileAppend, %ExpandPairs%, %wordPairsFile%, UTF-16
+      Return ExpandPairs
+}
+
+RestoreExpandableWordsFile() {
+  wordPairsFile := "keypress-osd-pairs.ini"
+  FileDelete, %wordPairsFile%
+  Sleep, 25
+  ExpandPairs := CreateWordPairsFile(wordPairsFile)
+  GuiControl, Disable, SaveWordPairsBTN
+  GuiControl, Disable, DefaultWordPairsBTN
+  GuiControl, , ExpandWordsListEdit, %ExpandPairs%
+  VerifyTypeOptions()
+}
+
+SaveWordPairsNow() {
+  wordPairsFile := "keypress-osd-pairs.ini"
+  FileDelete, %wordPairsFile%
+  Sleep, 25
+  ExpandWordsListEdit := ""
+  GuiControlGet, ExpandWordsListEdit
+  FileAppend, %ExpandWordsListEdit%, %wordPairsFile%, UTF-16
+  GuiControl, Disable, SaveWordPairsBTN
+  VerifyTypeOptions()
+}
+
+InitExpandableWords() {
+  wordPairsFile := "keypress-osd-pairs.ini"
+  If FileExist(wordPairsFile)
+      FileRead, ExpandPairs, %wordPairsFile%
+  Else
+      ExpandPairs := CreateWordPairsFile(wordPairsFile)
+
+  If StrLen(ExpandPairs)<10
+      ExpandPairs := CreateWordPairsFile(wordPairsFile)
+
+  For each, line in StrSplit(ExpandPairs, "`n", "`r")
+  {
+    If !line
+       Continue
+    lineArr := StrSplit(line, " // ")
+    key := lineArr[1]
+    value := lineArr[2]
+    If (StrLen(key)<2 || StrLen(value)<2)
+       Continue
+    ExpandWordsList[key] := value
+    ExpandWordsListEdit .= key " // " value "`n"
+  }
+}
+
+ExpandFeatureFunction() {
+  lastMatchedExpandPair := ""
+  typedTrim := SubStr(typed, CaretPos)
+  StringReplace, typedTrim2, typed, %typedTrim%
+  If InStr(typedTrim2, A_Space)
+  {
+     typedTrim3 := SubStr(typedTrim2, InStr(typedTrim2, A_Space,, -1))
+     StringReplace, typedTrim3, typedTrim3, %A_Space%
+  } Else (typedTrim3 := typedTrim2)
+
+  If ExpandWordsList[typedTrim3] && (A_TickCount-lastTypedSince < 3000)
+  {
+     StringReplace, typed, typed, %typedTrim3%%A_Space%%lola%, % ExpandWordsList[typedTrim3] A_Space lola
+     StringGetPos, CaretPos, typed, %lola%
+     times2pressKey := StrLen(typedTrim3) + 1
+     SendInput, {BackSpace %times2pressKey% }
+     If (SecondaryTypingMode!=1)
+     {
+        Sleep, 25
+        Text2Send := ExpandWordsList[typedTrim3] A_Space
+        SendInput, {text}%Text2Send%
+     }
+     lastMatchedExpandPair := typedTrim3 " // " ExpandWordsList[typedTrim3]
+  }
 }
 
 OnDelPressed() {
@@ -2127,7 +2241,7 @@ OnMudPressed() {
     Static repeatCount := 1
     Static modPressedTimer
     backTypeCtrl := typed
-    for i, mod in MainModsList
+    For i, mod in MainModsList
     {
         If GetKeyState(mod)
            fl_prefix .= mod "+"
@@ -2439,7 +2553,7 @@ CreateHotkey() {
 
     If (AutoDetectKBD=1)
        IdentifyKBDlayout()
-    Sleep, 350
+    Sleep, 20
     Static mods_noShift := ["!", "!#", "!#^", "!#^+", "!+", "!+^", "^!", "#", "#!", "#!+", "#!^", "#+^", "#^", "+#", "+^", "^"]
     Static mods_list := ["!", "!#", "!#^", "!#^+", "!+", "#", "#!", "#!+", "#!^", "#+^", "#^", "+#", "+^", "^"]
     megaDeadKeysList := DKaltGR_list "." DKshift_list "." DKnotShifted_list
@@ -2884,6 +2998,7 @@ modsTimer() {
        {
           showThis := CompactModifiers(profix)
           Sort, showThis, U D+
+          showThis := RTrim(showThis, "+")
           StringReplace, showThis, showThis, +, %A_Space%+%A_Space%, All
           ShowHotkey(showThis)
        }
@@ -3237,6 +3352,7 @@ tehDKcollector() {
       If (StrLen(DKnamez)<2)
       {
          GenerateDKnames()
+         Sleep, 25
          IniWrite, %DKnamez%, %langFile%, %kbLayoutRaw%, DKnamez
       }
   } Else If (hasDKs=0)
@@ -3256,40 +3372,40 @@ initLangFile(forceIT:=0) {
   {
       dbg := GetLayoutsInfo()
       FileAppend, %dbg%, %langfile%, UTF-16
-      Sleep, 25
+      Sleep, 50
       checkInstalledLangs()
-      Sleep, 25
+      Sleep, 50
       listIMEs()
-      Sleep, 25
+      Sleep, 50
       IniRead, KLIDlist, %langFile%, Options, KLIDlist, %A_Space%
       IniRead, KLIDlist2, %langFile%, Options, KLIDlist2, %A_Space%
       KLIDlist := KLIDlist "," KLIDlist2
       Sort, KLIDlist, U D,
+      Sleep, 50
       IniWrite, %KLIDlist%, %langFile%, Options, KLIDlist
       IniWrite, %UseMUInames%, %langFile%, Options, UseMUInames
-      IniDelete, %langFile%, Options, KLIDlist2
       Sleep, 25
+      IniDelete, %langFile%, Options, KLIDlist2
+      Sleep, 50
   } Else (loadedLangz := 1)
 }
 
 dumpRegLangData() {
     Loop
     {
-      RegRead, langInstalled, HKEY_CURRENT_USER, Keyboard Layout\Preload, %A_Index%
-      If !langInstalled
+      RegRead, kbdPreInstalled, HKEY_CURRENT_USER, Keyboard Layout\Preload, %A_Index%
+      If !kbdPreInstalled
          Break
-      PreloadList .= "," langInstalled
-      RegRead, langRealInstalled, HKEY_CURRENT_USER, Keyboard Layout\Substitutes, %langInstalled%
-      If !langRealInstalled
-         langRealInstalled := langInstalled
-
-      If InStr(langRealInstList, langRealInstalled) OR StrLen(langRealInstalled)<3
+      PreloadList .= kbdPreInstalled ","
+      RegRead, kbdRealInstalled, HKEY_CURRENT_USER, Keyboard Layout\Substitutes, %kbdPreInstalled%
+      If !kbdRealInstalled
          Continue
-      langRealInstList .= langRealInstalled ","
+      kbdSubsInstList .= kbdPreInstalled "-" kbdRealInstalled ","
+      SubsOnlyList .= kbdRealInstalled ","
     }
-    IniWrite, %PreloadList%, %langFile%, Options, PreloadList
-    IniWrite, %langRealInstList%, %langFile%, Options, SubstitutesList
-    REGdump := langRealInstList "," PreloadList
+    IniWrite, %PreloadList%, %langFile%, REGdumpData, PreloadList
+    IniWrite, %kbdSubsInstList%, %langFile%, REGdumpData, SubstitutesList
+    REGdump := SubsOnlyList "," PreloadList
     Return REGdump
 }
 
@@ -3307,15 +3423,17 @@ IdentifyKBDlayout() {
 
   initLangFile()
   testLangExist := tehDKcollector()
+  Sleep, 25
   If (testLangExist=10)
   {
       hkl := GetInputHKL()
-      Sleep, 300
+      Sleep, 50
       IniDelete, %langFile%, %kbLayoutRaw%
       dbg := GetLayoutInfo(kbLayoutRaw, hkl)
       FileAppend, %dbg%, %langfile%, UTF-16
-      Sleep, 100
+      Sleep, 50
       tehDKcollector()
+      Sleep, 50
   }
   IniRead, isLangRTL, %langFile%, %kbLayoutRaw%, isRTL
   IniRead, isVertUp, %langFile%, %kbLayoutRaw%, isVertUp
@@ -3703,18 +3821,19 @@ SuspendScript(partially:=0) {
    SetTimer, HideGUI, % -DisplayTime/2
    If (NOahkH!=1 && partially=0)
    {
-      ScriptelSuspendel := A_IsSuspended ? 0 : 1
-      IniWrite, %ScriptelSuspendel%, %IniFile%, TempSettings, ScriptelSuspendel
-      mouseFonctiones.ahkReload[]
-      beeperzDefunctions.ahkReload[]
-      mouseRipplesThread.ahkReload[]
+      ScriptelSuspendel := A_IsSuspended ? 0 : "Y"
+      mouseFonctiones.ahkassign("ScriptelSuspendel", ScriptelSuspendel)
+      Sleep, 25
+      mouseFonctiones.ahkPostFunction["ToggleMouseTimerz", ""]
+      beeperzDefunctions.ahkassign("ScriptelSuspendel", ScriptelSuspendel)
+      mouseRipplesThread.ahkassign("ScriptelSuspendel", ScriptelSuspendel)
    }
    Sleep, 50
    Suspend
 }
 
 ToggleConstantDetection() {
-   If ((prefOpen=1 && A_IsSuspended=1))
+   If (prefOpen=1 && A_IsSuspended=1)
    {
       SoundBeep, 300, 900
       WinActivate, KeyPress OSD
@@ -3785,6 +3904,7 @@ TogglePosition() {
 ToggleSilence() {
     SilentMode := !SilentMode
     IniWrite, %SilentMode%, %IniFile%, SavedSettings, SilentMode
+    Sleep, 50
     mouseFonctiones.ahkReload[]
     beeperzDefunctions.ahkReload[]
     Menu, PrefsMenu, % (SilentMode=0 ? "Uncheck" : "Check"), S&ilent mode
@@ -3860,10 +3980,17 @@ ReloadScript(silent:=1) {
     {
         If (silent!=1)
            ShowLongMsg("Restarting...")
-        prefOpen := 0
-        IniWrite, %prefOpen%, %inifile%, TempSettings, prefOpen
         Cleanup()
-        Reload
+        Sleep, 10
+  ;      If (A_OSVersion!="WIN_XP")
+ ;       {
+           Reload             ; This one is fucked up! Replacing it with the Run + ExitApp below stopped restart crashes.
+;        } else
+;        {
+;          sleep, 10
+;          run, %thisfile%,, useerrorlevel
+;          exitapp
+;        }
     } Else
     {
         ShowLongMsg("FATAL ERROR: Main file missing. Execution terminated.")
@@ -3876,6 +4003,8 @@ ReloadScript(silent:=1) {
             If !InStr(FileExist(i), "D")  ; we can't run a folder, we need to run a script
                Run, %i%
         } Else (Sleep, 500)
+        Cleanup()
+        Sleep, 100
         ExitApp
     }
 }
@@ -3905,7 +4034,7 @@ ToggleCapture2Text() {
 
     If (featureValidated=1)
     {
-        Menu, Tray, Check, &Capture2Text mode
+        Menu, Tray, Check, &Capture2Text mode (OCR)
         Sleep, 300
         Capture2Text := !Capture2Text
     }
@@ -3920,8 +4049,10 @@ ToggleCapture2Text() {
         }
         DragOSDmode := 0
         SetTimer, capturetext, 1500, -20
-        mouseFonctiones.ahkTerminate[]
-        mouseRipplesThread.ahkTerminate[]
+        mouseFonctiones.ahkassign("ScriptelSuspendel", "Y")
+        Sleep, 25
+        mouseFonctiones.ahkPostFunction["ToggleMouseTimerz", ""]
+        mouseRipplesThread.ahkassign("ScriptelSuspendel", "Y")
         ShowLongMsg("Enabled automatic Capture 2 Text")
         SetTimer, HideGUI, % -DisplayTime
     } Else If (featureValidated=1)
@@ -3937,9 +4068,11 @@ ToggleCapture2Text() {
         CreateOSDGUI()
         Sleep, 50
         IniRead, ClipMonitor, %inifile%, SavedSettings, ClipMonitor, %ClipMonitor%
-        Menu, Tray, Uncheck, &Capture2Text mode
-        mouseFonctiones.ahkReload[]
-        mouseRipplesThread.ahkReload[]
+        Menu, Tray, Uncheck, &Capture2Text mode (OCR)
+        mouseFonctiones.ahkassign("ScriptelSuspendel", "N")
+        Sleep, 25
+        mouseFonctiones.ahkPostFunction["ToggleMouseTimerz", ""]
+        mouseRipplesThread.ahkassign("ScriptelSuspendel", "N")
         SetTimer, capturetext, off
         Capture2Text := !Capture2Text
         ShowLongMsg("Disabled automatic Capture 2 Text")
@@ -4021,7 +4154,7 @@ InitializeTray() {
     If (prefsLargeFonts=1)
        Menu, PrefsMenu, Check, L&arge UI fonts
 
-    If !isBeeperzFile ; keypress-beeperz-functions.ahk
+    If (!isBeeperzFile || missingAudios=1)     ; keypress-beeperz-functions.ahk
     {
        Menu, PrefsMenu, Disable, S&ilent mode
        Menu, PrefsMenu, Disable, &Sounds
@@ -4074,7 +4207,7 @@ InitializeTray() {
     If (NeverDisplayOSD=1)
        Menu, Tray, Check, &Never show the OSD
 
-    If !IsFunc("GetAccInfo") ; keypress-acc-viewer-functions.ahk
+    If (!IsFunc("GetAccInfo") || A_OSVersion="WIN_XP") ; keypress-acc-viewer-functions.ahk
        Menu, Tray, Disable, Mouse text collector
 
     faqHtml := "Lib\help\presentation.html"
@@ -4171,8 +4304,13 @@ initSettingsWindow() {
 
     prefOpen := 1
     IniWrite, %prefOpen%, %inifile%, TempSettings, prefOpen
-    Sleep, 50
+    Sleep, 30
     SettingsGUI()
+}
+
+wordPairsEditing() {
+    GuiControl, Enable, SaveWordPairsBTN
+    GuiControl, Enable, DefaultWordPairsBTN
 }
 
 ShowTypeSettings() {
@@ -4188,13 +4326,23 @@ ShowTypeSettings() {
     }
     deadKstatus := (DeadKeys=1) ? "Dead keys present." : "No dead keys detected."
     Global CurrentPrefWindow := 2
+    Global SaveWordPairsBTN, DefaultWordPairsBTN
     txtWid := 350
     If (prefsLargeFonts=1)
     {
        txtWid := 570
        Gui, Font, s%LargeUIfontValue%
     }
-    Gui, Add, Tab3,, General|Dead keys|Behavior
+    editWid := txtWid-50
+    InitExpandableWords()
+    Gui, Add, Tab3,, General|Dead keys|Behavior|Text expand
+    Gui, Tab, 4 ; text expand
+    Gui, Add, Checkbox, x+15 y+15 gVerifyTypeOptions Checked%expandWords% vexpandWords, Automatically expand typed words or abbreviations
+    Gui, Add, Text, y+10, String to match // String to replace with
+    Gui, Add, Edit, y+10 r10 w%editWid% gwordPairsEditing vExpandWordsListEdit, %ExpandWordsListEdit%
+    Gui, Add, Button, xp+0 y+15 w90 h30 gSaveWordPairsNow vSaveWordPairsBTN, Save li&st
+    Gui, Add, Button, x+10 yp+0 w150 h30 gRestoreExpandableWordsFile vDefaultWordPairsBTN, Restore d&efaults
+
     Gui, Tab, 1 ; general
     Gui, Add, Checkbox, x+15 y+15 gVerifyTypeOptions Checked%ShowSingleKey% vShowSingleKey, Show single keys in the OSD (mandatory for the main typing mode)
     Gui, Add, Checkbox, y+7 gVerifyTypeOptions Checked%enableAltGr% venableAltGr, Enable {Ctrl + Alt} / {AltGr} support
@@ -4339,7 +4487,7 @@ SwitchPreferences(forceReopenSame:=0) {
       SetTimer, HideGUI, % -DisplayTime
       Return
     }
-    If ((!isBeeperzFile || NOahkH=1) && CurrentPrefWindow=3) || ((!isMouseFile || NOahkH=1) && CurrentPrefWindow=4) ; keypress-beeperz-functions.ahk / keypress-mouse-functions.ahk
+    If ((!isBeeperzFile || missingAudios=1 || NOahkH=1) && CurrentPrefWindow=3) || ((!isMouseFile || NOahkH=1) && CurrentPrefWindow=4) ; keypress-beeperz-functions.ahk / keypress-mouse-functions.ahk
     {
       ShowLongMsg("ERROR: Missing files...")
       SoundBeep, 300, 900
@@ -4351,7 +4499,7 @@ SwitchPreferences(forceReopenSame:=0) {
     Global showHelp := 0
     Global reopen := 1
     Gui, SettingsGUIA: Destroy
-    Sleep, 15
+    Sleep, 25
     SettingsGUI()
     CheckSettings()
     If (CurrentPrefWindow=1)
@@ -4406,6 +4554,7 @@ VerifyTypeOptions(enableApply:=1) {
     GuiControlGet, sendJumpKeys
     GuiControlGet, MediateNavKeys
     GuiControlGet, showHelp
+    GuiControlGet, expandWords
 
     GuiControl, % (enableApply=0 ? "Disable" : "Enable"), ApplySettingsBTN
     If (ShowSingleKey=0)
@@ -4430,6 +4579,10 @@ VerifyTypeOptions(enableApply:=1) {
        GuiControl, Disable, EnforceSluggishSynch
        GuiControl, Disable, editF1
        GuiControl, Disable, editF2
+       GuiControl, Disable, ExpandWordsListEdit
+       GuiControl, Disable, expandWords
+       GuiControl, Disable, SaveWordPairsBTN
+       GuiControl, Disable, DefaultWordPairsBTN
     } Else
     {
        GuiControl, Enable, DisableTypingMode
@@ -4452,6 +4605,9 @@ VerifyTypeOptions(enableApply:=1) {
        GuiControl, Enable, EnforceSluggishSynch
        GuiControl, Enable, editF1
        GuiControl, Enable, editF2
+       GuiControl, Enable, ExpandWordsListEdit
+       GuiControl, Enable, expandWords
+       GuiControl, Enable, DefaultWordPairsBTN
     }
   
     If (DisableTypingMode=1)
@@ -4475,6 +4631,10 @@ VerifyTypeOptions(enableApply:=1) {
        GuiControl, Disable, EnforceSluggishSynch
        GuiControl, Disable, editF1
        GuiControl, Disable, editF2
+       GuiControl, Disable, ExpandWordsListEdit
+       GuiControl, Disable, expandWords
+       GuiControl, Disable, SaveWordPairsBTN
+       GuiControl, Disable, DefaultWordPairsBTN
     } Else If (ShowSingleKey!=0)
     {
        GuiControl, Enable, CapslockBeeper
@@ -4496,6 +4656,9 @@ VerifyTypeOptions(enableApply:=1) {
        GuiControl, Enable, EnforceSluggishSynch
        GuiControl, Enable, editF1
        GuiControl, Enable, editF2
+       GuiControl, Enable, expandWords
+       GuiControl, Enable, ExpandWordsListEdit
+       GuiControl, Enable, DefaultWordPairsBTN
     }
 
     If (OnlyTypingMode=0)
@@ -4543,6 +4706,16 @@ VerifyTypeOptions(enableApply:=1) {
        GuiControl, , AltHook2keysUser, 0
        GuiControl, Enable, ShowDeadKeys
     }
+
+   If (expandWords=0)
+   {
+      GuiControl, Disable, SaveWordPairsBTN
+      GuiControl, Disable, DefaultWordPairsBTN
+      GuiControl, Disable, ExpandWordsListEdit
+   }
+   If (enableApply=0)
+      GuiControl, Disable, SaveWordPairsBTN
+
 }
 
 ShowShortCutsSettings() {
@@ -5326,6 +5499,9 @@ VerifyPresetOptions(enableApply:=1) {
 volSlider() {
     GuiControlGet, result , , BeepsVolume, 
     GuiControl, , volLevel, % "Volume: " result " %"
+    BeepsVolume := result
+    SetMyVolume()
+    beeperzDefunctions.ahkPostFunction["PlaySoundTest", ""]
     VerifySoundsOptions()
 }
 
@@ -5390,7 +5566,7 @@ VerifySoundsOptions(enableApply:=1) {
     GuiControlGet, SilentMode
 
     GuiControl, % (enableApply=0 ? "Disable" : "Enable"), ApplySettingsBTN
-    If (SilentMode=1)
+    If (SilentMode=1 || missingAudios=1)
     {
        GuiControl, Disable, BeepSentry
        GuiControl, Disable, CapslockBeeper
@@ -5404,6 +5580,9 @@ VerifySoundsOptions(enableApply:=1) {
        GuiControl, Disable, ToggleKeysBeeper
        GuiControl, Disable, beepFiringKeys
        GuiControl, Disable, audioAlerts
+       GuiControl, Disable, BeepSentry
+       GuiControl, Disable, BeepsVolume
+       GuiControl, Disable, volLevel
     } Else
     {
        GuiControl, Enable, BeepSentry
@@ -5418,6 +5597,9 @@ VerifySoundsOptions(enableApply:=1) {
        GuiControl, Enable, ToggleKeysBeeper
        GuiControl, Enable, beepFiringKeys
        GuiControl, Enable, audioAlerts
+       GuiControl, Enable, BeepSentry
+       GuiControl, Enable, BeepsVolume
+       GuiControl, Enable, volLevel
     }
 
     If (SilentMode=0)
@@ -5428,14 +5610,6 @@ VerifySoundsOptions(enableApply:=1) {
 
     If (DisableTypingMode=1)
        GuiControl, Disable, CapslockBeeper
-
-    If (missingAudios=1)
-    {
-       GuiControl, Disable, BeepSentry
-       GuiControl, Disable, DTMFbeepers
-       GuiControl, , BeepSentry, 0
-       GuiControl, , DTMFbeepers, 0
-    }
 }
 
 Switch2KBDsList() {
@@ -5476,7 +5650,8 @@ ShowKBDsettings() {
     Gui, Add, Text, xp-20 y+7, Current keyboard layout:
     Gui, Add, Text, y+7 w%txtWid%, %CurrentKBD%
     IniRead, KBDsDetected, %langFile%, Options, KBDsDetected, -
-    Gui, Add, Text, y+7, Total layouts detected: %KBDsDetected%
+    If (KBDsDetected>0)
+       Gui, Add, Text, y+7, Total layouts detected: %KBDsDetected%
 
     If (loadedLangz!=1 && AutoDetectKBD=1)
        Gui, Add, Text, y+7 w%txtWid%, WARNING: Language definitions file is missing. Support for dead keys is limited. Otherwise, everything should be fine.
@@ -6028,16 +6203,17 @@ trimArray(arr) { ; Hash O(n)
 
 ApplySettings() {
     Gui, SettingsGUIA: Submit, NoHide
-
     CheckSettings()
     If (AutoDetectKBD=1)
     {
        ReloadCounter := 1
        IniWrite, %ReloadCounter%, %IniFile%, TempSettings, ReloadCounter
     }
-    Sleep, 20
+    prefOpen := 0
+    IniWrite, %prefOpen%, %inifile%, TempSettings, prefOpen
+    Sleep, 25
     ShaveSettings()
-    Sleep, 20
+    Sleep, 100
     ReloadScript()
 }
 
@@ -6062,7 +6238,7 @@ AboutWindow() {
     txtWid := 360
     btnWid := 100
     Gui, Font, s20 Bold, Arial, -wrap
-    Gui, Add, Picture, x15 y15 w65 h65 +0x3, HICON:%hIconImg%
+    Gui, Add, Picture, x15 y15 w66 h-1 +0x3, HICON:%hIconImg%
     Gui, Add, Text, x+7 y10, KeyPress OSD v%version%
     Gui, Font
     Gui, Add, Text, y+2, Based on KeyPressOSD v2.2 by Tmplinshi.
@@ -6072,7 +6248,7 @@ AboutWindow() {
        txtWid := 465
        Gui, Font, s%LargeUIfontValue%
     }
-    Gui, Add, Link, y+4, Script developed by <a href="http://marius.sucan.ro">Marius Șucan</a> on AHK_H v1.1.27.
+    Gui, Add, Link, y+4, Script developed by <a href="http://marius.sucan.ro">Marius Şucan</a> on AHK_H v1.1.27.
     Gui, Add, Text, x15 y+9, Freeware. Open source. For Windows XP, 7, 8, and 10.
     Gui, Add, Text, y+10 w%txtWid%, My gratitude to Drugwash for directly contributing with considerable improvements and code to this project.
     Gui, Add, Text, y+10 w%txtWid%, Many thanks to the great people from #ahk (irc.freenode.net), in particular to Phaleth, Tidbit and Saiapatsu. Special mentions to: Burque505 / Winter (for continued feedback) and Neuromancer.
@@ -6098,7 +6274,7 @@ listIMEs() {
        Return
 
     IniRead, KBDsDetected, %langFile%, Options, KBDsDetected, -
-    IniRead, PreloadList, %langFile%, Options, PreloadList, -
+    IniRead, PreloadList, %langFile%, REGdumpData, PreloadList, -
     skey := "Software\Microsoft\CTF\SortOrder\AssemblyItem"
     Loop, HKCU, %skey%, 2
     {
@@ -6115,12 +6291,20 @@ listIMEs() {
              SetFormat, Integer, H
              RegRead, KeyboardLayout, HKCU, %skey%\%s1%\%s2%\%s3%, KeyboardLayout
              SetFormat, Integer, D
+             ; debug data
+             /*
+             If !InStr(CLSID, "0000")
+                CLSIDlist .= s1end "-" CLSID ","
+             If (KeyboardLayout!=0)
+                TehBigList .= s1end "-" KeyboardLayout ","
+             */
              StringReplace, KeyboardLayout2, KeyboardLayout, 0x, |0
              RegRead, ProfileCLSID, HKCU, %skey%\%s1%\%s2%\%s3%, Profile
              KeyboardLayoutsList .= "|" KeyboardLayout2
              imeName := GetIMEName(CLSID "\LanguageProfile\" s1 "\" ProfileCLSID)
              If (StrLen(imeName)>1 && InStr(PreloadList, s1s))
              {
+               Sleep, 25
                countedIMEs++
                description := ISOcodeCulture(s1, 1) imeName ; " [" s1end "]"
                RegRead, s1ss, HKCU, Keyboard Layout\Substitutes, %s1s%
@@ -6128,6 +6312,7 @@ listIMEs() {
                   s1ss := s1s
                IniWrite, %s1ss%, %langFile%, IMEs, %s1s%
                IniWrite, %description%, %langFile%, IMEs, name%countedIMEs%
+               Sleep, 50
                If s1ss
                {
                   StringRight, TeHstart, s1ss, 4
@@ -6140,6 +6325,7 @@ listIMEs() {
          {
             IniRead, kbdName, %langFile%, %s1s%, name, -
             IniRead, testIMEz, %langFile%, IMEs, %s1s%, -
+            Sleep, 25
             If (StrLen(kbdName)>1 && StrLen(testIMEz)>2)
                IniWrite, 1, %langFile%, %s1s%, doNotList
          }
@@ -6152,6 +6338,8 @@ listIMEs() {
     }
     KBDsDetected := KBDsDetected + countedIMEs
     IniWrite, %KBDsDetected%, %langFile%, Options, KBDsDetected
+;    IniWrite, %TehBigList%, %langFile%, REGdumpData, Assemblies
+;    IniWrite, %CLSIDlist%, %langFile%, REGdumpData, CLSIDlist
 }
 
 GenerateKBDlistMenu() {
@@ -6176,13 +6364,14 @@ GenerateKBDlistMenu() {
          If InStr(loadedKLIDs, newKLID)
             Continue
          langFriendlySysName := GetLayoutDisplayName(newKLID)
+         Sleep, 25
          If StrLen(langFriendlySysName)>1
             IniWrite, %langFriendlySysName%, %langFile%, %A_LoopField%, name
       }
       loadedKLIDs .= "." A_LoopField "." newKLID
       If StrLen(langFriendlySysName)<2
       {
-         langFriendlySysName := "(unrecognized) ³"
+         langFriendlySysName := A_LoopField " (unrecognized) ³"
          KBDisUnsupported := 1
       }
 
@@ -6245,7 +6434,8 @@ InstalledKBDsWindow() {
     IniWrite, %releaseDate%, %inifile%, SavedSettings, releaseDate
     IniWrite, %version%, %inifile%, SavedSettings, version
     SettingsGUI()
-    Global ListViewKBDs, btn100
+    Global ListViewKBDs, btn100, RefreshBTN
+    countList := 0
     anyWindowOpen := 1
     txtWid := 370
     If (prefsLargeFonts=1)
@@ -6253,9 +6443,11 @@ InstalledKBDsWindow() {
        txtWid := 570
        Gui, Font, s%LargeUIfontValue%
     }
+    kbdCode := SubStr(CurrentKBD, InStr(CurrentKBD, ". ")+2, 100)
+    StringReplace, kbdDescript, CurrentKBD, %kbdCode%
     Gui, Font, Bold
-    Gui, Add, Text, x15 y10, Current keyboard layout
-    Gui, Add, Text, y+5 w%txtWid%, %CurrentKBD%
+    Gui, Add, Text, x15 y10, Current keyboard layout: %kbdCode%
+    Gui, Add, Text, y+5 w%txtWid%, %kbdDescript%
     Gui, Font, Normal
     Gui, Add, ListView, y+10 w%txtWid% r%DLC% Grid Sort gActionListViewKBDs vListViewKBDs, Layout name|RTL|Dead keys|Support|KLID
 
@@ -6290,7 +6482,7 @@ InstalledKBDsWindow() {
       loadedKLIDs .= "." A_LoopField "." newKLID
       If StrLen(langFriendlySysName)<2
       {
-         langFriendlySysName := "(unrecognized) ³"
+         langFriendlySysName := A_LoopField " (unrecognized) ³"
          note3 := 1
       }
       KBDisSupported := KBDisUnsupported=0 ? "Yes" : KBDisUnsupported=1 ? "No" : "?"
@@ -6316,7 +6508,8 @@ InstalledKBDsWindow() {
       note2 := 1
       countList++
     }
-
+    If (countList<1)
+       LV_Add("", "No layouts detected...", "-", "-", "-")
     Loop, 5
         LV_ModifyCol(A_Index, "AutoHdr Center")
     LV_ModifyCol(1, "Left")
@@ -6340,7 +6533,7 @@ InstalledKBDsWindow() {
     }
     Gui, Add, Button, y+15 w75 Default gCloseWindow, &Close
     If FileExist(langfile)
-       Gui, Add, Button, x+3 w120 gDeleteLangFile, &Refresh list
+       Gui, Add, Button, x+3 w120 gDeleteLangFile vRefreshBTN, &Refresh list
     Gui, Add, Text, x+10 hp +0x200, Total layouts detected: %countList%
     Gui, Show, AutoSize, KeyPress OSD: Installed keyboard layouts
     IniWrite, %countList%, %langFile%, Options, KBDsDetected
@@ -6399,10 +6592,11 @@ checkInstalledLangs() {
 }
 
 DeleteLangFile() {
+  GuiControl, Disable, RefreshBTN
   FileDelete, %langFile%
   Sleep, 10
   initLangFile()
-  Sleep, 10
+  Sleep, 50
   InstalledKBDsWindow()
   Sleep, 10
 }
@@ -6422,10 +6616,15 @@ CloseSettings() {
    {
       prefOpen := 0
       IniWrite, %prefOpen%, %inifile%, TempSettings, prefOpen
+      Sleep, 25
       CloseWindow()
       SuspendScript()
       Return
    }
+   prefOpen := 0
+   IniWrite, %prefOpen%, %inifile%, TempSettings, prefOpen
+   Sleep, 100
+   CloseWindow()
    ReloadScript()
 }
 
@@ -6500,19 +6699,20 @@ checkUpdateExistsAbout() {
   iniTMP := "updateInfo.ini"
   If FileExist(iniTMP)
   {
-     IniRead, checkVersion, %iniTmp%, SavedSettings, version
-     IniRead, newDate, %iniTmp%, SavedSettings, releaseDate
+      IniRead, checkVersion, %iniTmp%, SavedSettings, version
+      IniRead, newDate, %iniTmp%, SavedSettings, releaseDate
   } Else Return 0
+
   If (checkVersion="ERROR")
   {
-     Return 0
+      Return 0
   } Else If (version!=checkVersion)
   {
-     msgReturn := "Version available online: "checkVersion ". Released: " newDate
-     Return msgReturn
+      msgReturn := "Version available online: "checkVersion ". Released: " newDate
+      Return msgReturn
   } Else If (version=checkVersion)
   {
-     Return 0
+      Return 0
   } Else Return 0
 }
 
@@ -6534,7 +6734,6 @@ checkUpdateExists() {
   } Else
   {
      Sleep, 25
-;     FileDelete, %iniTMP% ; what to delete if previous condition failed as in 'file doesn't exist'?
      MsgBox, 4,, %uknUpd%%forceUpd%
      IfMsgBox, Yes
         Return 1
@@ -6675,7 +6874,6 @@ updateNow() {
 
      If (zipDownloaded=1 && ahkDownloaded=1)
         completeSucces := 1
-
      If (completeFailure=1)
      {
         MsgBox, 4, Error, Unable to download any file. `n Server is offline or no Internet connection. `n`nDo you want to try again?
@@ -6693,6 +6891,7 @@ updateNow() {
         } Else Break
      }
 
+     FileDelete, UpdateInfo.ini
      If (completeSucces=1)
      {
         MsgBox, Update seems to be succesful. No errors detected. `nThe script will now reload.
@@ -6800,24 +6999,22 @@ verifyNonCrucialFiles() {
     soundFile22 := "sounds\num8pad.wav"
     soundFile23 := "sounds\num9pad.wav"
     soundFile24 := "sounds\numApad.wav"
-    soundFile25 := "sounds\numpad.wav"
-    soundFile26 := "sounds\numpads.wav"
-    soundFile27 := "sounds\otherDistinctKeys.wav"
-    soundFile28 := "sounds\typingkeysArrowsD.wav"
-    soundFile29 := "sounds\typingkeysArrowsL.wav"
-    soundFile30 := "sounds\typingkeysArrowsR.wav"
-    soundFile31 := "sounds\typingkeysArrowsU.wav"
-    soundFile32 := "sounds\typingkeysBksp.wav"
-    soundFile33 := "sounds\typingkeysDel.wav"
-    soundFile34 := "sounds\typingkeysEnd.wav"
-    soundFile35 := "sounds\typingkeysEnter.wav"
-    soundFile36 := "sounds\typingkeysHome.wav"
-    soundFile37 := "sounds\typingkeysPgDn.wav"
-    soundFile38 := "sounds\typingkeysPgUp.wav"
-    soundFile39 := "sounds\typingkeysSpace.wav"
+    soundFile25 := "sounds\numpads.wav"
+    soundFile26 := "sounds\otherDistinctKeys.wav"
+    soundFile27 := "sounds\typingkeysArrowsD.wav"
+    soundFile28 := "sounds\typingkeysArrowsL.wav"
+    soundFile29 := "sounds\typingkeysArrowsR.wav"
+    soundFile30 := "sounds\typingkeysArrowsU.wav"
+    soundFile31 := "sounds\typingkeysBksp.wav"
+    soundFile32 := "sounds\typingkeysDel.wav"
+    soundFile33 := "sounds\typingkeysEnd.wav"
+    soundFile34 := "sounds\typingkeysEnter.wav"
+    soundFile35 := "sounds\typingkeysHome.wav"
+    soundFile36 := "sounds\typingkeysPgDn.wav"
+    soundFile37 := "sounds\typingkeysPgUp.wav"
+    soundFile38 := "sounds\typingkeysSpace.wav"
 
     FilePack := "DeadKeysAidFile,beepersFile,ripplesFile,mouseFile,historyFile,faqHtml,presentationHtml,shortcutsHtml,featuresHtml"
-    IniRead, ScriptelSuspendel, %inifile%, TempSettings, ScriptelSuspendel, %ScriptelSuspendel%
     IniRead, verifyNonCrucialFilesRan, %inifile%, TempSettings, verifyNonCrucialFilesRan, 0
     IniRead, checkVersion, %IniFile%, SavedSettings, version, 0
     If !FileExist(A_ScriptDir "\Lib")
@@ -6845,16 +7042,17 @@ verifyNonCrucialFiles() {
     missingAudios := 0
     If !A_IsCompiled
     {
-      Loop, 39
+      Loop, 38
       {
         If !FileExist(soundFile%A_Index%)
            downloadSoundPackNow := missingAudios := 1
-      } Until missingAudios=1
+      } Until (missingAudios=1)
+
       Loop, Parse, FilePack, CSV
       {
         If !FileExist(%A_LoopField%)
            downloadPackNow := 1
-      } Until downloadPackNow=1
+      } Until (downloadPackNow=1)
     }
 
     FileGetTime, fileDate, %historyFile%
@@ -6935,9 +7133,9 @@ verifyNonCrucialFiles() {
     }
     missingAudios := 0  ; why is this still here?????
     If !A_isCompiled
-       Loop, 39
+       Loop, 38
        {
-        If !FileExist(soundFile%A_Index%)
+         If !FileExist(soundFile%A_Index%)
             downloadSoundPackNow := missingAudios := 1
        } Until (missingAudios=1)
 }
@@ -7119,6 +7317,7 @@ ShaveSettings() {
   IniWrite, %UseMUInames%, %inifile%, SavedSettings, UseMUInames
   IniWrite, %outputOSDtoToolTip%, %inifile%, SavedSettings, outputOSDtoToolTip
   IniWrite, %BeepsVolume%, %inifile%, SavedSettings, BeepsVolume
+  IniWrite, %expandWords%, %inifile%, SavedSettings, expandWords
 }
 
 LoadSettings() {
@@ -7236,6 +7435,7 @@ LoadSettings() {
   IniRead, UseMUInames, %inifile%, SavedSettings, UseMUInames, %UseMUInames%
   IniRead, outputOSDtoToolTip, %inifile%, SavedSettings, outputOSDtoToolTip, %outputOSDtoToolTip%
   IniRead, BeepsVolume, %inifile%, SavedSettings, BeepsVolume, %BeepsVolume%
+  IniRead, expandWords, %inifile%, SavedSettings, expandWords, %expandWords%
 
   CheckSettings()
   GuiX := (GUIposition=1) ? GuiXa : GuiXb
@@ -7311,6 +7511,7 @@ CheckSettings() {
     doBackup := (doBackup=0 || doBackup=1) ? doBackup : 0
     UseMUInames := (UseMUInames=0 || UseMUInames=1) ? UseMUInames : 1
     outputOSDtoToolTip := (outputOSDtoToolTip=0 || outputOSDtoToolTip=1) ? outputOSDtoToolTip : 0
+    expandWords := (expandWords=0 || expandWords=1) ? expandWords : 0
 
     If (mouseOSDbehavior=1)
     {
@@ -7490,9 +7691,9 @@ CheckSettings() {
    If (OSDtextColor ~= "[^[:xdigit:]]") || (StrLen(OSDtextColor)!=6)
       OSDtextColor := "FFFEFA"
 
-   FontName := (StrLen(FontName)>2) ? FontName : "Arial"
-   If (A_OSVersion="WIN_XP")
-      FontName := (StrLen(FontName)>2) ? FontName : FileExist(A_WinDir "\Fonts\ARIALUNI.TTF") ? "Arial Unicode MS" : "Arial"
+   FontName := (StrLen(FontName)>2) ? FontName
+            : (A_OSVersion!="WIN_XP") ? "Arial"
+            : FileExist(A_WinDir "\Fonts\ARIALUNI.TTF") ? "Arial Unicode MS" : "Arial"
 }
 
 createTypingWindow() {
@@ -7669,8 +7870,8 @@ checkifRunningWindow() {
   DetectHiddenWindows, on
   Sleep, 10
   WinGet, otherKP, id, KeyPressOSDwin
-  If otherKP not in %OSDhandles%
-     KillScript(0)
+;  If otherKP not in %OSDhandles%
+;     KillScript(0)
   DetectHiddenWindows, off
   SetTimer, , off
 }
@@ -7681,6 +7882,8 @@ checkIfRunning() {
     {
         Sleep, 15
         SoundBeep
+        prefOpen := 0
+        IniWrite, %prefOpen%, %inifile%, TempSettings, prefOpen
         MsgBox, 4,, The app seems to be running `nor did not close properly. Continue?
         IfMsgBox, Yes
           Return
@@ -7744,12 +7947,7 @@ GetInputHKL(win := "") {
     Return DllCall("user32\GetKeyboardLayout", "Ptr", DllCall("user32\GetWindowThreadProcessId", "Ptr", hWnd, "UInt", 0, "Ptr"), "Ptr")
   }
 }
-
-;================================================================
-; functions by Drugwash. Direct contribuitor to this script. Many thanks!
-; ===============================================================
-
-SetMyVolume(val:=100, r:="") {
+calcNewVolume() {
   SoundGet, master_volume
   If (master_volume>50 && BeepsVolume>50)
   {
@@ -7757,20 +7955,31 @@ SetMyVolume(val:=100, r:="") {
   } Else If (master_volume<49 && BeepsVolume>50)
   {
      val := BeepsVolume + round(master_volume/6)
-  }  Else If (master_volume<50 && BeepsVolume<50)
+  } Else If (master_volume<50 && BeepsVolume<50)
      val := BeepsVolume + master_volume/4
   Else
-      val := BeepsVolume
+     val := BeepsVolume
   If (val>99)
      val := 99
+  Return val 
+}
+
+;================================================================
+; functions by Drugwash. Direct contribuitor to this script. Many thanks!
+; ===============================================================
+
+SetMyVolume(val:=100, r:="", egzit:=0) {
+  If (egzit=0)
+     val := calcNewVolume()
+
   v := Round(val*655.35), vr := r="" ? v : Round(r*655.35)
   DllCall("winmm\waveOutSetVolume", "UInt", 0, "UInt", (v|vr<<16))
 }
 
 GetMyVolume(ByRef vl) {
-DllCall("winmm\waveOutGetVolume", "UInt", 0, "UIntP", vol)
-vl := Round((vol&0xFFFF)/0xFFFF*100)
-Return Round((vol>>16)/0xFFFF*100)
+  DllCall("winmm\waveOutGetVolume", "UInt", 0, "UIntP", vol)
+  vl := Round(100*(vol&0xFFFF)/0xFFFF)
+  Return Round(100*(vol>>16)/0xFFFF)
 }
 
 GetLocaleInfo(ByRef strg, loc, HKL:=0) {
@@ -7915,6 +8124,7 @@ GetLayoutsInfo() {
     Static mod := ",shift,altGr,shAltGr"
 
     REGentireList := dumpRegLangData()
+    Sleep, 50
     currHKL := DllCall("user32\GetKeyboardLayout", "UInt", 0, "Ptr")  ; Get layout for current thread
     While DllCall("msvcrt\_kbhit", "CDecl")
           DllCall("msvcrt\_getche", "CDecl")      ; Clear keyboard buffer
@@ -8482,7 +8692,7 @@ st_overwrite(overwrite, into, pos=1) {
 ;============================================================ String Things by tidbit
 
 Cleanup() {
-    SetMyVolume(VolR)
+    SetMyVolume(VolL, VolR, 1)
     OnMessage(0x4a, "")
     OnMessage(0x200, "")
     OnMessage(0x102, "")
@@ -8491,27 +8701,42 @@ Cleanup() {
     func2exec := "ahkThread_Free"
     If (NOahkH!=1)
     {
-        mouseFonctiones.ahkTerminate[]
+       If isMouseFile
+       {
+        mouseFonctiones.ahkPostFunction["ToggleMouseTimerz", "Y"] ; force all timers off
+        Sleep, 10
+        mouseFonctiones.ahkTerminate[-100]
         %func2exec%(mouseFonctiones)
         mouseFonctiones := ""
+       }
 
-        beeperzDefunctions.ahkTerminate[]
-        %func2exec%(beeperzDefunctions)
-        beeperzDefunctions := ""
-        
-        mouseRipplesThread.ahkTerminate[]
+       If isRipplesFile
+       {
+        mouseRipplesThread.ahkPostFunction["MouseRippleClose"]
+        mouseRipplesThread.ahkTerminate[-100]
         %func2exec%(mouseRipplesThread)
         mouseRipplesThread := ""
-        
-        keyStrokesThread.ahkTerminate[]
+       }
+
+       If isBeeperzFile
+       {
+        beeperzDefunctions.ahkTerminate[-100]
+        %func2exec%(beeperzDefunctions)
+        beeperzDefunctions := ""
+       }
+
+       If isKeystrokesFile
+       {
+        keyStrokesThread.ahkTerminate[-100]
         %func2exec%(keyStrokesThread)
         keyStrokesThread := ""
+       }
     }
-    Sleep, 50
+    Sleep, 10
     a := "Acc_Init"
     If IsFunc(a)
        %a%(1)
-    killGdiplus(pToken, hGdiplus)
+    DllCall("kernel32\FreeLibrary", "Ptr", hWinMM)
 }
 
 SettingsGUIAGuiEscape:
@@ -8535,7 +8760,7 @@ CheckAcc:
 #Include *i %A_ScriptDir%\Lib\UIA_Interface.ahk
 Return
 
-; based on AHK_H ResGet.ahk script and MSDN info [from drugwash]
+; based on AHK_H ResGet.ahk script and MSDN info [from Drugwash]
 ;================================================================
 FindRes(lib, res, type, lang:="") {
   if !lib
@@ -8565,7 +8790,10 @@ GetRes(ByRef bin, lib, res, type, lang:="") {
     , "Str" , res
     , "Str" , type
     , "Ptr")
+  {
   OutputDebug, % FormatMessage(A_ThisFunc "(" lib ", " res ", " type ", " l ")", A_LastError)
+  Return
+  }
   hD := DllCall("kernel32\LoadResource"
     , "Ptr" , hM
     , "Ptr" , hR
@@ -8573,12 +8801,17 @@ GetRes(ByRef bin, lib, res, type, lang:="") {
   hB := DllCall("kernel32\LockResource"
     , "Ptr" , hD
     , "Ptr")
-  sz := DllCall("kernel32\SizeofResource"
+  If !sz := DllCall("kernel32\SizeofResource"
     , "Ptr" , hM
     , "Ptr" , hR
     , "UInt")
+  {
+  OutputDebug, Error: resource size 0 in %A_ThisFunc%(%lib%, %res%, %type%)
+  Return
+  }
   VarSetCapacity(bin, 0), VarSetCapacity(bin, sz, 0), 
   DllCall("ntdll\RtlMoveMemory", "Ptr", &bin, "Ptr", hB, "UInt", sz)
+  DllCall("kernel32\FreeResource", "Ptr" , hD)
   if hL
     DllCall("kernel32\FreeLibrary", "Ptr", hL)
   ;outputdebug, hM=%hM% hR=%hR% hD=%hD% hB=%hB% sz=%sz% hL=%hL%
@@ -8599,7 +8832,7 @@ FormatMessage(ctx, msg, arg="") {
     , "PtrP" , buf    ; lpBuffer
     , "UInt" , 0      ; nSize
     , "Str"  , arg)   ; Arguments
-  txt := DllCall("kernel32\MulDiv", "Ptr", buf, "Int", 1, "Int", 1, "Str")
+  txt := StrGet(&buf, "UTF-16")
   DllCall("kernel32\LocalFree", "Ptr", buf)
   return "Error " msg " in " ctx ":`n" txt
 }

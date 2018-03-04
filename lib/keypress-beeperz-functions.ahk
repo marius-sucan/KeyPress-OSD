@@ -10,7 +10,6 @@
 #SingleInstance force
 #NoEnv
 #MaxHotkeysPerInterval 500
-
 SetWorkingDir, %A_ScriptDir%
 
 Global ToggleKeysBeeper  := 1
@@ -33,10 +32,11 @@ Global ToggleKeysBeeper  := 1
  , toggleLastState := 0
  , skipAbeep := 0
  , isBeeperzFile := 1
- , RunningCompiled := A_IsCompiled ? "yes" : 0
+ , RunningCompiled := 0
+ , ScriptelSuspendel := 0
 
-  IniRead, RunningCompiled, %inifile%, TempSettings, RunningCompiled, %RunningCompiled%
-  IniRead, ScriptelSuspendel, %inifile%, TempSettings, ScriptelSuspendel, %ScriptelSuspendel%
+;  IniRead, RunningCompiled, %inifile%, TempSettings, RunningCompiled, %RunningCompiled%
+;  IniRead, ScriptelSuspendel, %inifile%, TempSettings, ScriptelSuspendel, %ScriptelSuspendel%
   IniRead, SilentMode, %inifile%, SavedSettings, SilentMode, %SilentMode%
   IniRead, MouseBeeper, %inifile%, SavedSettings, MouseBeeper, %MouseBeeper%
   IniRead, beepFiringKeys, %inifile%, SavedSettings, beepFiringKeys, %beepFiringKeys%
@@ -49,7 +49,7 @@ Global ToggleKeysBeeper  := 1
   IniRead, ModBeeper, %inifile%, SavedSettings, ModBeeper, %ModBeeper%
   IniRead, prioritizeBeepers, %inifile%, SavedSettings, prioritizeBeepers, %prioritizeBeepers%
 
-if (ScriptelSuspendel=1) || (SilentMode=1)
+if (ScriptelSuspendel=1 || SilentMode=1)
    Return
 
 if (prioritizeBeepers=1)
@@ -71,7 +71,7 @@ CreateHotkey() {
              Hotkey, % "~*" A_LoopField, OnMousePressed, useErrorLevel
     }
 
-    If ((keyBeeper=1) || (beepFiringKeys=1))
+    If (keyBeeper=1 || beepFiringKeys=1)
     {
         Loop, 24 ; F1-F24
         {
@@ -80,7 +80,7 @@ CreateHotkey() {
         }
 
         NumpadKeysList := "NumpadDel|NumpadIns|NumpadEnd|NumpadDown|NumpadPgdn|NumpadLeft|NumpadClear|NumpadRight|NumpadHome|NumpadUp|NumpadPgup|NumpadEnter"
-        Loop, parse, NumpadKeysList, |
+        Loop, Parse, NumpadKeysList, |
         {
            Hotkey, % "~*" A_LoopField, OnKeyPressed, useErrorLevel
            Hotkey, % "~*" A_LoopField " Up", OnKeyUp, useErrorLevel
@@ -94,7 +94,7 @@ CreateHotkey() {
 
         NumpadSymbols := "NumpadDot|NumpadDiv|NumpadMult|NumpadAdd|NumpadSub"
 
-        Loop, parse, NumpadSymbols, |
+        Loop, Parse, NumpadSymbols, |
         {
            Hotkey, % "~*" A_LoopField, OnKeyPressed, useErrorLevel
            Hotkey, % "~*" A_LoopField " Up", OnKeyUp, useErrorLevel
@@ -102,7 +102,7 @@ CreateHotkey() {
 
         Otherkeys := "XButton1|XButton2|Browser_Forward|Browser_Back|Browser_Refresh|Browser_Stop|Browser_Search|Browser_Favorites|Browser_Home|Launch_Mail|Launch_Media|Launch_App1|Launch_App2|Help|Sleep|PrintScreen|CtrlBreak|Break|AppsKey|Tab|Enter|Esc"
                    . "|Left|Right|Down|Up|End|Home|PgUp|PgDn|Space|Del|BackSpace|Insert|CapsLock|ScrollLock|NumLock|Pause|Volume_Mute|Volume_Down|Volume_Up|Media_Next|Media_Prev|Media_Stop|Media_Play_Pausesc146|sc123"
-        Loop, parse, Otherkeys, |
+        Loop, Parse, Otherkeys, |
         {
             Hotkey, % "~*" A_LoopField, OnKeyPressed, useErrorLevel
             Hotkey, % "~*" A_LoopField " Up", OnKeyUp, useErrorLevel
@@ -112,19 +112,19 @@ CreateHotkey() {
     If (ToggleKeysBeeper=1)
     {
         ToggleKeys := "CapsLock|ScrollLock|NumLock"
-        Loop, parse, ToggleKeys, |
+        Loop, Parse, ToggleKeys, |
               Hotkey, % "~*" A_LoopField " Up", OnToggleUp, useErrorLevel
     }
 
-    If (TypingBeepers=1) && (keyBeeper=1)
+    If (TypingBeepers=1 && keyBeeper=1)
     {
 
         NumpadKeysList := "NumpadDel|NumpadIns|NumpadEnd|NumpadDown|NumpadPgdn|NumpadLeft|NumpadClear|NumpadRight|NumpadHome|NumpadUp|NumpadPgup|NumpadEnter"
         NumpadSymbols := "NumpadDot|NumpadDiv|NumpadMult|NumpadAdd|NumpadSub"
-        Loop, parse, NumpadKeysList, |
+        Loop, Parse, NumpadKeysList, |
               Hotkey, % "~*" A_LoopField " Up", OnNumpadsGeneralUp, useErrorLevel
 
-        Loop, parse, NumpadSymbols, |
+        Loop, Parse, NumpadSymbols, |
               Hotkey, % "~*" A_LoopField " Up", OnNumpadsGeneralUp, useErrorLevel
 
         Loop, 10 ; Numpad0 - Numpad9 ; numlock on
@@ -146,20 +146,20 @@ CreateHotkey() {
         Hotkey, ~*PgDn Up, OnTypingPgDnUp, useErrorLevel
         Hotkey, ~*Up Up, OnTypingUpUp, useErrorLevel
         Hotkey, ~*Down Up, OnTypingDnUp, useErrorLevel
-        Loop, parse, Enterz, |
+        Loop, Parse, Enterz, |
             Hotkey, % "~*" A_LoopField " Up", OnTypingKeysEnterUp, useErrorLevel
-        Loop, parse, OtherTypingKeysz, |
+        Loop, Parse, OtherTypingKeysz, |
             Hotkey, % "~*" A_LoopField " Up", ONotherDistinctKeysUp, useErrorLevel
 
         MediaKeys := "Volume_Mute|Volume_Down|Volume_Up|Media_Next|Media_Prev|Media_Stop|Media_Play_Pause"
-        Loop, parse, MediaKeys, |
+        Loop, Parse, MediaKeys, |
             Hotkey, % "~*" A_LoopField, OnMediaPressed, useErrorLevel
 
     }
 
-    If ((modBeeper=1) || (beepFiringKeys=1))
+    If (modBeeper=1 || beepFiringKeys=1)
     {
-        for i, mod in ["LShift", "RShift", "LCtrl", "RCtrl", "LAlt", "RAlt", "LWin", "RWin"]
+        For i, mod in ["LShift", "RShift", "LCtrl", "RCtrl", "LAlt", "RAlt", "LWin", "RWin"]
         {
           Hotkey, % "~*" mod, OnModPressed, useErrorLevel
           Hotkey, % "~*" mod " Up", OnModUp, useErrorLevel
@@ -176,7 +176,6 @@ CreateHotkey() {
 
 OnKeyPressed() {
     Thread, priority, -30
-
     If (beepFiringKeys=1)
        SetTimer, firedBeeperTimer, 20, -20
 }
@@ -185,10 +184,10 @@ OnModPressed() {
     Thread, priority, -30
     Critical, off
 
-    If (beepFiringKeys=1) && (A_TickCount-lastModPressTime < 350)
+    If (beepFiringKeys=1 && (A_TickCount-lastModPressTime < 350))
        SetTimer, modfiredBeeperTimer, 20, -20
 
-    If (A_TickCount-lastModPressTime < 350) || (skipAbeep=1)
+    If ((A_TickCount-lastModPressTime < 350) || skipAbeep=1)
     {
        skipAbeep := 0
        Global lastModPressTime := A_TickCount
@@ -223,82 +222,63 @@ OnToggleUp() {
 OnTypingLeftUp() {
    Global lastKeyUpTime := A_TickCount
    Sleep, 15
-   SoundPlay("sounds\typingkeysArrowsL.wav", RunningCompiled, prioritizeBeepers)
-   If (ErrorLevel=1)
-      SoundBeep, 800, 45
+   SoundPlay("sounds\typingkeysArrowsL.wav", prioritizeBeepers)
    checkIfSkipAbeep()
 }
 
 OnTypingHomeUp() {
    Global lastKeyUpTime := A_TickCount
    Sleep, 15
-   SoundPlay("sounds\typingkeysHome.wav", RunningCompiled, prioritizeBeepers)
-   If (ErrorLevel=1)
-      SoundBeep, 800, 45
+   SoundPlay("sounds\typingkeysHome.wav", prioritizeBeepers)
    checkIfSkipAbeep()
 }
 
 OnTypingEndUp() {
    Global lastKeyUpTime := A_TickCount
    Sleep, 15
-   SoundPlay("sounds\typingkeysEnd.wav", RunningCompiled, prioritizeBeepers)
-   If (ErrorLevel=1)
-      SoundBeep, 800, 45
+   SoundPlay("sounds\typingkeysEnd.wav", prioritizeBeepers)
    checkIfSkipAbeep()
 }
 
 OnTypingPgUpUp() {
    Global lastKeyUpTime := A_TickCount
    Sleep, 15
-   SoundPlay("sounds\typingkeysPgUp.wav", RunningCompiled, prioritizeBeepers)
-   If (ErrorLevel=1)
-      SoundBeep, 800, 45
+   SoundPlay("sounds\typingkeysPgUp.wav", prioritizeBeepers)
    checkIfSkipAbeep()
 }
 
 OnTypingPgDnUp() {
    Global lastKeyUpTime := A_TickCount
    Sleep, 15
-   SoundPlay("sounds\typingkeysPgDn.wav", RunningCompiled, prioritizeBeepers)
-   If (ErrorLevel=1)
-      SoundBeep, 800, 45
+   SoundPlay("sounds\typingkeysPgDn.wav", prioritizeBeepers)
    checkIfSkipAbeep()
 }
-
 
 OnTypingRightUp() {
    Global lastKeyUpTime := A_TickCount
    Sleep, 15
-   SoundPlay("sounds\typingkeysArrowsR.wav", RunningCompiled, prioritizeBeepers)
-   If (ErrorLevel=1)
-      SoundBeep, 800, 45
+   SoundPlay("sounds\typingkeysArrowsR.wav", prioritizeBeepers)
    checkIfSkipAbeep()
 }
 
 OnFunctionKeyUp() {
    Global lastKeyUpTime := A_TickCount
    Sleep, 15
-   SoundPlay("sounds\functionKeys.wav", RunningCompiled, prioritizeBeepers)
-   If (ErrorLevel=1)
-      SoundBeep, 750, 65
+   SoundPlay("sounds\functionKeys.wav", prioritizeBeepers)
    checkIfSkipAbeep()
 }
 
 ONotherDistinctKeysUp() {
    Global lastKeyUpTime := A_TickCount
    Sleep, 15
-   SoundPlay("sounds\otherDistinctKeys.wav", RunningCompiled, prioritizeBeepers)
-   If (ErrorLevel=1)
-      SoundBeep, 750, 65
+   SoundPlay("sounds\otherDistinctKeys.wav", prioritizeBeepers)
    checkIfSkipAbeep()
 }
 
 OnNumpadsGeneralUp() {
    Global lastKeyUpTime := A_TickCount
    Sleep, 15
-   SoundPlay("sounds\numpads.wav", RunningCompiled, prioritizeBeepers)
-   If (ErrorLevel=1)
-      SoundBeep, 950, 95
+   SoundPlay("sounds\numpads.wav", prioritizeBeepers)
    checkIfSkipAbeep()
 }
 
@@ -310,64 +290,49 @@ OnNumpadsDTMFUp() {
    If InStr(A_ThisHotkey, "dot")
       sound2PlayNow := "A"
 
-   SoundPlay("sounds\num" sound2PlayNow "pad.wav", RunningCompiled, prioritizeBeepers)
-   If (ErrorLevel=1)
-      SoundBeep, 950, 95
+   SoundPlay("sounds\num" sound2PlayNow "pad.wav", prioritizeBeepers)
    checkIfSkipAbeep()
 }
 
 OnTypingKeysEnterUp() {
    Global lastKeyUpTime := A_TickCount
    Sleep, 15
-   SoundPlay("sounds\typingkeysEnter.wav", RunningCompiled, prioritizeBeepers)
-   If (ErrorLevel=1)
-      SoundBeep, 350, 75
+   SoundPlay("sounds\typingkeysEnter.wav", prioritizeBeepers)
    checkIfSkipAbeep()
 }
 
 OnTypingKeysDelUp() {
    Global lastKeyUpTime := A_TickCount
    Sleep, 15
-   SoundPlay("sounds\typingkeysDel.wav", RunningCompiled, prioritizeBeepers)
-   If (ErrorLevel=1)
-      SoundBeep, 700, 75
+   SoundPlay("sounds\typingkeysDel.wav", prioritizeBeepers)
    checkIfSkipAbeep()
 }
 
 OnTypingKeysBkspUp() {
    Global lastKeyUpTime := A_TickCount
    Sleep, 15
-   SoundPlay("sounds\typingkeysBksp.wav", RunningCompiled, prioritizeBeepers)
-   If (ErrorLevel=1)
-      SoundBeep, 770, 45
+   SoundPlay("sounds\typingkeysBksp.wav", prioritizeBeepers)
    checkIfSkipAbeep()
 }
 
 OnTypingKeysSpaceUp() {
    Global lastKeyUpTime := A_TickCount
    Sleep, 15
-   SoundPlay("sounds\typingkeysSpace.wav", RunningCompiled, prioritizeBeepers)
-   If (ErrorLevel=1)
-      SoundBeep, 750, 60
+   SoundPlay("sounds\typingkeysSpace.wav", prioritizeBeepers)
    checkIfSkipAbeep()
 }
 
 OnTypingUpUp() {
    Global lastKeyUpTime := A_TickCount
    Sleep, 15
-   SoundPlay("sounds\typingkeysArrowsU.wav", RunningCompiled, prioritizeBeepers)
-   If (ErrorLevel=1)
-      SoundBeep, 850, 65
-
+   SoundPlay("sounds\typingkeysArrowsU.wav", prioritizeBeepers)
    checkIfSkipAbeep()
 }
 
 OnTypingDnUp() {
    Global lastKeyUpTime := A_TickCount
    Sleep, 15
-   SoundPlay("sounds\typingkeysArrowsD.wav", RunningCompiled, prioritizeBeepers)
-   If (ErrorLevel=1)
-      SoundBeep, 850, 65
+   SoundPlay("sounds\typingkeysArrowsD.wav", prioritizeBeepers)
    checkIfSkipAbeep()
 }
 
@@ -382,75 +347,36 @@ OnModUp() {
 toggleBeeper() {
    Sleep, 15
    If (toggleLastState=1)
-      SoundPlay("sounds\caps.wav", RunningCompiled, prioritizeBeepers)
+      SoundPlay("sounds\caps.wav", prioritizeBeepers)
    Else
-      SoundPlay("sounds\cups.wav", RunningCompiled, prioritizeBeepers)
-
-   If (ErrorLevel=1) && (toggleLastState=0)
-      SoundBeep, 490, 100
-
-   If (ErrorLevel=1) && (toggleLastState=1)
-      SoundBeep, 450, 120
+      SoundPlay("sounds\cups.wav", prioritizeBeepers)
 }
 
 capsBeeper() {
    Sleep, 15
-   SoundPlay("sounds\caps.wav", RunningCompiled, prioritizeBeepers)
-   If (ErrorLevel=1) && (prioritizeBeepers=0)
-      SetTimer, capsBeeperTimer, 60, -20
-
-   If (ErrorLevel=1) && (prioritizeBeepers=1)
-      SoundBeep, 450, 120
-}
-
-capsBeeperTimer() {
-   SoundBeep, 450, 120
-   SetTimer, , off
+   SoundPlay("sounds\caps.wav", prioritizeBeepers)
 }
 
 keysBeeper() {
    Sleep, 15
-   SoundPlay("sounds\keys.wav", RunningCompiled, prioritizeBeepers)
-   If (ErrorLevel=1) && (prioritizeBeepers=0)
-      SetTimer, keysBeeperTimer, 60, -20
-
-   If (ErrorLevel=1) && (prioritizeBeepers=1)
-      SoundBeep, 1900, 45
-}
-
-keysBeeperTimer() {
-   SoundBeep, 1900, 45
-   SetTimer, , off
+   SoundPlay("sounds\keys.wav", prioritizeBeepers)
 }
 
 volBeeperTimer() {
    Thread, priority, -10
-   If (A_TickCount-lastKeyUpTime < 700) && (keyBeeper=1)
+   If ((A_TickCount-lastKeyUpTime < 700) && keyBeeper=1)
    {
       SetTimer, , off
       Return
    }
-
    Sleep, 15
-   SoundPlay("sounds\media.wav", RunningCompiled, prioritizeBeepers)
-   If (ErrorLevel=1)
-      SoundBeep, 150, 40
+   SoundPlay("sounds\media.wav", prioritizeBeepers)
    SetTimer, , off
 }
 
 deadKeysBeeper() {
    Critical, on
-   SoundPlay("sounds\deadkeys.wav", RunningCompiled, prioritizeBeepers)
-   If (ErrorLevel=1) && (prioritizeBeepers=0)
-      SetTimer, deadKeysBeeperTimer, 15, -20
-
-   If (ErrorLevel=1) && (prioritizeBeepers=1)
-      SoundBeep, 600, 40
-}
-
-deadKeysBeeperTimer() {
-   SoundBeep, 600, 40
-   SetTimer, , off
+   SoundPlay("sounds\deadkeys.wav", 1)
 }
 
 modsBeeper() {
@@ -458,48 +384,29 @@ modsBeeper() {
    Critical, off
 
    Global lastModPressTime := A_TickCount
-   SoundPlay("sounds\mods.wav", RunningCompiled, prioritizeBeepers)
-   If (ErrorLevel=1) && (prioritizeBeepers=0)
-      SetTimer, modsBeeperTimer, 100, -20
-
-   If (ErrorLevel=1) && (prioritizeBeepers=1)
-      SoundBeep, 1000, 65
-}
-
-modsBeeperTimer() {
-   If (A_TickCount-lastModPressTime < 200)
-   {
-      SetTimer, , off
-      Return
-   }
-
-   SoundBeep, 1000, 65
-   SetTimer, , off
+   SoundPlay("sounds\mods.wav", prioritizeBeepers)
 }
 
 firedBeeperTimer() {
    Thread, Priority, -20
    Critical, off
 
-   If (A_TickCount-lastKeyUpTime < 600) && (keyBeeper=1)
+   If ((A_TickCount-lastKeyUpTime < 600) && keyBeeper=1)
    {
       SetTimer, , off
       Return
    }
 
-   If (A_TickCount-LastFiredTime > 100) && (keyBeeper=1)
+   If ((A_TickCount-LastFiredTime > 100) && keyBeeper=1)
    {
       Sleep, 20
       Global LastFiredTime := A_TickCount
       SetTimer, , off
       Return
    }
-   SoundPlay("sounds\firedkey.wav", RunningCompiled)
+   SoundPlay("sounds\firedkey.wav")
    Sleep, 40
-   If (ErrorLevel=1)
-      SoundBeep, 500, 25
    Global LastFiredTime := A_TickCount
-
    SetTimer, , off
 }
 
@@ -507,54 +414,43 @@ modfiredBeeperTimer() {
    Thread, Priority, -20
    Critical, off
 
-   If (A_TickCount-LastFiredTime < 200) && (keyBeeper=1)
+   If ((A_TickCount-LastFiredTime < 200) && keyBeeper=1)
    {
       Sleep, 20
       SetTimer, , off
       Return
    }
-   SoundPlay("sounds\modfiredkey.wav", RunningCompiled)
+   SoundPlay("sounds\modfiredkey.wav")
    Sleep, 40
-   If (ErrorLevel=1)
-      SoundBeep, 500, 25
    Global LastFiredTime := A_TickCount
 
    SetTimer, , off
 }
 
 OnLetterPressed() {
-    If (ScriptelSuspendel=1) || (SilentMode=1)
+    If (ScriptelSuspendel=1 || SilentMode=1)
        Return
 
     GetKeyState, CapsState, CapsLock, T
     If (CapslockBeeper = 1)
     {
         If (CapsState = "D")
-           {
-               capsBeeper()
-           }
-           else If (KeyBeeper = 1)
-           {
-               keysBeeper()
-           }
+           capsBeeper()
+        Else If (KeyBeeper = 1)
+           keysBeeper()
     }
 
-    If (CapslockBeeper = 0) && (KeyBeeper = 1) && (SilentMode=0)
+    If (CapslockBeeper=0 && KeyBeeper=1 && SilentMode=0)
         keysBeeper()
-
     checkIfSkipAbeep()
 }
 
 OnDeathKeyPressed() {
-  If (ScriptelSuspendel=1) || (SilentMode=1)
+  Critical, on
+  If (ScriptelSuspendel=1 || SilentMode=1)
      Return
   deadKeysBeeper()
   checkIfSkipAbeep()
-}
-
-clickyBeeperTimer() {
-   SoundBeep, 2500, 70
-   SetTimer, , off
 }
 
 OnMousePressed() {
@@ -565,19 +461,15 @@ OnMousePressed() {
 
     If (MouseBeeper = 1) && (A_ThisHotkey ~= "i)(LButton|MButton|RButton)")
     {
-       If (TypingBeepers=1) && InStr(A_ThisHotkey, "RButton")
-          SoundPlay("sounds\clickR.wav", RunningCompiled)
-       Else If (TypingBeepers=1) && InStr(A_ThisHotkey, "MButton")
-          SoundPlay("sounds\clickM.wav", RunningCompiled)
+       If (TypingBeepers=1 && InStr(A_ThisHotkey, "RButton"))
+          SoundPlay("sounds\clickR.wav")
+       Else If (TypingBeepers=1 && InStr(A_ThisHotkey, "MButton"))
+          SoundPlay("sounds\clickM.wav")
        Else
-          SoundPlay("sounds\clicks.wav", RunningCompiled)
-       If (ErrorLevel=1)
-          SetTimer, clickyBeeperTimer, 15, -20
-    } else If (MouseBeeper = 1) && (A_ThisHotkey ~= "i)(WheelDown|WheelUp|WheelLeft|WheelRight)")
+          SoundPlay("sounds\clicks.wav")
+    } Else If (MouseBeeper = 1) && (A_ThisHotkey ~= "i)(WheelDown|WheelUp|WheelLeft|WheelRight)")
     {
-       SoundPlay("sounds\firedkey.wav", RunningCompiled)
-       If (ErrorLevel=1)
-          SetTimer, firedBeeperTimer, 20, -20
+       SoundPlay("sounds\firedkey.wav")
        Sleep, 40
     }
 
@@ -586,10 +478,9 @@ OnMousePressed() {
 checkIfSkipAbeep() {
     skipAbeep := 0
     static modifiers := ["LCtrl", "RCtrl", "LAlt", "RAlt", "LShift", "RShift", "LWin", "RWin"]
-
-    for i, mod in modifiers
+    For i, mod in modifiers
     {
-        if GetKeyState(mod)
+        If GetKeyState(mod)
            skipAbeep := 1
     }
 }
@@ -598,7 +489,7 @@ firingKeys() {
    Thread, Priority, -20
    Critical, off
 
-   SoundPlay("sounds\modfiredkey.wav", RunningCompiled)
+   SoundPlay("sounds\modfiredkey.wav")
    Sleep, 20
 }
 
@@ -606,28 +497,39 @@ holdingKeys() {
    Thread, Priority, -20
    Critical, off
 
-   SoundPlay("sounds\holdingKeys.wav", RunningCompiled)
+   SoundPlay("sounds\holdingKeys.wav")
    Sleep, 20
 }
 
-; function by drugwash:
+PlaySoundTest() {
+   Thread, Priority, -20
+   Critical, off
+   Sleep, 50
+   SoundPlay("sounds\keys.wav")
+   Sleep, 50
+}
+
+; function by Drugwash:
 ; ===============================
-SoundPlay(snd, res:=0, wait:=0) {
-Static hM := DllCall("kernel32\GetModuleHandleW", "Str", A_ScriptFullPath, "Ptr")
-f := BeepSentry=1 ? "0x80012" : "0x12"
-w := wait ? 0 : 0x2001
-If res
+SoundPlay(snd, wait:=0) {
+  If (ScriptelSuspendel="Y")
+     Return
+
+  Static hM := DllCall("kernel32\GetModuleHandleW", "Str", A_ScriptFullPath, "Ptr")
+  f := BeepSentry=1 ? "0x80012" : "0x12"
+  w := wait ? 0 : 0x2001
+  If (RunningCompiled="Y")
+  {
+	  SplitPath, snd, snd
+	  StringUpper, snd, snd
+	  hMod:=hM, flags := f|w|0x40004
+	} Else
 	{
-	SplitPath, snd, snd
-	StringUpper, snd, snd
-	hMod:=hM, flags := f|w|0x40004
+	  hMod := 0, flags := f|w|0x20000
 	}
-Else
-	{
-	hMod := 0, flags := f|w|0x20000
-	}
-Return DllCall("winmm\PlaySoundW"
-	, "Str", snd
-	, "Ptr", hMod
-	, "UInt", flags)	; SND_RESOURCE|SND_NOWAIT|SND_NOSTOP|SND_NODEFAULT|SND_ASYNC
+
+  Return DllCall("winmm\PlaySoundW"
+	  , "Str", snd
+	  , "Ptr", hMod
+	  , "UInt", flags)	; SND_RESOURCE|SND_NOWAIT|SND_NOSTOP|SND_NODEFAULT|SND_ASYNC
 }
