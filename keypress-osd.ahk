@@ -116,6 +116,8 @@
  , AltHook2keysUser      := 1
  , typingDelaysScaleUser := 7
  , UseMUInames           := 1
+ , maximumTextClips      := 10
+ , enableClipManager     := 0
  
  , lola                  := "│"
  , lola2                 := "║"
@@ -225,14 +227,15 @@
  , KBDidLangNow          := "!+^F11"
  , KBDReload             := "!+^F12"
  , KBDCapText            := "Disabled"
+ , KBDclippyMenu         := "#v"
 
  , doBackup              := 0    ; if enabled, each update will backup previous files to a separate folder
  , TextZoomer            := 0
  , thisFile              := A_ScriptName
  , UseINIfile            := 1
  , IniFile               := "keypress-osd.ini"
- , version               := "4.22.5"
- , releaseDate := "2018 / 03 / 04"
+ , version               := "4.23"
+ , releaseDate := "2018 / 03 / 06"
 
 ; Initialization variables. Altering these may lead to undesired results.
 
@@ -281,9 +284,11 @@ Global typed := "" ; hack used to determine if user is writing
  , maxTextChars := "4"
  , lastTypedSince := 0
  , editingField := "3"
+ , editField0 := ""
  , editField1 := " "
  , editField2 := " "
  , editField3 := " "
+ , editField4 := ""
  , backTypeCtrl := ""
  , backTypdUndo := ""
  , CurrentKBD := "KeyPress OSD default: English US."
@@ -320,6 +325,7 @@ Global typed := "" ; hack used to determine if user is writing
  , baseURL := "http://marius.sucan.ro/media/files/blog/ahk-scripts/"
  , hWinMM := DllCall("kernel32\LoadLibraryW", "Str", "winmm.dll", "Ptr")
  , VolR := GetMyVolume(VolL)
+ , clipDataMD5s, currentClippyCount
  , ScriptelSuspendel := 0
  , RunningCompiled := A_IsCompiled ? "Y" : 0
    maxAllowedGuiWidth := (OSDautosize=1) ? maxGuiWidth : GuiWidth
@@ -341,6 +347,8 @@ hCursH := DllCall("user32\LoadCursorW", "Ptr", NULL, "Int", 32649, "Ptr")  ; IDC
 OnMessage(0x200, "MouseMove")    ; WM_MOUSEMOVE
 If (expandWords=1 && DisableTypingMode=0)
    InitExpandableWords()
+If (enableClipManager=1)
+   initClipboardManager()
 ModsLEDsIndicatorsManager(1)
 Return
 
@@ -841,6 +849,8 @@ OnMousePressed() {
         key := GetKeyStr()
         If (ShowMouseButton=1)
         {
+            If (enableTypingHistory=1)
+               editField4 := StrLen(typed)>5 ? typed : editField4
             typed := (OnlyTypingMode=1) ? typed : "" ; concerning TypedLetter(" ") - it resets the content of the OSD
             ShowHotkey(key)
             SetTimer, HideGUI, % -DisplayTime
@@ -902,8 +912,13 @@ OnRLeftPressed() {
         {
            If (keyCount>10 && OnlyTypingMode=0)
               Global lastTypedSince := A_TickCount - ReturnToTypingDelay
+
+           If (enableTypingHistory=1 && prefixed && OnlyTypingMode=0)
+              editField4 := StrLen(typed)>5 ? typed : editField4
+
            If (StrLen(typed)<2)
               typed := (OnlyTypingMode=1) ? typed : ""
+
            If (OnlyTypingMode!=1)
            {
               ShowHotkey(key)
@@ -1337,7 +1352,8 @@ OnKeyPressed() {
             }
             If (enterErasesLine=1)
                typed := (skipRest=1) ? typed : ""
-        }
+        } Else If (DisableTypingMode=0 && enableTypingHistory=1)
+               editField4 := StrLen(typed)>5 ? typed : editField4
 
         If (!(key ~= TypingFriendlyKeys) && DisableTypingMode=0)
         {
@@ -1396,11 +1412,16 @@ OnLetterPressed(onLatterUp:=0) {
                   SetTimer, HideGUI, % -DisplayTimeTyping
                } Else
                {
+                  If (enableTypingHistory=1)
+                     editField0 := StrLen(typed)>5 ? typed : editField0
+
                   typed := (hasTypedNow=1) ? typed : ""
                   ShowHotkey(key)
                }
             } Else
             {
+               If (enableTypingHistory=1)
+                  editField0 := StrLen(typed)>5 ? typed : editField0
                typed := (OnlyTypingMode=1) ? typed : ""
                ShowHotkey(key)
             }
@@ -1700,19 +1721,10 @@ OnCtrlVup() {
 
   If (allGood=1 && DisableTypingMode=0 && ShowSingleKey=1 && StrLen(toPaste)>0)
   {
-    backTypdUndo := typed
-    Stringleft, toPaste, toPaste, 950
-    StringReplace, toPaste, toPaste, `r`n, %A_SPACE%, All
-    StringReplace, toPaste, toPaste, %A_TAB%, %A_SPACE%, All
-    InsertChar2caret(toPaste)
-    CaretPos := CaretPos + StrLen(toPaste)
-    maxTextChars := StrLen(typed)+2
+    textClipboard2OSD(toPaste)
+    Sleep, 15
     If (sendKeysRealTime=1 && SecondaryTypingMode=1)
        ControlSend, ,^{v}, %Window2Activate%
-    CalcVisibleText()
-    ShowHotkey(visibleTextField)
-    Global lastTypedSince := A_TickCount
-    SetTimer, HideGUI, % -DisplayTimeTyping
   }
 
   If (allGood!=1 || ShowSingleKey=0 || StrLen(toPaste)<1)
@@ -1906,16 +1918,16 @@ OnBspPressed() {
            Return
         }
 
-        If (expandWords=1 && lastMatchedExpandPair && (A_TickCount-lastTypedSince < 3000))
+        If (expandWords=1 && StrLen(lastMatchedExpandPair)>1 && (A_TickCount-lastTypedSince < 3500))
         {
            searchThis := SubStr(lastMatchedExpandPair, InStr(lastMatchedExpandPair, "// ")+3)
            StringReplace, replaceWith, lastMatchedExpandPair, %searchThis%
-           StringReplace, replaceWith, replaceWith, %A_Space%//
-           StringReplace, typed, typed, %searchThis%%A_Space%%lola%, % replaceWith A_Space lola, UseErrorLevel
+           StringReplace, replaceWith, replaceWith, %A_Space%//%A_Space%
+           StringReplace, typed, typed, %searchThis%%lola%, % replaceWith A_Space lola, UseErrorLevel
            If (ErrorLevel>0)
            {
              StringGetPos, CaretPos, typed, %lola%
-             times2pressKey := StrLen(searchThis)
+             times2pressKey := StrLen(searchThis)-1
              SendInput, {BackSpace %times2pressKey% }
              If (SecondaryTypingMode!=1)
              {
@@ -1923,7 +1935,7 @@ OnBspPressed() {
                 SendInput, {text}%replaceWith%
              }
            }
-           lastMatchedExpandPair := ""
+           lastMatchedExpandPair := "!"
         }
 
         If (A_TickCount-lastTypedSince < ReturnToTypingDelay) && StrLen(typed)>1 && (DisableTypingMode=0) && (ShowSingleKey=1) && (keyCount<10)
@@ -1996,6 +2008,7 @@ CreateWordPairsFile(wordPairsFile) {
           afaik // as far as I know
           aka // also known as
           asap // as soon as possible
+          awol // absent without official leave
           bbl // be back later
           brb // be right back
           btw // by the way
@@ -2069,6 +2082,11 @@ InitExpandableWords() {
 }
 
 ExpandFeatureFunction() {
+  If (lastMatchedExpandPair="!")
+  {
+     lastMatchedExpandPair := ""
+     Return
+  }
   lastMatchedExpandPair := ""
   typedTrim := SubStr(typed, CaretPos)
   StringReplace, typedTrim2, typed, %typedTrim%
@@ -2078,16 +2096,16 @@ ExpandFeatureFunction() {
      StringReplace, typedTrim3, typedTrim3, %A_Space%
   } Else (typedTrim3 := typedTrim2)
 
-  If ExpandWordsList[typedTrim3] && (A_TickCount-lastTypedSince < 3000)
+  If ExpandWordsList[typedTrim3] && (A_TickCount-lastTypedSince < 3500)
   {
-     StringReplace, typed, typed, %typedTrim3%%A_Space%%lola%, % ExpandWordsList[typedTrim3] A_Space lola
+     StringReplace, typed, typed, %typedTrim3%%A_Space%%lola%, % ExpandWordsList[typedTrim3] lola
      StringGetPos, CaretPos, typed, %lola%
      times2pressKey := StrLen(typedTrim3) + 1
      SendInput, {BackSpace %times2pressKey% }
      If (SecondaryTypingMode!=1)
      {
         Sleep, 25
-        Text2Send := ExpandWordsList[typedTrim3] A_Space
+        Text2Send := ExpandWordsList[typedTrim3]
         SendInput, {text}%Text2Send%
      }
      lastMatchedExpandPair := typedTrim3 " // " ExpandWordsList[typedTrim3]
@@ -2162,6 +2180,8 @@ OnNumpadsPressed() {
         key := GetKeyStr()
         If ((prefixed && !(key ~= "i)^(.?Shift \+ )")) || DisableTypingMode=1)
         {
+            If (enableTypingHistory=1)
+               editField4 := StrLen(typed)>5 ? typed : editField4
             typed := (OnlyTypingMode=1) ? typed : ""
             ShowHotkey(key)
             SetTimer, HideGUI, % -DisplayTime
@@ -3591,6 +3611,8 @@ CreateGlobalShortcuts() {
        KBDsynchApp1 := RegisterGlobalShortcuts(KBDsynchApp1,"SynchronizeApp", "#Insert")
        KBDsynchApp2 := RegisterGlobalShortcuts(KBDsynchApp2,"SynchronizeApp2", "#!Insert")
     }
+    If (enableClipManager=1)
+       KBDclippyMenu := RegisterGlobalShortcuts(KBDclippyMenu,"InvokeClippyMenu", "#v")
 
     If (KeyboardShortcuts=1)
     {
@@ -3600,7 +3622,7 @@ CreateGlobalShortcuts() {
        KBDidLangNow := RegisterGlobalShortcuts(KBDidLangNow,"DetectLangNow", "!+^F11")
        KBDReload := RegisterGlobalShortcuts(KBDReload,"ReloadScriptNow", "!+^F12")
        KBDCapText := RegisterGlobalShortcuts(KBDCapText,"CaptureTextNow", "Disabled")
-     }
+    }
 }
 
 SynchronizeApp() {
@@ -3608,6 +3630,7 @@ SynchronizeApp() {
      Return
   If (outputOSDtoToolTip=0 && NeverDisplayOSD=1)
      Return
+  enableClipManager := 0
   clipBackup := ClipboardAll
   Clipboard := ""
   WinGetTitle, Window2ActivateNow, A
@@ -3694,6 +3717,7 @@ SynchronizeApp() {
   Clipboard := clipBackup
   clipBackup := " "
   Global lastTypedSince := A_TickCount
+  IniRead, enableClipManager, %inifile%, SavedSettings, enableClipManager, %enableClipManager%
 }
 
 ForceReleaseMODs() {
@@ -3912,6 +3936,11 @@ ToggleSilence() {
     SetTimer, HideGUI, % -DisplayTime
 }
 
+ToggleTypingHistory() {
+    enableTypingHistory := !enableTypingHistory
+    IniWrite, %enableTypingHistory%, %IniFile%, SavedSettings, enableTypingHistory
+}
+
 ToggleCaptureText() {
     If (!IsFunc("Acc_Init") OR !IsFunc("UIA_Interface")) ; keypress-acc-viewer-functions.ahk / UIA_Interface.ahk
     {
@@ -4047,6 +4076,7 @@ ToggleCapture2Text() {
            ClipMonitor := 1
            OnClipboardChange("ClipChanged")
         }
+        enableClipManager := 0
         DragOSDmode := 0
         SetTimer, capturetext, 1500, -20
         mouseFonctiones.ahkassign("ScriptelSuspendel", "Y")
@@ -4063,6 +4093,7 @@ ToggleCapture2Text() {
         GuiY := (GUIposition=1) ? GuiYa : GuiYb
         IniRead, JumpHover, %inifile%, SavedSettings, JumpHover, %JumpHover%
         IniRead, DragOSDmode, %inifile%, SavedSettings, DragOSDmode, %DragOSDmode%
+        IniRead, enableClipManager, %inifile%, SavedSettings, enableClipManager, %enableClipManager%
         Gui, OSD: Destroy
         Sleep, 50
         CreateOSDGUI()
@@ -4091,19 +4122,37 @@ capturetext() {
     Sleep, 1
 }
 
+processClippy(troll, clippyMode:=1) {
+   Stringleft, troll, troll, 170
+   StringReplace, troll, troll, %A_TAB%, %A_Space%, All
+   StringReplace, troll, troll, %lola%,, All
+   StringReplace, troll, troll, %lola2%,, All
+   StringReplace, troll, troll, `n, %A_Space%, All
+   StringReplace, troll, troll, `r, %A_Space%, All
+   troll := RegExReplace(troll, "(\S.*?)\R(.*?\S)", "$1 $2")
+   troll := RegExReplace(troll, "\s+", A_Space)
+
+   If (clippyMode=1 && StrLen(troll)>40)
+   {
+      StringLeft, troll, troll, 40
+      troll .= " [...]"
+   }
+   Return troll
+}
+
 ClipChanged(Type) {
-    If (A_IsSuspended=1 || (outputOSDtoToolTip=0 && NeverDisplayOSD=1))
-        Return
+    Sleep, 25
     Thread, Priority, -20
     Critical, off
-    Sleep, 25
+    If (enableClipManager=1 && A_IsSuspended=0 && StrLen(clipboard)>0)
+       ClipboardManager()
+
+    If (A_IsSuspended=1 || (outputOSDtoToolTip=0 && NeverDisplayOSD=1))
+        Return
+
     If (type=1 && ClipMonitor=1 && (A_TickCount-lastTypedSince > DisplayTimeTyping/2))
     {
-       troll := clipboard
-       Stringleft, troll, troll, 150
-       StringReplace, troll, troll, `r`n, %A_SPACE%, All
-       StringReplace, troll, troll, %A_SPACE%%A_SPACE%, %A_SPACE%, All
-       StringReplace, troll, troll, %A_TAB%, %A_SPACE%%A_SPACE%, All
+       troll := processClippy(clipboard, 0)
        If (NeverDisplayOSD=0)
           ShowLongMsg(troll)
        Else
@@ -4117,6 +4166,210 @@ ClipChanged(Type) {
           ShowHotkey("Clipboard data changed")
        SetTimer, HideGUI, % -DisplayTime/7
     }
+}
+
+initClipboardManager() {
+    IniRead, clipDataMD5s, %IniFile%, ClipboardManager, clipDataMD5s, -
+    IniRead, currentClippyCount, %IniFile%, ClipboardManager, currentClippyCount, 0
+    If !FileExist(A_ScriptDir "\ClipsSaved")
+    {
+        FileCreateDir, ClipsSaved
+        clipDataMD5s := ""
+        currentClippyCount := 0
+    }
+}
+
+ClipboardManager() {
+    clipData := Clipboard
+    If (clipData ~= "i)^(.?\:\\.?.?)") && StrLen(clipData)>5
+       Return
+    md5check := varMD5(clipData)
+    If InStr(clipDataMD5s, md5check)
+       Return
+    clipDataMD5s .= md5check ","
+    maxLengthMD5s := StrLen(md5check)*maximumTextClips + maximumTextClips
+    StringRight, clipDataMD5s, clipDataMD5s, maxLengthMD5s
+    currentClippyCount++
+    If (currentClippyCount>maximumTextClips)
+       currentClippyCount := 1
+    addZero := currentClippyCount<10 ? "0" : ""
+    FileDelete, ClipsSaved\clip%addZero%%currentClippyCount%.clp
+    Sleep, 25
+    ClipTXT := processClippy(clipData)
+    FileAppend, %ClipboardAll%, ClipsSaved\clip%addZero%%currentClippyCount%.clp
+    Sleep, 25
+    IniWrite, %ClipTXT%, %IniFile%, ClipboardManager, ClipTXT%currentClippyCount%
+    IniWrite, %currentClippyCount%, %IniFile%, ClipboardManager, currentClippyCount
+    IniWrite, %clipDataMD5s%, %IniFile%, ClipboardManager, clipDataMD5s
+}
+
+DeleteAllClippy() {
+    MsgBox, 4,, Are you sure you want to delete all the stored text clips?
+    IfMsgBox, Yes
+    {
+        currentClippyCount := 0
+        clipDataMD5s := ""
+        IniDelete, %inifile%, ClipboardManager
+        FileDelete, ClipsSaved\clip*.clp
+        GuiControl, Disable, DeleteAllClippyBTN
+    }
+}
+
+GenerateClippyMenu() {
+    Sleep, 25
+    Loop, Files, ClipsSaved\clip*.clp
+    {
+        If (A_Index>maximumTextClips)
+           Break
+        IniRead, ClipTXT, %inifile%, ClipboardManager, ClipTXT%A_Index%, -
+        StringReplace, FillName, A_LoopFileName, clip
+        StringReplace, FillName, FillName, .clp
+        TheClippyList .= A_LoopFileTimeModified "|-[-|" FillName ". " ClipTXT "`n"
+    }
+    troll := processClippy(clipboard)
+    StringLeft, troll, troll, 45
+    Sort, TheClippyList, R
+    Menu, ClippyMenu, Delete
+    If (StrLen(troll)>0 && A_IsSuspended=0)
+    {
+        md5checkTest := varMD5(clipboard)
+        md5checkList .= "," varMD5(clipboard)
+        If !InStr(clipDataMD5s, md5checkTest)
+           ClipboardManager()
+        Menu, ClippyMenu, Add, { %troll% }, PasteCurrentClippy
+        Menu, ClippyMenu, Add
+    }
+    Loop, Parse, TheClippyList, `n
+    {
+        If !A_LoopField
+           Continue
+        menuEntry := SubStr(A_LoopField, InStr(A_LoopField, "|-[-|"))
+        StringReplace, menuEntry, menuEntry, |-[-|
+        If StrLen(menuEntry)<5
+           Continue
+        Menu, ClippyMenu, Add, %menuEntry%, PasteSelectedClippy
+    }
+    Menu, ClippyMenu, Add
+    If (prefOpen=0)
+    {
+       If (enableTypingHistory=1 && DisableTypingMode=0)
+       {
+          md5checkTest := varMD5(editField0)
+          If !InStr(md5checkList, md5checkTest)
+          {
+              md5checkList .= "," md5checkTest
+              troll0 := processClippy(editField0)
+              If StrLen(troll0)>1
+                 Menu, ClippyMenu, Add, H0. %troll0%, PasteSelectedHistory
+          }
+          md5checkTest := varMD5(editField1)
+          If !InStr(md5checkList, md5checkTest)
+          {
+              md5checkList .= "," md5checkTest
+              troll1 := processClippy(editField1)
+              If StrLen(troll1)>1
+                 Menu, ClippyMenu, Add, H1. %troll1%, PasteSelectedHistory
+          }
+          md5checkTest := varMD5(editField2)
+          If !InStr(md5checkList, md5checkTest)
+          {
+              md5checkList .= "," md5checkTest
+              troll2 := processClippy(editField2)
+              If StrLen(troll2)>1
+                 Menu, ClippyMenu, Add, H2. %troll2%, PasteSelectedHistory
+          }
+          md5checkTest := varMD5(editField4)
+          If !InStr(md5checkList, md5checkTest)
+          {
+              md5checkList .= "," md5checkTest
+              troll4 := processClippy(editField4)
+              If StrLen(troll4)>1
+                 Menu, ClippyMenu, Add, H4. %troll4%, PasteSelectedHistory
+          }
+       } Else If (DisableTypingMode=0)
+          Menu, ClippyMenu, Add, Activate typing history, ToggleTypingHistory
+
+       If (DisableTypingMode=0)
+       {
+          Menu, ClippyMenu, Add
+          Menu, ClippyMenu, Add, Capture text from host app, SynchronizeApp
+          Menu, ClippyMenu, Add, Capture current line of text from host app, SynchronizeApp2
+       }
+    } Else Menu, ClippyMenu, Add, { Delete All }, DeleteAllClippy
+}
+
+PasteCurrentClippy() {
+  Sleep, 70
+  Sendinput ^{vk56}
+  If (DisableTypingMode=0)
+     textClipboard2OSD(Clipboard)
+}
+
+textClipboard2OSD(toPaste) {
+    backTypdUndo := typed
+    Stringleft, toPaste, toPaste, 950
+    StringReplace, toPaste, toPaste, `r`n, %A_Space%, All
+    StringReplace, toPaste, toPaste, `n, %A_Space%, All
+    StringReplace, toPaste, toPaste, `r, %A_Space%, All
+    StringReplace, toPaste, toPaste, `f, %A_Space%, All
+    StringReplace, toPaste, toPaste, %A_TAB%, %A_SPACE%, All
+    StringReplace, toPaste, toPaste, %lola%,, All
+    StringReplace, toPaste, toPaste, %lola2%,, All
+    InsertChar2caret(toPaste)
+    CaretPos := CaretPos + StrLen(toPaste)
+    maxTextChars := StrLen(typed)+2
+    CalcVisibleText()
+    ShowHotkey(visibleTextField)
+    Global lastTypedSince := A_TickCount
+    SetTimer, HideGUI, % -DisplayTimeTyping
+}
+
+PasteSelectedClippy() {
+  StringLeft, readThisFile, A_ThisMenuItem, 2
+  If (prefOpen=1)
+     Return
+  enableClipManager := 0
+  Sleep, 50
+  FileRead, Clipboard, *c ClipsSaved\clip%readThisFile%.clp
+  Sleep, 25
+  ClipWait, 2
+  Sendinput ^{vk56}
+  Sleep, 25
+  enableClipManager := 1
+  If (DisableTypingMode=0)
+     textClipboard2OSD(Clipboard)
+}
+
+PasteSelectedHistory() {
+  StringLeft, ThisField, A_ThisMenuItem, 2
+  StringReplace, ThisField, ThisField, h
+  content := editField%ThisField%
+  StringReplace, content, content, %lola%,, All
+  StringReplace, content, content, %lola2%,, All
+  Sleep, 150
+  SendInput, {text}%content%
+  textClipboard2OSD(content)
+}
+
+InvokeClippyMenu() {
+  ShowLongMsg("Clipboard history menu...")
+  SetTimer, HideGUI, % -DisplayTime
+  GenerateClippyMenu()
+  Menu, ClippyMenu, Show
+}
+
+varMD5(V) {
+; function from: www.autohotkey.com/forum/viewtopic.php?p=275910#275910
+   StringReplace, v, v, %lola%,, All
+   StringReplace, v, v, %lola2%,, All
+   L := StrLen(V)
+   VarSetCapacity( MD5_CTX,104,0 )
+   DllCall( "advapi32\MD5Init", Str,MD5_CTX )
+   DllCall( "advapi32\MD5Update", Str,MD5_CTX, Str,V, UInt,L ? L : StrLen(V) )
+   DllCall( "advapi32\MD5Final", Str,MD5_CTX )
+   Loop % StrLen( Hex:="123456789ABCDEF0" )
+        N := NumGet( MD5_CTX,87+A_Index,"Char"), MD5 .= SubStr(Hex,N>>4,1) . SubStr(Hex,N&15,1)
+   Return MD5
 }
 
 InitializeTray() {
@@ -4338,7 +4591,7 @@ ShowTypeSettings() {
     Gui, Add, Tab3,, General|Dead keys|Behavior|Text expand
     Gui, Tab, 4 ; text expand
     Gui, Add, Checkbox, x+15 y+15 gVerifyTypeOptions Checked%expandWords% vexpandWords, Automatically expand typed words or abbreviations
-    Gui, Add, Text, y+10, String to match // String to replace with
+    Gui, Add, Text, y+10, When {Space} is pressed... string to match // string to replace with
     Gui, Add, Edit, y+10 r10 w%editWid% gwordPairsEditing vExpandWordsListEdit, %ExpandWordsListEdit%
     Gui, Add, Button, xp+0 y+15 w90 h30 gSaveWordPairsNow vSaveWordPairsBTN, Save li&st
     Gui, Add, Button, x+10 yp+0 w150 h30 gRestoreExpandableWordsFile vDefaultWordPairsBTN, Restore d&efaults
@@ -4741,6 +4994,8 @@ ShowShortCutsSettings() {
     CBchoKBDCapText := ProcessChoiceKBD(KBDCapText)
     CBchoKBDReload := ProcessChoiceKBD(KBDReload)
     CBchoKBDsuspend := ProcessChoiceKBD(KBDsuspend)
+    CBchoKBDclippyMenu := ProcessChoiceKBD(KBDclippyMenu)
+
     CtrlKBDaltTypeMode := InStr(KBDaltTypeMode, "^")
     ShiftKBDaltTypeMode := InStr(KBDaltTypeMode, "+")
     AltKBDaltTypeMode := InStr(KBDaltTypeMode, "!")
@@ -4789,6 +5044,10 @@ ShowShortCutsSettings() {
     ShiftKBDsuspend := InStr(KBDsuspend, "+")
     AltKBDsuspend := InStr(KBDsuspend, "!")
     WinKBDsuspend := InStr(KBDsuspend, "#")
+    CtrlKBDclippyMenu := InStr(KBDclippyMenu, "^")
+    ShiftKBDclippyMenu := InStr(KBDclippyMenu, "+")
+    AltKBDclippyMenu := InStr(KBDclippyMenu, "!")
+    WinKBDclippyMenu := InStr(KBDclippyMenu, "#")
 
     col1width := 290
     col2width := 90
@@ -4808,6 +5067,13 @@ ShowShortCutsSettings() {
     Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%ShiftKBDaltTypeMode% gGenerateHotkeyStrS vShiftKBDaltTypeMode, Shift
     Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%AltKBDaltTypeMode% gGenerateHotkeyStrS vAltKBDaltTypeMode, Alt
     Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%WinKBDaltTypeMode% gGenerateHotkeyStrS vWinKBDaltTypeMode, Win
+
+    Gui, Add, Checkbox, xs+0 y+1 w%col1width% gVerifyShortcutOptions Checked%enableClipManager% venableClipManager, Invoke the Clipboard History menu
+    Gui, Add, ComboBox, x+0 w%col2width% gProcessComboKBD vComboKBDclippyMenu, %ComboList%|%CBchoKBDclippyMenu%||
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%CtrlKBDclippyMenu% gGenerateHotkeyStrS vCtrlKBDclippyMenu, Ctrl
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%ShiftKBDclippyMenu% gGenerateHotkeyStrS vShiftKBDclippyMenu, Shift
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%AltKBDclippyMenu% gGenerateHotkeyStrS vAltKBDclippyMenu, Alt
+    Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%WinKBDclippyMenu% gGenerateHotkeyStrS vWinKBDclippyMenu, Win
 
     Gui, Add, Checkbox, xs+0 y+1 w%col1width% gVerifyShortcutOptions Checked%pasteOSDcontent% vpasteOSDcontent, Paste the OSD content in the active text area
     Gui, Add, ComboBox, x+0 w%col2width% gProcessComboKBD vComboKBDpasteOSDcnt1, %ComboList%|%CBchoKBDpasteOSDcnt1%||
@@ -4888,7 +5154,7 @@ ShowShortCutsSettings() {
     Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%WinKBDsuspend% gGenerateHotkeyStrS vWinKBDsuspend, Win
 
     Gui, Add, Button, xs+0 y+15 w70 h30 Default gApplySettings vApplySettingsBTN, A&pply
-    Gui, Add, Button, x+5 wp hp gCloseSettings, C&ancel
+    Gui, Add, Button, x+5 wp hp gCloseSettings vCancelBTN, C&ancel
     Gui, Add, DropDownList, x+5 AltSubmit gSwitchPreferences choose%CurrentPrefWindow% vCurrentPrefWindow , Keyboard|Typing mode|Sounds|Mouse|Appearance|Shortcuts
     Gui, Show, AutoSize, Global shortcuts: KeyPress OSD
     GenerateHotkeyStrS()
@@ -4909,6 +5175,8 @@ GenerateHotkeyStrS() {
   GuiControlGet, ComboKBDCapText
   GuiControlGet, ComboKBDReload
   GuiControlGet, ComboKBDsuspend
+  GuiControlGet, ComboKBDclippyMenu
+
   GuiControlGet, CtrlKBDaltTypeMode
   GuiControlGet, ShiftKBDaltTypeMode
   GuiControlGet, AltKBDaltTypeMode
@@ -4957,6 +5225,10 @@ GenerateHotkeyStrS() {
   GuiControlGet, ShiftKBDsuspend
   GuiControlGet, AltKBDsuspend
   GuiControlGet, WinKBDsuspend
+  GuiControlGet, CtrlKBDclippyMenu
+  GuiControlGet, ShiftKBDclippyMenu
+  GuiControlGet, AltKBDclippyMenu
+  GuiControlGet, WinKBDclippyMenu
   GuiControlGet, ApplySettingsBTN
 
   KBDaltTypeMode := ""
@@ -4971,6 +5243,7 @@ GenerateHotkeyStrS() {
   KBDCapText := ""
   KBDReload := ""
   KBDsuspend := ""
+  KBDclippyMenu := ""
   KBDaltTypeMode .= CtrlKBDaltTypeMode=1 ? "^" : ""
   KBDaltTypeMode .= ShiftKBDaltTypeMode=1 ? "+" : ""
   KBDaltTypeMode .= AltKBDaltTypeMode=1 ? "!" : ""
@@ -5019,6 +5292,11 @@ GenerateHotkeyStrS() {
   KBDsuspend .= ShiftKBDsuspend=1 ? "+" : ""
   KBDsuspend .= AltKBDsuspend=1 ? "!" : ""
   KBDsuspend .= WinKBDsuspend=1 ? "#" : ""
+  KBDclippyMenu .= CtrlKBDclippyMenu=1 ? "^" : ""
+  KBDclippyMenu .= ShiftKBDclippyMenu=1 ? "+" : ""
+  KBDclippyMenu .= AltKBDclippyMenu=1 ? "!" : ""
+  KBDclippyMenu .= WinKBDclippyMenu=1 ? "#" : ""
+
   KBDaltTypeMode .= ProcessChoiceKBD2(ComboKBDaltTypeMode)
   KBDpasteOSDcnt1 .= ProcessChoiceKBD2(ComboKBDpasteOSDcnt1)
   KBDpasteOSDcnt2 .= ProcessChoiceKBD2(ComboKBDpasteOSDcnt2)
@@ -5031,7 +5309,81 @@ GenerateHotkeyStrS() {
   KBDCapText .= ProcessChoiceKBD2(ComboKBDCapText)
   KBDReload .= ProcessChoiceKBD2(ComboKBDReload)
   KBDsuspend .= ProcessChoiceKBD2(ComboKBDsuspend)
-  GuiControl, Enable, ApplySettingsBTN
+  KBDclippyMenu .= ProcessChoiceKBD2(ComboKBDclippyMenu)
+
+  If InStr(ComboKBDaltTypeMode, "disable")
+     KBDaltTypeMode := "(Disabled)"
+  If InStr(ComboKBDpasteOSDcnt1, "disable")
+     KBDpasteOSDcnt1 := "(Disabled)"
+  If InStr(ComboKBDpasteOSDcnt2, "disable")
+     KBDpasteOSDcnt2 := "(Disabled)"
+  If InStr(ComboKBDsynchApp1, "disable")
+     KBDsynchApp1 := "(Disabled)"
+  If InStr(ComboKBDsynchApp2, "disable")
+     KBDsynchApp2 := "(Disabled)"
+  If InStr(ComboKBDTglNeverOSD, "disable")
+     KBDTglNeverOSD := "(Disabled)"
+  If InStr(ComboKBDTglPosition, "disable")
+     KBDTglPosition := "(Disabled)"
+  If InStr(ComboKBDTglSilence, "disable")
+     KBDTglSilence := "(Disabled)"
+  If InStr(ComboKBDidLangNow, "disable")
+     KBDidLangNow := "(Disabled)"
+  If InStr(ComboKBDCapText, "disable")
+     KBDCapText := "(Disabled)"
+  If InStr(ComboKBDReload, "disable")
+     KBDReload := "(Disabled)"
+  If InStr(ComboKBDsuspend, "disable")
+     KBDsuspend := "(Disabled)"
+  If InStr(ComboKBDclippyMenu, "disable")
+     KBDclippyMenu := "(Disabled)"
+
+  If InStr(ComboKBDaltTypeMode, "restore")
+     KBDaltTypeMode := "(Restore Default)"
+  If InStr(ComboKBDpasteOSDcnt1, "restore")
+     KBDpasteOSDcnt1 := "(Restore Default)"
+  If InStr(ComboKBDpasteOSDcnt2, "restore")
+     KBDpasteOSDcnt2 := "(Restore Default)"
+  If InStr(ComboKBDsynchApp1, "restore")
+     KBDsynchApp1 := "(Restore Default)"
+  If InStr(ComboKBDsynchApp2, "restore")
+     KBDsynchApp2 := "(Restore Default)"
+  If InStr(ComboKBDTglNeverOSD, "restore")
+     KBDTglNeverOSD := "(Restore Default)"
+  If InStr(ComboKBDTglPosition, "restore")
+     KBDTglPosition := "(Restore Default)"
+  If InStr(ComboKBDTglSilence, "restore")
+     KBDTglSilence := "(Restore Default)"
+  If InStr(ComboKBDidLangNow, "restore")
+     KBDidLangNow := "(Restore Default)"
+  If InStr(ComboKBDCapText, "restore")
+     KBDCapText := "(Restore Default)"
+  If InStr(ComboKBDReload, "restore")
+     KBDReload := "(Restore Default)"
+  If InStr(ComboKBDsuspend, "restore")
+     KBDsuspend := "(Restore Default)"
+  If InStr(ComboKBDclippyMenu, "restore")
+     KBDclippyMenu := "(Restore Default)"
+
+  KBDsTestDuplicate := KBDaltTypeMode "&" KBDpasteOSDcnt1 "&" KBDpasteOSDcnt2 "&" KBDsynchApp1 "&" KBDsynchApp2 "&" KBDTglNeverOSD "&" KBDTglPosition "&" KBDTglSilence "&" KBDidLangNow "&" KBDCapText "&" KBDReload "&" KBDsuspend "&" KBDclippyMenu
+  disableds := st_count(KBDsTestDuplicate, "disable")>0 ? st_count(KBDsTestDuplicate, "disable") - 1 : 0
+  restores := st_count(KBDsTestDuplicate, "restore")>0 ? st_count(KBDsTestDuplicate, "restore") - 1 : 0
+  expectedNumerber := 13 - disableds - restores
+  Sort, KBDsTestDuplicate, U D&
+  Loop, Parse, KBDsTestDuplicate, &
+      countKBDs++
+  If (countKBDs<expectedNumerber)
+  {
+     SoundBeep
+     GuiControl, Disable, ApplySettingsBTN
+     GuiControl, Disable, CurrentPrefWindow
+     GuiControl, Disable, CancelBTN
+  } Else
+  {
+     GuiControl, Enable, ApplySettingsBTN
+     GuiControl, Enable, CurrentPrefWindow
+     GuiControl, Enable, CancelBTN
+  }
 }
 
 ProcessComboKBD() {
@@ -5050,6 +5402,7 @@ ProcessComboKBD() {
   GuiControlGet, CbEditKBDCapText,, ComboKBDCapText
   GuiControlGet, CbEditKBDReload,, ComboKBDReload
   GuiControlGet, CbEditKBDsuspend,, ComboKBDsuspend
+  GuiControlGet, CbEditKBDclippyMenu,, ComboKBDclippyMenu
 
   If RegExMatch(CbEditKBDaltTypeMode, forbiddenChars)
      GuiControl,, ComboKBDaltTypeMode, | %ComboList%
@@ -5075,6 +5428,8 @@ ProcessComboKBD() {
      GuiControl,, ComboKBDReload, | %ComboList%
   If RegExMatch(CbEditKBDsuspend, forbiddenChars)
      GuiControl,, ComboKBDsuspend, | %ComboList%
+  If RegExMatch(CbEditKBDclippyMenu, forbiddenChars)
+     GuiControl,, ComboKBDclippyMenu, | %ComboList%
   GuiControl, Enable, ApplySettingsBTN
   GenerateHotkeyStrS()
 }
@@ -5108,8 +5463,9 @@ VerifyShortcutOptions(enableApply:=1) {
     GuiControlGet, alternateTypingMode
     GuiControlGet, pasteOSDcontent
     GuiControlGet, KeyboardShortcuts
+    GuiControlGet, enableClipManager
+
     GuiControl, % (!enableApply ? "Disable" : "Enable"), ApplySettingsBTN
-    
     If (alternateTypingMode=0)
     {
         GuiControl, Disable, ComboKBDaltTypeMode
@@ -5124,6 +5480,22 @@ VerifyShortcutOptions(enableApply:=1) {
         GuiControl, Enable, ShiftKBDaltTypeMode
         GuiControl, Enable, AltKBDaltTypeMode
         GuiControl, Enable, WinKBDaltTypeMode
+    }
+
+    If (enableClipManager=0)
+    {
+        GuiControl, Disable, ComboKBDclippyMenu
+        GuiControl, Disable, CtrlKBDclippyMenu
+        GuiControl, Disable, ShiftKBDclippyMenu
+        GuiControl, Disable, AltKBDclippyMenu
+        GuiControl, Disable, WinKBDclippyMenu
+    } Else
+    {
+        GuiControl, Enable, ComboKBDclippyMenu
+        GuiControl, Enable, CtrlKBDclippyMenu
+        GuiControl, Enable, ShiftKBDclippyMenu
+        GuiControl, Enable, AltKBDclippyMenu
+        GuiControl, Enable, WinKBDclippyMenu
     }
 
     If (pasteOSDcontent=0)
@@ -5310,7 +5682,6 @@ VerifyPresetOptions(enableApply:=1) {
     GuiControlGet, MediateKeysFeatures
 
     GuiControl, % (enableApply=0 ? "Disable" : "Enable"), ApplySettingsBTN
-
     If (presetChosen=1)
     {
         GuiControl, Disable, enableBeeperzPresets
@@ -5538,7 +5909,7 @@ ShowSoundsSettings() {
     Gui, Add, Checkbox, gVerifySoundsOptions y+7 Checked%DTMFbeepers% vDTMFbeepers, DTMF beeps for numpad keys
     Gui, Add, Checkbox, gVerifySoundsOptions y+7 Checked%beepFiringKeys% vbeepFiringKeys, Generic beep for every key fire
     Gui, Add, Checkbox, gVerifySoundsOptions y+7 Checked%audioAlerts% vaudioAlerts, At start, beep for every failed key binding
-    Gui, Add, Checkbox, gVerifySoundsOptions y+14 Checked%BeepSentry% vBeepSentry, Generate visual sound event
+    Gui, Add, Checkbox, gVerifySoundsOptions y+14 Checked%BeepSentry% vBeepSentry, Generate visual sound event [for Windows Accessibility]
     Gui, Add, Checkbox, gVerifySoundsOptions y+7 Checked%prioritizeBeepers% vprioritizeBeepers, Attempt to play every beep (may interfere with typing mode)
     Gui, Add, Text, y+7 Section vvolLevel, % "Volume: " BeepsVolume " %"
     Gui, Add, Slider, x+5 yp+0 gVolSlider w200 vBeepsVolume Range5-99 TickInterval5, %BeepsVolume%
@@ -5627,7 +5998,7 @@ ShowKBDsettings() {
            Return
     }
     Global CurrentPrefWindow := 1
-    Global EditF22
+    Global EditF22, EditF23, DeleteAllClippyBTN
     txtWid := 250
     btnWid := 130
     If (prefsLargeFonts=1)
@@ -5636,7 +6007,18 @@ ShowKBDsettings() {
        btnWid := 180
        Gui, Font, s%LargeUIfontValue%
     }
-    Gui, Add, Tab3,, Keyboard layouts|Behavior
+    Gui, Add, Tab3,, Keyboard layouts|Behavior|Clipboard
+    Gui, Tab, 3 ; clipboard
+    Gui, Add, Checkbox, x+15 y+15 gVerifyKeybdOptions Checked%ClipMonitor% vClipMonitor, Show clipboard changes in the OSD
+    Gui, Add, Checkbox, y+10 Section gVerifyKeybdOptions Checked%enableClipManager% venableClipManager, Enable Clipboard History (only for text)
+    Gui, Add, Text, xp+15 y+7, Maximum text clips to store
+    Gui, Add, Edit, x+5 w60 r1 limit2 -multi number -wantCtrlA -wantReturn -wantTab -wrap vEditF23, %maximumTextClips%
+    Gui, Add, UpDown, vmaximumTextClips gVerifyKeybdOptions Range3-30, %maximumTextClips%
+    Gui, Add, Text, xs+0 y+7 w%txtWid%, To access the stored clipboard history from any application, press WinKey + V (default keyboard shortcut).
+    IniRead, clipDataMD5s, %IniFile%, ClipboardManager, clipDataMD5s, -
+    If StrLen(clipDataMD5s)>5
+       Gui, Add, Button, y+10 w170 h30 gInvokeClippyMenu vDeleteAllClippyBTN, List stored entries
+
     Gui, Tab, 1 ; layouts
     Gui, Add, Checkbox, x+15 y+15 gVerifyKeybdOptions Checked%AutoDetectKBD% vAutoDetectKBD, Detect keyboard layout at start
     Gui, Add, Checkbox, y+7 gVerifyKeybdOptions Checked%ConstantAutoDetect% vConstantAutoDetect, Continuously detect layout changes
@@ -5673,7 +6055,6 @@ ShowKBDsettings() {
     Gui, Add, text, xp+15 y+5 w%txtWid%, This applies for Alt, Ctrl, Shift, Winkey and `nCaps / Num / Scroll lock.
 
     Gui, Add, Checkbox, xs+0 y+7 gVerifyKeybdOptions Checked%ShiftDisableCaps% vShiftDisableCaps, Shift turns off Caps Lock
-    Gui, Add, Checkbox, y+7 gVerifyKeybdOptions Checked%ClipMonitor% vClipMonitor, Monitor clipboard changes
     Gui, Add, Checkbox, y+7 gVerifyKeybdOptions w%txtWid% Checked%hostCaretHighlight% vhostCaretHighlight, Highlight text cursor in host app `n(when detectable)
     If (OnlyTypingMode=1)
     {
@@ -5703,6 +6084,7 @@ VerifyKeybdOptions(enableApply:=1) {
     GuiControlGet, ShowKeyCountFired
     GuiControlGet, ShowPrevKey
     GuiControlGet, enableAltGr
+    GuiControlGet, enableClipManager
 
     GuiControl, % (enableApply=0 ? "Disable" : "Enable"), ApplySettingsBTN
     GuiControl, % (ShowSingleModifierKey=0 ? "Disable" : "Enable"), DifferModifiers
@@ -5754,6 +6136,7 @@ VerifyKeybdOptions(enableApply:=1) {
         GuiControl, Disable, HideAnnoyingKeys
         GuiControl, Disable, DifferModifiers
     }
+    GuiControl, % (enableClipManager=0 ? "Disable" : "Enable"), EditF23
 }
 
 ShowMouseSettings() {
@@ -6411,9 +6794,11 @@ ActionListViewKBDs() {
           Sleep, 50
           Global lastTypedSince := 6000
           Global tickcount_start := 6000
-          SetTimer, ConstantKBDtimer, 250, 50
-          hWnd := WinExist("A")
+          Sleep, 150
           ChangeGlobal(HKL)
+          Sleep, 150
+          SetTimer, ConstantKBDtimer, 250, 50
+          Sleep, 150
       } Else SoundBeep, 300, 100
   }
 }
@@ -7318,6 +7703,9 @@ ShaveSettings() {
   IniWrite, %outputOSDtoToolTip%, %inifile%, SavedSettings, outputOSDtoToolTip
   IniWrite, %BeepsVolume%, %inifile%, SavedSettings, BeepsVolume
   IniWrite, %expandWords%, %inifile%, SavedSettings, expandWords
+  IniWrite, %enableClipManager%, %inifile%, SavedSettings, enableClipManager
+  IniWrite, %maximumTextClips%, %inifile%, SavedSettings, maximumTextClips
+  IniWrite, %KBDclippyMenu%, %inifile%, SavedSettings, KBDclippyMenu
 }
 
 LoadSettings() {
@@ -7425,6 +7813,7 @@ LoadSettings() {
   IniRead, KBDTglPosition, %inifile%, SavedSettings, KBDTglPosition, %KBDTglPosition%
   IniRead, KBDidLangNow, %inifile%, SavedSettings, KBDidLangNow, %KBDidLangNow%
   IniRead, KBDReload, %inifile%, SavedSettings, KBDReload, %KBDReload%
+  IniRead, KBDclippyMenu, %inifile%, SavedSettings, KBDclippyMenu, %KBDclippyMenu%
   IniRead, MouseVclickColor, %inifile%, SavedSettings, MouseVclickColor, %MouseVclickColor%
   IniRead, MouseIdleColor, %inifile%, SavedSettings, MouseIdleColor, %MouseIdleColor%
   IniRead, mouseOSDbehavior, %inifile%, SavedSettings, mouseOSDbehavior, %mouseOSDbehavior%
@@ -7436,6 +7825,8 @@ LoadSettings() {
   IniRead, outputOSDtoToolTip, %inifile%, SavedSettings, outputOSDtoToolTip, %outputOSDtoToolTip%
   IniRead, BeepsVolume, %inifile%, SavedSettings, BeepsVolume, %BeepsVolume%
   IniRead, expandWords, %inifile%, SavedSettings, expandWords, %expandWords%
+  IniRead, enableClipManager, %inifile%, SavedSettings, enableClipManager, %enableClipManager%
+  IniRead, maximumTextClips, %inifile%, SavedSettings, maximumTextClips, %maximumTextClips%
 
   CheckSettings()
   GuiX := (GUIposition=1) ? GuiXa : GuiXb
@@ -7512,6 +7903,7 @@ CheckSettings() {
     UseMUInames := (UseMUInames=0 || UseMUInames=1) ? UseMUInames : 1
     outputOSDtoToolTip := (outputOSDtoToolTip=0 || outputOSDtoToolTip=1) ? outputOSDtoToolTip : 0
     expandWords := (expandWords=0 || expandWords=1) ? expandWords : 0
+    enableClipManager := (enableClipManager=0 || enableClipManager=1) ? enableClipManager : 0
 
     If (mouseOSDbehavior=1)
     {
@@ -7569,6 +7961,9 @@ CheckSettings() {
 
   If ReturnToTypingUser is not digit
      ReturnToTypingUser := 20
+
+  If maximumTextClips is not digit
+     maximumTextClips := 10
 
   If typingDelaysScaleUser is not digit
      typingDelaysScaleUser := 7
@@ -7642,6 +8037,7 @@ CheckSettings() {
     MouseRippleMaxSize := (MouseRippleMaxSize < 90) ? 91 : Round(MouseRippleMaxSize)
     typingDelaysScaleUser := (typingDelaysScaleUser < 2) ? 1 : Round(typingDelaysScaleUser)
     BeepsVolume := (BeepsVolume < 5) ? 6 : Round(BeepsVolume)
+    maximumTextClips := (maximumTextClips < 3) ? 3 : Round(maximumTextClips)
 
 ; verify maximum numeric values
     ClickScaleUser := (ClickScaleUser > 71) ? 70 : Round(ClickScaleUser)
@@ -7667,6 +8063,7 @@ CheckSettings() {
     MouseRippleThickness := (MouseRippleThickness > 51) ? 50 : Round(MouseRippleThickness)
     typingDelaysScaleUser := (typingDelaysScaleUser > 39) ? 40 : Round(typingDelaysScaleUser)
     BeepsVolume := (BeepsVolume > 99) ? 99 : Round(BeepsVolume)
+    maximumTextClips := (maximumTextClips > 31) ? 30 : Round(maximumTextClips)
 
 ; verify HEX values
 

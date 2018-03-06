@@ -36,6 +36,8 @@
   <li>Navigate through typed text in the OSD in synch with the text field of the host application.</li>
   <li>Basic support for copy, paste, cut and undo with Ctrl + A / Z / X / C / V.</li>
   <li>Support for text selections.</li>
+  <li>Support for customizable automatic text expansion, e.g, 'btw' expands to 'by the way', or 'bbl' to 'be back later'.</li>
+  <li>Multi-Clipboard support. You can easily retrieve previous clipboard contents and text typed in the OSD. The texts stored in the clipboards retain their formatting.</li>
   <li>Shortcuts to copy the text from the active text field into the OSD, or paste the OSD content to it.</li>
 </ul> 
 

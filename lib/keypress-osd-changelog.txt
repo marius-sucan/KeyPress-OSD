@@ -11,6 +11,10 @@ http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip
 
 by Marius Sucan (robodesign.ro)
 
+  v4.23 (2018-03-06)
+  - [new] multi-clipboard support; with WinKey + V, previous clipboard contents can be restored; it preserves html and text formatting; from this menu, you can also restore previously written lines in the OSD
+  - [improvement] the global shortcuts panel is now able to detect identic keyboard shortcuts
+
   v4.22.5 (2018-03-04)
   - [new] the ability to automatically expand words, acronyms, abbreviations, such as, but not limited to by the way [btw], do not disturb [dnd], and others. The user can add/remove/edit the list of automatically expanded words at Main Menu > Typing mode > Text expand. 
 
@@ -784,7 +788,7 @@ Features to implement:
   - separate UI settings and tray menu? separate files with include
 - mai testează AHK_H v1.1.28 h003
   - crashes on restart
-  - the compiler fails the x32 edition
+  - the compiler fails the x32 edition; crashy on restarts
 
 - test compiled version on different systems; crashes?
   - keypress lite? compiled with AHK_L
@@ -795,8 +799,6 @@ Features to implement:
 - test TabletPro
 - initMSG does not hide when no OSD
 - show tooltips for help at typing mode
-
-- multi-clippy manager
 
 - auto-correct [with shift+space] - long words; visualize first
 - https://autohotkey.com/board/topic/54987-sift3-super-fast-and-accurate-string-distance-algorithm/
