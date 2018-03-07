@@ -234,12 +234,16 @@
  , thisFile              := A_ScriptName
  , UseINIfile            := 1
  , IniFile               := "keypress-osd.ini"
- , version               := "4.23"
- , releaseDate := "2018 / 03 / 06"
+ , version               := "4.23.1"
+ , releaseDate := "2018 / 03 / 07"
+ , hMutex
 
 ; Initialization variables. Altering these may lead to undesired results.
 
     checkIfRunning()
+    If DllCall("OpenMutex", Int, 0x100000, Int,NULL, Str,thisFile)
+       checkIfRunning(1)
+    hMutex := DllCall("CreateMutex", Int,NULL, Int,False, Str,thisFile)
     Sleep, 5
     IniRead, firstRun, %IniFile%, SavedSettings, firstRun, 1
     If (firstRun=0 && UseINIfile=1)
@@ -3433,13 +3437,16 @@ IdentifyKBDlayout() {
   kbLayoutRaw := checkWindowKBD()
   langFriendlySysName := ISOcodeCulture(kbLayoutRaw) GetLayoutDisplayName(kbLayoutRaw)
   langFriendlySysName := RegExReplace(langFriendlySysName, "i)^(\s)", "")
-  perWindowKbLayout := DllCall("user32\GetKeyboardLayout", "UInt", DllCall("user32\GetWindowThreadProcessId", "Ptr", WinActive("A"), "Ptr",0), "Ptr")
-  perWindowKbLayout := Hex2Str(perWindowKbLayout, 8, 0, 1)
+  perWindowKbLayoutRaw := DllCall("user32\GetKeyboardLayout", "UInt", DllCall("user32\GetWindowThreadProcessId", "Ptr", WinActive("A"), "Ptr",0), "Ptr")
+  SetFormat, Integer, H
+  prettzKbLayout := perWindowKbLayoutRaw
+  SetFormat, Integer, D
+  StringReplace, perWindowKbLayout, prettzKbLayout, 0x, 0
   If InStr(perWindowKbLayout, "FFFFF")
      perWindowKbLayout := ""
 
   If (StrLen(langFriendlySysName)<2 && StrLen(perWindowKbLayout)>2)
-     langFriendlySysName := ISOcodeCulture(kbLayoutRaw) GetLayoutDisplayName(perWindowKbLayout)
+     langFriendlySysName := ISOcodeCulture(kbLayoutRaw) GetLayoutDisplayName(perWindowKbLayoutRaw)
 
   initLangFile()
   testLangExist := tehDKcollector()
@@ -3484,10 +3491,10 @@ IdentifyKBDlayout() {
 
   CurrentKBD := "Detected: " langFriendlySysName ". " kbLayoutRaw " " perWindowKbLayout
   If (isLangRTL=1)
-     CurrentKBD := "Partial support: " langFriendlySysName " ( " kbLayoutRaw " " perWindowKbLayout " )"
+     CurrentKBD := "Partial support: " langFriendlySysName ". " kbLayoutRaw " " perWindowKbLayout
 
   If (KBDisUnsupported=1)
-     CurrentKBD := "Unsupported: " langFriendlySysName " ( " kbLayoutRaw " " perWindowKbLayout " )"
+     CurrentKBD := "Unsupported: " langFriendlySysName ". " kbLayoutRaw " " perWindowKbLayout
 
   If (SilentDetection=0)
   {
@@ -8267,15 +8274,15 @@ checkifRunningWindow() {
   DetectHiddenWindows, on
   Sleep, 10
   WinGet, otherKP, id, KeyPressOSDwin
-;  If otherKP not in %OSDhandles%
-;     KillScript(0)
+  If otherKP not in %OSDhandles%
+     KillScript(0)
   DetectHiddenWindows, off
   SetTimer, , off
 }
 
-checkIfRunning() {
+checkIfRunning(forceIT:=0) {
     IniRead, prefOpen2, %IniFile%, TempSettings, prefOpen, -
-    If (prefOpen2=1)
+    If (prefOpen2=1) || (forceIT=1)
     {
         Sleep, 15
         SoundBeep
@@ -9134,6 +9141,7 @@ Cleanup() {
     If IsFunc(a)
        %a%(1)
     DllCall("kernel32\FreeLibrary", "Ptr", hWinMM)
+    DllCall("ReleaseMutex", Ptr,hMutex)
 }
 
 SettingsGUIAGuiEscape:
