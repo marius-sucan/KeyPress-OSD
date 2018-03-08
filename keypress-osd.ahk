@@ -234,8 +234,8 @@
  , thisFile              := A_ScriptName
  , UseINIfile            := 1
  , IniFile               := "keypress-osd.ini"
- , version               := "4.23.1"
- , releaseDate := "2018 / 03 / 07"
+ , version               := "4.23.2"
+ , releaseDate := "2018 / 03 / 08"
  , hMutex
 
 ; Initialization variables. Altering these may lead to undesired results.
@@ -3625,10 +3625,12 @@ CreateGlobalShortcuts() {
     {
        KBDTglNeverOSD := RegisterGlobalShortcuts(KBDTglNeverOSD,"ToggleNeverDisplay", "!+^F8")
        KBDTglPosition := RegisterGlobalShortcuts(KBDTglPosition,"TogglePosition", "!+^F9")
-       KBDTglSilence := RegisterGlobalShortcuts(KBDTglSilence,"ToggleSilence", "!+^F10")
+       If (missingAudios!=1)
+          KBDTglSilence := RegisterGlobalShortcuts(KBDTglSilence,"ToggleSilence", "!+^F10")
        KBDidLangNow := RegisterGlobalShortcuts(KBDidLangNow,"DetectLangNow", "!+^F11")
        KBDReload := RegisterGlobalShortcuts(KBDReload,"ReloadScriptNow", "!+^F12")
-       KBDCapText := RegisterGlobalShortcuts(KBDCapText,"CaptureTextNow", "Disabled")
+       If (A_OSVersion!="WIN_XP")
+          KBDCapText := RegisterGlobalShortcuts(KBDCapText,"CaptureTextNow", "Disabled")
     }
 }
 
@@ -4594,7 +4596,8 @@ ShowTypeSettings() {
        Gui, Font, s%LargeUIfontValue%
     }
     editWid := txtWid-50
-    InitExpandableWords()
+    If StrLen(ExpandWordsListEdit)<2
+       InitExpandableWords()
     Gui, Add, Tab3,, General|Dead keys|Behavior|Text expand
     Gui, Tab, 4 ; text expand
     Gui, Add, Checkbox, x+15 y+15 gVerifyTypeOptions Checked%expandWords% vexpandWords, Automatically expand typed words or abbreviations
@@ -5652,6 +5655,24 @@ VerifyShortcutOptions(enableApply:=1) {
         GuiControl, Disable, ShiftKBDsynchApp2
         GuiControl, Disable, AltKBDsynchApp2
         GuiControl, Disable, WinKBDsynchApp2
+    }
+
+    If (missingAudios=1)
+    {
+        GuiControl, Disable, ComboKBDTglSilence
+        GuiControl, Disable, CtrlKBDTglSilence
+        GuiControl, Disable, ShiftKBDTglSilence
+        GuiControl, Disable, AltKBDTglSilence
+        GuiControl, Disable, WinKBDTglSilence
+    }
+
+    If (A_OSVersion="WIN_XP")
+    {
+        GuiControl, Disable, ComboKBDCapText
+        GuiControl, Disable, CtrlKBDCapText
+        GuiControl, Disable, ShiftKBDCapText
+        GuiControl, Disable, AltKBDCapText
+        GuiControl, Disable, WinKBDCapText
     }
 }
 
@@ -7129,12 +7150,14 @@ checkUpdateExists() {
      MsgBox, 4,, %uknUpd%%forceUpd%
      IfMsgBox, Yes
         Return 1
+     Else Return 0
   }
   If (checkVersion="ERROR")
   {
      MsgBox, 4,, %uknUpd%%forceUpd%
      IfMsgBox, Yes
-        Return 1
+       Return 1
+     Else Return 0
   } Else If (version!=checkVersion)
   {
      ShowLongMsg("Version available online: v" checkVersion " - " newDate)
@@ -7144,7 +7167,8 @@ checkUpdateExists() {
   {
      MsgBox, 4,, %noUpd%%forceUpd%
      IfMsgBox, Yes
-        Return 1
+       Return 1
+     Else Return 0
   }
   Return 0
 }

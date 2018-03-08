@@ -11,9 +11,16 @@ http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip
 
 by Marius Sucan (robodesign.ro)
 
+  v4.23.2 (2018-03-08)
+  - fixed bug that caused the expandable words list to get duplicated over and over...
+
+  v4.23.1 (2018-03-07)
+  - fixed bug that caused crashes on x32
+
   v4.23 (2018-03-06)
   - [new] multi-clipboard support; with WinKey + V, previous clipboard contents can be restored; it preserves html and text formatting; from this menu, you can also restore previously written lines in the OSD
   - [improvement] the global shortcuts panel is now able to detect identic keyboard shortcuts
+  - bug fixes related to text expand feature
 
   v4.22.5 (2018-03-04)
   - [new] the ability to automatically expand words, acronyms, abbreviations, such as, but not limited to by the way [btw], do not disturb [dnd], and others. The user can add/remove/edit the list of automatically expanded words at Main Menu > Typing mode > Text expand. 
@@ -799,6 +806,10 @@ Features to implement:
 - test TabletPro
 - initMSG does not hide when no OSD
 - show tooltips for help at typing mode
+- when x32 compiled, double-click pe layout, KeyPress starts twice
+- right-click in MS Word does not work because of Ripples, Square clicks
+- recalculate osd factor resize when dpi changes
+- if unable to determine update, stop!
 
 - auto-correct [with shift+space] - long words; visualize first
 - https://autohotkey.com/board/topic/54987-sift3-super-fast-and-accurate-string-distance-algorithm/
@@ -806,7 +817,6 @@ Features to implement:
 - https://www.sketchengine.co.uk/word-lists/
 
 - pune Compiled version in downloads, desktop [win7, win10]
-
 
 - capture text to-do:
   - wm-getobject, send message [chrome]
