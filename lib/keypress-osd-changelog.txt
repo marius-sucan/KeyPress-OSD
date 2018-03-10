@@ -11,8 +11,10 @@ http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip
 
 by Marius Sucan (robodesign.ro)
 
-  v4.23.2 (2018-03-08)
+  v4.23.3 (2018-03-08)
+  - when the script is suspended or the OSD is set to not show, the clipboard manager will no longer save what the user copies in the clipboard
   - fixed bug that caused the expandable words list to get duplicated over and over...
+  - other minor fixes
 
   v4.23.1 (2018-03-07)
   - fixed bug that caused crashes on x32
@@ -809,8 +811,9 @@ Features to implement:
 - when x32 compiled, double-click pe layout, KeyPress starts twice
 - right-click in MS Word does not work because of Ripples, Square clicks
 - recalculate osd factor resize when dpi changes
-- if unable to determine update, stop!
+- probleme cu emojis? caret navigation jumps; dar cu Igbo și Bengali?
 
+- tablet pro sliding side-bar with 8 big buttons, shortcuts, mods at the top and bottom; optional - two columns
 - auto-correct [with shift+space] - long words; visualize first
 - https://autohotkey.com/board/topic/54987-sift3-super-fast-and-accurate-string-distance-algorithm/
 - https://github.com/first20hours/google-10000-english

@@ -234,7 +234,7 @@
  , thisFile              := A_ScriptName
  , UseINIfile            := 1
  , IniFile               := "keypress-osd.ini"
- , version               := "4.23.2"
+ , version               := "4.23.3"
  , releaseDate := "2018 / 03 / 08"
  , hMutex
 
@@ -328,6 +328,7 @@ Global typed := "" ; hack used to determine if user is writing
  , isMouseFile, isRipplesFile, isBeeperzFile, isKeystrokesFile, isAcc1File, isAcc2File
  , baseURL := "http://marius.sucan.ro/media/files/blog/ahk-scripts/"
  , hWinMM := DllCall("kernel32\LoadLibraryW", "Str", "winmm.dll", "Ptr")
+ , volL := ""
  , VolR := GetMyVolume(VolL)
  , clipDataMD5s, currentClippyCount
  , ScriptelSuspendel := 0
@@ -2020,8 +2021,11 @@ CreateWordPairsFile(wordPairsFile) {
           dnd // do not disturb
           eta // estimated time of arrival
           faq // frequently asked questions
+          fubar // f*cked up beyond any repair
+          ftw // for the win
           fyi // for your information
           gmo // genetically modified organism
+          iirc // if I recall correctly
           imho // in my humble opinion
           nsfw // not safe for work
           ocd // obsessive compulsive disorder
@@ -2199,6 +2203,7 @@ OnNumpadsPressed() {
         }
     }
     TrueRmDkSymbol := ¨¨
+    lastMatchedExpandPair := ""
 }
 
 OnKeyUp() {
@@ -2206,6 +2211,7 @@ OnKeyUp() {
 }
 
 OnLetterUp() {
+    lastMatchedExpandPair := ""
     a1 := A_ThisHotkey
     StringReplace, a2, A_ThisHotkey, %A_Space%up
     StringRight, a2, a2, 4
@@ -3894,8 +3900,8 @@ ToggleNeverDisplay() {
    backTypdUndo := ""
    NeverDisplayOSD := !NeverDisplayOSD
    IniWrite, %NeverDisplayOSD%, %IniFile%, SavedSettings, NeverDisplayOSD
-   Menu, Tray, % (NeverDisplayOSD=0 ? "Uncheck" : "Check"), &Never show the OSD
-   ShowLongMsg("Never display OSD = " NeverDisplayOSD)
+   Menu, Tray, % (NeverDisplayOSD=0 ? "Uncheck" : "Check"), &Do not show the OSD
+   ShowLongMsg("Do not display the OSD = " NeverDisplayOSD)
    SetTimer, HideGUI, % -DisplayTime/2
 }
 
@@ -4153,8 +4159,11 @@ ClipChanged(Type) {
     Sleep, 25
     Thread, Priority, -20
     Critical, off
-    If (enableClipManager=1 && A_IsSuspended=0 && StrLen(clipboard)>0)
-       ClipboardManager()
+    Static privateMode
+
+    privateMode := (NeverDisplayOSD=1 || A_IsSuspended=1) ? 1 : 0
+    If (enableClipManager=1 && StrLen(clipboard)>0)
+       ClipboardManager(privateMode)
 
     If (A_IsSuspended=1 || (outputOSDtoToolTip=0 && NeverDisplayOSD=1))
         Return
@@ -4188,13 +4197,21 @@ initClipboardManager() {
     }
 }
 
-ClipboardManager() {
+ClipboardManager(privateMode) {
+    Static privateClipsMD5s
     clipData := Clipboard
     If (clipData ~= "i)^(.?\:\\.?.?)") && StrLen(clipData)>5
        Return
     md5check := varMD5(clipData)
     If InStr(clipDataMD5s, md5check)
        Return
+    If InStr(privateClipsMD5s, md5check)
+       Return
+    If (privateMode=1)
+    {
+       privateClipsMD5s .= md5check ","
+       Return
+    }
     clipDataMD5s .= md5check ","
     maxLengthMD5s := StrLen(md5check)*maximumTextClips + maximumTextClips
     StringRight, clipDataMD5s, clipDataMD5s, maxLengthMD5s
@@ -4226,6 +4243,7 @@ DeleteAllClippy() {
 
 GenerateClippyMenu() {
     Sleep, 25
+    Static privateMode
     Loop, Files, ClipsSaved\clip*.clp
     {
         If (A_Index>maximumTextClips)
@@ -4239,15 +4257,17 @@ GenerateClippyMenu() {
     StringLeft, troll, troll, 45
     Sort, TheClippyList, R
     Menu, ClippyMenu, Delete
-    If (StrLen(troll)>0 && A_IsSuspended=0)
+    privateMode := (NeverDisplayOSD=1 || A_IsSuspended=1) ? 1 : 0
+    If (StrLen(troll)>0)
     {
         md5checkTest := varMD5(clipboard)
-        md5checkList .= "," varMD5(clipboard)
+;        md5checkList .= "," varMD5(clipboard)
         If !InStr(clipDataMD5s, md5checkTest)
-           ClipboardManager()
+           ClipboardManager(privateMode)
         Menu, ClippyMenu, Add, { %troll% }, PasteCurrentClippy
         Menu, ClippyMenu, Add
     }
+
     Loop, Parse, TheClippyList, `n
     {
         If !A_LoopField
@@ -4355,8 +4375,9 @@ PasteSelectedHistory() {
   content := editField%ThisField%
   StringReplace, content, content, %lola%,, All
   StringReplace, content, content, %lola2%,, All
-  Sleep, 150
+  Sleep, 50
   SendInput, {text}%content%
+  Sleep, 350
   textClipboard2OSD(content)
 }
 
@@ -4449,7 +4470,8 @@ InitializeTray() {
        Menu, Tray, Add, &Detect keyboard layout now, DetectLangNow
 
     Menu, Tray, Add, &Toggle OSD positions, TogglePosition
-    Menu, Tray, Add, &Never show the OSD, ToggleNeverDisplay
+    Menu, Tray, Add, &Do not show the OSD, ToggleNeverDisplay
+    Menu, Tray, Add
     Menu, Tray, Add, &Capture2Text mode (OCR), ToggleCapture2Text
     Menu, Tray, Add, Mouse text collector, ToggleCaptureText
     Menu, Tray, Add
@@ -5114,7 +5136,7 @@ ShowShortCutsSettings() {
     Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%AltKBDsynchApp2% gGenerateHotkeyStrS vAltKBDsynchApp2, Alt
     Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%WinKBDsynchApp2% gGenerateHotkeyStrS vWinKBDsynchApp2, Win
 
-    Gui, Add, Text, xs+0 y+1 w%col1width%, Toggle never display OSD
+    Gui, Add, Text, xs+0 y+1 w%col1width%, Toggle Private mode / Do not display the OSD
     Gui, Add, ComboBox, x+0 w%col2width% gProcessComboKBD vComboKBDTglNeverOSD, %ComboList%|%CBchoKBDTglNeverOSD%||
     Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%CtrlKBDTglNeverOSD% gGenerateHotkeyStrS vCtrlKBDTglNeverOSD, Ctrl
     Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%ShiftKBDTglNeverOSD% gGenerateHotkeyStrS vShiftKBDTglNeverOSD, Shift
@@ -5128,7 +5150,7 @@ ShowShortCutsSettings() {
     Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%AltKBDTglPosition% gGenerateHotkeyStrS vAltKBDTglPosition, Alt
     Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%WinKBDTglPosition% gGenerateHotkeyStrS vWinKBDTglPosition, Win
 
-    Gui, Add, Text, xs+0 y+1 w%col1width%, Toggle silent mode
+    Gui, Add, Text, xs+0 y+1 w%col1width%, Toggle Silent mode
     Gui, Add, ComboBox, x+0 w%col2width% gProcessComboKBD vComboKBDTglSilence, %ComboList%|%CBchoKBDTglSilence%||
     Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%CtrlKBDTglSilence% gGenerateHotkeyStrS vCtrlKBDTglSilence, Ctrl
     Gui, Add, Checkbox, x+0 +0x1000 w%modBtnWidth% hp Checked%ShiftKBDTglSilence% gGenerateHotkeyStrS vShiftKBDTglSilence, Shift
@@ -6496,7 +6518,7 @@ ShowOSDsettings() {
     Gui, Tab
     Gui, Font, Bold
     If (NeverDisplayOSD=1)
-       Gui, Add, Text, y+5, WARNING: Never display OSD is activated.
+       Gui, Add, Text, y+5, WARNING: The option "Do not display the OSD" is activated.
     Gui, Add, Checkbox, y+8 gVerifyOsdOptions Checked%showPreview% vshowPreview, Show preview window
     Gui, Add, Edit, x+7 gVerifyOsdOptions w165 limit30 r1 -multi -wantReturn -wantTab -wrap vpreviewWindowText, %previewWindowText%
     Gui, Font, Normal
@@ -8474,8 +8496,8 @@ findIMEname(givenKLID) {
     RegRead, sub, HKLM, %skey%\%s1%\LanguageProfile\%s2%\%s3%, SubstituteLayout
     If !desc
        continue
-    layout := Hex2Str(s2, 8, 0, 1)  ; this is a KLID
-    subst := Hex2Str(sub, 8, 0, 1)  ; this is also a KLID
+    layout := Hex2Str(s2, 8, 0, 1)
+    subst := Hex2Str(sub, 8, 0, 1)  ; both are KLIDs
     If (givenKLID = layout OR givenKLID = subst)
        Return desc
    }
@@ -8668,7 +8690,7 @@ Return kstr
 
 Hex2Str(val, len, x:=false, caps:=true) {
     VarSetCapacity(out, len*2, 32), c := caps ? "X" : "x"
-    DllCall("msvcrt\sprintf", "AStr", out, "AStr", "%0" len "I64" c, "UInt64", val, "CDecl")
+    DllCall("msvcrt\sprintf", "AStr", out, "AStr", "%0" len "ll" c, "UInt64", val, "CDecl")
     Return x ? "0x" out : out
 }
 
@@ -9165,7 +9187,9 @@ Cleanup() {
     If IsFunc(a)
        %a%(1)
     DllCall("kernel32\FreeLibrary", "Ptr", hWinMM)
-    DllCall("ReleaseMutex", Ptr,hMutex)
+;    DllCall("ReleaseMutex", Ptr,hMutex)
+    If hMutex
+       DllCall("kernel32\CloseHandle", "Ptr", hMutex) 
 }
 
 SettingsGUIAGuiEscape:
