@@ -11,6 +11,55 @@ http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip
 
 by Marius Sucan (robodesign.ro)
 
+  v4.27 (2018-03-18)
+  - [new] option to automatically erase text on window change
+  - various bug fixes and minor improvements in varying contexts
+
+  v4.26.7 (2018-03-17)
+  - [new] options to change shape, width and size of the caret halo [possible thanks to Drugwash]
+  - small improvements to caret jumps
+  - more work on comments through the code
+  - minor bug fixes
+
+  v4.26.5 (2018-03-16)
+  - [new] option to set interval for text expansion
+  - [new] option to deactivate automatic pasting of clipboard content when selecting a previous clipboard
+  - [new] for clipboard history, an option to set a limit for formatted texts; what exceeds this limit, will be stored as raw text.
+  - changed the way I present the help information at Typing Mode window
+  - removed option to send key strokes to host app when using alternate typing mode; it was poorly working
+  - reorganized the entire code [+9500 lines]; I grouped functions in a logical manner and added comments
+
+  v4.26 (2018-03-15)
+  - [new] added customization options in the UI for caret halo [at Keyboard preferences window] based on the work of Drugwash
+  - [new] run in safe mode; deactivates auxiliary AHK_H threads. Features deactivated: mouse features, sounds / beepers, and others.
+  - if it crashes during INIT, safe mode option is presented to the user
+  - the OSD can now be dragged by key states LEDs [OSD indicators], even if KeyPress is set to hide the OSD on mouse hover
+  - [major bug fix] alternate typing mode was not working in the previous versions; now it works again
+
+  v4.25.5 (2018-03-14)
+  - [new] added more customization options in the UI for mouse ripples based on the work of Drugwash; colors can now be changed
+  - various bug fixes
+
+by Drugwash
+
+  v4.25 (2018-03-11)
+  - added the ability to customize text caret halo and mouse ripples
+  - many improvements to mouse ripples and other mouse functions
+  - now, with mouse ripples enabled, the direction is indicated when using wheel up/down or left/right.
+  - the update in real time of options at Mouse preferences window is much improved
+  - show preview is now a permanent option
+  - when forcing an update, KeyPress will now make a backup of the current files
+  - various improvements under the hood
+  - code improvements and clean up
+
+by Marius Sucan (robodesign.ro)
+
+  v4.23.5 (2018-03-11)
+  - more fixes for Clipboard history
+
+  v4.23.4 (2018-03-10)
+  - fixed a bug with [very] large clipboards when Clipboard history is enabled
+
   v4.23.3 (2018-03-08)
   - when the script is suspended or the OSD is set to not show, the clipboard manager will no longer save what the user copies in the clipboard
   - fixed bug that caused the expandable words list to get duplicated over and over...
@@ -798,23 +847,30 @@ Features to implement:
 - mai testează AHK_H v1.1.28 h003
   - crashes on restart
   - the compiler fails the x32 edition; crashy on restarts
+  - [bug] when x32 compiled, double-click pe layout, KeyPress starts twice
 
 - test compiled version on different systems; crashes?
   - keypress lite? compiled with AHK_L
-  - win 7 [vm, pc], win 10 [laptop]
-  - cu modificările lui drugwash vs. fără
+  - win xp [vm], win 7 [vm, pc], win 10 [laptop]
 
-- DLC 9
 - test TabletPro
-- initMSG does not hide when no OSD
-- show tooltips for help at typing mode
-- when x32 compiled, double-click pe layout, KeyPress starts twice
-- right-click in MS Word does not work because of Ripples, Square clicks
-- recalculate osd factor resize when dpi changes
-- probleme cu emojis? caret navigation jumps; dar cu Igbo și Bengali?
+- sort *caps.
 
-- tablet pro sliding side-bar with 8 big buttons, shortcuts, mods at the top and bottom; optional - two columns
-- auto-correct [with shift+space] - long words; visualize first
+- keyStrokes Helper: does it get turned off?
+
+- Reidentează codul.
+- Make use of the Caret position api? Hold still if caret did not move? Erase text when it jumps ? Don't erase if caret did not move on enter?
+
+Drugwash: Fix ripples. New caret halo routine?
+
+
+- caret gets out of synch in FF?
+- ditch iniReads
+- warnings. debugger?
+
+- zoomFactor și LargeUIFonts, când sunt toate panourile gata;
+
+- auto-correct [with 1,2,3] - long words; visualize first
 - https://autohotkey.com/board/topic/54987-sift3-super-fast-and-accurate-string-distance-algorithm/
 - https://github.com/first20hours/google-10000-english
 - https://www.sketchengine.co.uk/word-lists/
@@ -837,7 +893,6 @@ https://autohotkey.com/board/topic/53672-get-the-text-content-of-a-tool-tip-wind
 - Go through older posts. Check what's done. 
 - separate FAQs into sections
 
-- add comments through the source. Present the [lack of] code structure
 - window spy, get texts underneath the mouse using Narrator's accessibility APIs
   https://autohotkey.com/board/topic/57431-get-text-under-mouse-cursor/
   https://blogs.msdn.microsoft.com/oldnewthing/20130408-00/?p=4733

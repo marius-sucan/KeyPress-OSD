@@ -13,94 +13,132 @@
 #MaxThreads 255
 #MaxThreadsPerHotkey 255
 #MaxHotkeysPerInterval 500
+CoordMode, Caret, Screen
+CoordMode, Mouse, Screen
+SetTitleMatchMode, 2
+SetBatchLines, -1
+ListLines, Off
 SetWorkingDir, %A_ScriptDir%
+DetectHiddenWindows, On
+; Menu, Tray, Icon, % A_IsCompiled ? A_ScriptFullPath : "lib\keypress.ico"
 
-Global VisualMouseClicks := 0     ; shows visual indicators For different mouse clicks
- , ClickScaleUser        := 10
- , FlashIdleMouse        := 0     ; locate an idling mouse with a flashing box
- , IdleMouseAlpha        := 70    ; from 0 to 255
- , MouseBeeper           := 0     ; If both, ShowMouseButton and Visual Mouse Clicks are disabled, mouse click beeps will never occur
- , MouseVclickColor      := "555555"
+Global IniFile           := "keypress-osd.ini"
+ , MouseVclickScaleUser  := 10
+ , ShowMouseHalo         := 0     ; constantly highlight mouse cursor
+ , ShowMouseIdle         := 0     ; locate an idling mouse with a (flashing) box
+ , ShowMouseVclick       := 0     ; shows visual indicators For different mouse clicks
+ , ShowCaretHalo         := 0
  , MouseHaloAlpha        := 130   ; from 0 to 255
  , MouseHaloColor        := "EEDD00"  ; HEX format also accepted
  , MouseHaloRadius       := 85
  , MouseIdleAfter        := 10    ; in seconds
- , MouseIdleRadius       := 130
+ , MouseIdleAlpha        := 70    ; from 0 to 255
  , MouseIdleColor        := "333333"
+ , MouseIdleRadius       := 130
+ , MouseIdleFlash        := 1     ; some may find it disturbing
  , MouseVclickAlpha      := 150   ; from 0 to 255
- , ShowMouseHalo         := 0     ; constantly highlight mouse cursor
- , CaretHaloAlpha        := 130   ; from 0 to 255
+ , MouseVclickColor      := "555555"
+ , CaretHaloAlpha        := 175   ; from 0 to 255
  , CaretHaloColor        := "BBAA99"  ; HEX format also accepted
- , CaretHaloRadius       := 70
- , hostCaretHighlight    := 0
- , SilentMode            := 0
- , IniFile               := "keypress-osd.ini"
- , visible := 0
- , MouseClickCounter := 0
+ , CaretHaloHeight       := 70
+ , CaretHaloWidth        := 15
+ , CaretHaloThick        := 0     ; halo thickness; 0 makes a solid halo
+ , CaretHaloShape        := 2     ; 1=circle, 2=square, 3=round square, 4=triangle, 5=crosshair
+ , CaretHaloMode         := 1     ; 1=fixed size (obey Radius), 2=variable size based on caret height
+ , CaretHaloFlash        := 1     ; some may find it disturbing (me included)
+ 
+ , CaretHeight
+ , CaretBlinkTime := DllCall("user32\GetCaretBlinkTime")
+ , wa := ha := 0
  , ScriptelSuspendel := 0
+ , MouseClickCounter := 0
+ , MouseVclickScale := MouseVclickScaleUser/10
+ , WinMouseHalo := "KeyPress OSD: Mouse halo"
+ , WinMouseIdle := "KeyPress OSD: Mouse idle"
+ , WinMouseVclick := "KeyPress OSD: Mouse click blocks"
+ , WinCaretHalo := "KeyPress OSD: Caret halo"
+ , MButtons := "LButton|MButton|RButton"
+ , Wheels := "WheelDown|WheelUp|WheelLeft|WheelRight|XButton1|XButton2"
  , isMouseFile := 1
- , wa := 0
- , ha := 0
 
-;  IniRead, ScriptelSuspendel, %inifile%, TempSettings, ScriptelSuspendel, %ScriptelSuspendel%
-  IniRead, hostCaretHighlight, %inifile%, SavedSettings, hostCaretHighlight, %hostCaretHighlight%
-  IniRead, ClickScaleUser, %inifile%, SavedSettings, ClickScaleUser, %ClickScaleUser%
-  IniRead, SilentMode, %inifile%, SavedSettings, SilentMode, %SilentMode%
-  IniRead, FlashIdleMouse, %inifile%, SavedSettings, FlashIdleMouse, %FlashIdleMouse%
-  IniRead, ShowMouseHalo, %inifile%, SavedSettings, ShowMouseHalo, %ShowMouseHalo%
-  IniRead, MouseHaloAlpha, %inifile%, SavedSettings, MouseHaloAlpha, %MouseHaloAlpha%
-  IniRead, MouseHaloColor, %inifile%, SavedSettings, MouseHaloColor, %MouseHaloColor%
-  IniRead, MouseHaloRadius, %inifile%, SavedSettings, MouseHaloRadius, %MouseHaloRadius%
-  IniRead, MouseIdleAfter, %inifile%, SavedSettings, MouseIdleAfter, %MouseIdleAfter%
-  IniRead, MouseIdleRadius, %inifile%, SavedSettings, MouseIdleRadius, %MouseIdleRadius%
-  IniRead, MouseVclickAlpha, %inifile%, SavedSettings, MouseVclickAlpha, %MouseVclickAlpha%
-  IniRead, VisualMouseClicks, %inifile%, SavedSettings, VisualMouseClicks, %VisualMouseClicks%
-  IniRead, IdleMouseAlpha, %inifile%, SavedSettings, IdleMouseAlpha, %IdleMouseAlpha%
-  IniRead, MouseBeeper, %inifile%, SavedSettings, MouseBeeper, %MouseBeeper%
-  IniRead, MouseVclickColor, %inifile%, SavedSettings, MouseVclickColor, %MouseVclickColor%
-  IniRead, MouseIdleColor, %inifile%, SavedSettings, MouseIdleColor, %MouseIdleColor%
-  Global ClickScale := ClickScaleUser/10
+  IniRead, ShowMouseHalo, %IniFile%, Mouse, ShowMouseHalo, %ShowMouseHalo%
+  IniRead, ShowMouseIdle, %IniFile%, Mouse, ShowMouseIdle, %ShowMouseIdle%
+  IniRead, ShowMouseVclick, %IniFile%, Mouse, ShowMouseVclick, %ShowMouseVclick%
+  IniRead, MouseHaloAlpha, %IniFile%, Mouse, MouseHaloAlpha, %MouseHaloAlpha%
+  IniRead, MouseHaloColor, %IniFile%, Mouse, MouseHaloColor, %MouseHaloColor%
+  IniRead, MouseHaloRadius, %IniFile%, Mouse, MouseHaloRadius, %MouseHaloRadius%
+  IniRead, MouseIdleAfter, %IniFile%, Mouse, MouseIdleAfter, %MouseIdleAfter%
+  IniRead, MouseIdleAlpha, %IniFile%, Mouse, MouseIdleAlpha, %MouseIdleAlpha%
+  IniRead, MouseIdleColor, %IniFile%, Mouse, MouseIdleColor, %MouseIdleColor%
+  IniRead, MouseIdleRadius, %IniFile%, Mouse, MouseIdleRadius, %MouseIdleRadius%
+  IniRead, MouseIdleFlash, %IniFile%, Mouse, MouseIdleFlash, %MouseIdleFlash%
+  IniRead, MouseVclickAlpha, %IniFile%, Mouse, MouseVclickAlpha, %MouseVclickAlpha%
+  IniRead, MouseVclickColor, %IniFile%, Mouse, MouseVclickColor, %MouseVclickColor%
+  IniRead, MouseVclickScaleUser, %IniFile%, Mouse, MouseVclickScaleUser, %MouseVclickScaleUser%
+  IniRead, ShowCaretHalo, %IniFile%, Mouse, ShowCaretHalo, %ShowCaretHalo%
+  IniRead, CaretHaloFlash, %IniFile%, Mouse, CaretHaloFlash, %CaretHaloFlash%
+  IniRead, CaretHaloAlpha, %IniFile%, Mouse, CaretHaloAlpha, %CaretHaloAlpha%
+  IniRead, CaretHaloColor, %IniFile%, Mouse, CaretHaloColor, %CaretHaloColor%
+  IniRead, CaretHaloHeight, %IniFile%, Mouse, CaretHaloHeight, %CaretHaloHeight%
+  IniRead, CaretHaloWidth, %IniFile%, Mouse, CaretHaloWidth, %CaretHaloWidth%
+  IniRead, CaretHaloThick, %IniFile%, Mouse, CaretHaloThick, %CaretHaloThick%
+  IniRead, CaretHaloShape, %IniFile%, Mouse, CaretHaloShape, %CaretHaloShape%
+  MouseVclickScale := MouseVclickScaleUser/10
+  CaretHaloThick := (CaretHaloThick > Round(CaretHaloHeight/2-1)) ? Round(CaretHaloHeight/2-1) : Round(CaretHaloThick)
+  CaretHaloThick := (CaretHaloThick > 60) ? 60 : Round(CaretHaloThick)
 
-If (ScriptelSuspendel=1)
-   Return
+MouseInit()
+OnExit("MouseClose")
+Return
 
-If (VisualMouseClicks=0) && (FlashIdleMouse=0) && (ShowMouseHalo=0) && (hostCaretHighlight=0)
-   Return
+MouseInit() {
+    If (ScriptelSuspendel="Y" || (ShowMouseVclick=0 && ShowMouseIdle=0 && ShowMouseHalo=0 && ShowCaretHalo=0))
+       Return
 
-If (hostCaretHighlight=1)
-{
-   CoordMode, Caret, Screen ; Window ;Client
-   SetTitleMatchMode, 2
-   SetTimer, CaretHalo, 70, -50
+    If (ShowMouseHalo=1)
+       SetTimer, MouseHalo, 40, 0
+    Else Gui, MouseH: Hide
+
+    If (ShowMouseIdle=1)
+       SetTimer, ShowMouseIdleLocation, 300, 0
+    Else Gui, MouseIdlah: Hide
+
+    If (ShowCaretHalo=1)
+       SetTimer, CaretHalo, 70, -50
+    Else Gui, CaretH: Hide
+
+    If (ShowMouseVclick=1)
+    {
+       CreateMouseGUI()
+       Loop, Parse, MButtons, |
+             Hotkey, % "~*" A_LoopField, OnMousePressed, On UseErrorLevel
+       Loop, parse, Wheels, |
+             Hotkey, % "~*" A_LoopField, OnKeyPressed, On UseErrorLevel
+    } Else
+    {
+       Loop, Parse, MButtons, |
+             Hotkey, % "~*" A_LoopField, OnMousePressed, Off UseErrorLevel
+       Loop, Parse, Wheels, |
+             Hotkey, % "~*" A_LoopField, OnKeyPressed, Off UseErrorLevel
+       Gui, Mouser: Hide
+    }
 }
 
-CoordMode Mouse, Screen
-
-If (FlashIdleMouse=1)
-   SetTimer, ShowMouseIdleLocation, 300, 0
-
-If (ShowMouseHalo=1)
-   SetTimer, MouseHalo, 40, 0
-
-If (visualMouseClicks=1)
-{
-    CreateMouseGUI()
-    Loop, Parse, % "LButton|MButton|RButton", |
-          Hotkey, % "~*" A_LoopField, OnMousePressed, useErrorLevel
-
-    Wheels := "WheelDown|WheelUp|WheelLeft|WheelRight|XButton1|XButton2"
-    Loop, parse, Wheels, |
-          Hotkey, % "~*" A_LoopField, OnKeyPressed, useErrorLevel
+MouseClose() {
+    Gui, MouseH: Destroy
+    Gui, MouseIdlah: Destroy
+    Gui, Mouser: Destroy
+    Gui, CareH: Destroy
 }
 
 ShowMouseIdleLocation() {
     Static
 
-    If (FlashIdleMouse=1 && (A_TimeIdle > (MouseIdleAfter*1000)) && ScriptelSuspendel!="Y")
+    If (ShowMouseIdle=1 && (A_TimeIdle > MouseIdleAfter*1000) && ScriptelSuspendel!="Y")
     {
-       MouseClickCounter := (MouseClickCounter > 10) ? 1 : 11
-       AlphaVariator := IdleMouseAlpha - MouseClickCounter*3
-       If !idleOn
+       MouseClickCounter := !MouseClickCounter
+       AlphaVariator := MouseIdleFlash ? MouseIdleAlpha*MouseClickCounter : MouseIdleAlpha
+       If !IdleOn || LastIAlpha != MouseIdleAlpha || LastIRad != MouseIdleRadius || LastIColor != MouseIdleColor
        {
           MouseGetPos, mX, mY
           BoxW := MouseIdleRadius
@@ -114,7 +152,9 @@ ShowMouseIdleLocation() {
           SetFormat, Integer, H
           OuterColor := 0x222222 + InnerColor
           SetFormat, Integer, D
-          idleOn := 1
+          Gui, MouseIdlah: Destroy
+          IsIdleGui := 0
+          IdleOn := 1, LastIAlpha := MouseIdleAlpha, LastIRad := MouseIdleRadius, LastIColor := MouseIdleColor
        }
 
        If !isIdleGui
@@ -123,22 +163,25 @@ ShowMouseIdleLocation() {
           Gui, MouseIdlah: Color, %OuterColor%  ; outer rectangle
           Gui, MouseIdlah: Add, Progress, x%BorderSize% y%BorderSize% w%RectW% h%RectH% Background%InnerColor% c%InnerColor% hwndhIdle1, 100   ; inner rectangle
           WinSet, Region, 0-0 W%RectW% H%RectH% E, ahk_id %hIdle1%
-          Gui, MouseIdlah: Show, NoActivate x%mX% y%mY% w%BoxW% h%BoxH%, MouseIdlah
+          Gui, MouseIdlah: Show, NoActivate Hide x%mX% y%mY% w%BoxW% h%BoxH%, %WinMouseIdle%
           WinSet, Region, 0-0 W%BoxW% H%BoxH% E, ahk_id %hIdle%
           isIdleGui := 1
        }
 
-       Gui, MouseIdlah: Show, NoActivate x%mX% y%mY% w%BoxW% h%BoxH%, MouseIdlah
-       WinSet, Transparent, %AlphaVariator%, MouseIdlah
-       WinSet, AlwaysOnTop, On, MouseIdlah
+       Gui, MouseIdlah: Show, NoActivate x%mX% y%mY% w%BoxW% h%BoxH%, %WinMouseIdle%
+       WinSet, Transparent, %AlphaVariator%, %WinMouseIdle%
+       WinSet, AlwaysOnTop, On, %WinMouseIdle%
+       Gui, MouseH: Hide
     } Else
     {
+        If (ShowMouseHalo=1 && ScriptelSuspendel!="Y")
+           Gui, MouseH: Show, NoActivate
         Gui, MouseIdlah: Hide
         idleOn := 0
     }
 
-    If (FlashIdleMouse=1 && ScriptelSuspendel="Y")
-        Gui, MouseIdlah: Hide
+    If (ShowMouseIdle=1 && ScriptelSuspendel="Y")
+       Gui, MouseIdlah: Hide
 }
 
 MouseHalo() {
@@ -153,19 +196,21 @@ MouseHalo() {
        BoxH := BoxW
        mX := mX - BoxW/2
        mY := mY - BoxW/2
-       If !isHaloGui
+       If (!IsHaloGui || LastAlpha != MouseHaloAlpha || LastColor != MouseHaloColor || LastRad != MouseHaloRadius)
        {
+           Gui, MouseH: Destroy
            Gui, MouseH: +AlwaysOnTop -Caption +ToolWindow +E0x20 +hwndhHalo
            Gui, MouseH: Margin, 0, 0
            Gui, MouseH: Color, %MouseHaloColor%
-           Gui, MouseH: Show, NoActivate x%mX% y%mY% w%BoxW% h%BoxH%, MousarHallo
+           Gui, MouseH: Show, NoActivate Hide x%mX% y%mY% w%BoxW% h%BoxH%, %WinMouseHalo%
            WinSet, Region, 0-0 W%BoxW% H%BoxH% E, ahk_id %hHalo%
-           WinSet, Transparent, %MouseHaloAlpha%, MousarHallo
-           WinSet, AlwaysOnTop, On, MousarHallo
-           isHaloGui := 1
+           WinSet, Transparent, %MouseHaloAlpha%, %WinMouseHalo%
+           WinSet, AlwaysOnTop, On, %WinMouseHalo%
+           IsHaloGui := 1, LastAlpha := MouseHaloAlpha , LastColor := MouseHaloColor
+           , LastRad := MouseHaloRadius
        }
-       Gui, MouseH: Show, NoActivate x%mX% y%mY% w%BoxW% h%BoxH%, MousarHallo
-       WinSet, AlwaysOnTop, On, MousarHallo
+       Gui, MouseH: Show, NoActivate x%mX% y%mY% w%BoxW% h%BoxH%, %WinMouseHalo%
+       WinSet, AlwaysOnTop, On, %WinMouseHalo%
     }
 
     If (ShowMouseHalo=1 && ScriptelSuspendel="Y")
@@ -173,7 +218,7 @@ MouseHalo() {
 }
 
 OnMousePressed() {
-    If (VisualMouseClicks=1 && ScriptelSuspendel!="Y")
+    If (ShowMouseVclick=1 && ScriptelSuspendel!="Y")
     {
        mkey := SubStr(A_ThisHotkey, 3)
        ShowMouseClick(mkey)
@@ -181,7 +226,7 @@ OnMousePressed() {
 }
 
 OnKeyPressed() {
-    If (VisualMouseClicks=1 && ScriptelSuspendel!="Y")
+    If (ShowMouseVclick=1 && ScriptelSuspendel!="Y")
     {
        mkey := SubStr(A_ThisHotkey, 3)
        If InStr(mkey, "wheel")
@@ -201,16 +246,23 @@ CreateMouseGUI() {
     Gui, Mouser: Margin, 0, 0
 }
 
-ShowMouseClick(clicky) {
+ShowMouseClick(clicky:=0, restartNow:=0) {
     Static
+    If (restartNow=1)
+    {
+       Gui, Mouser: Destroy
+       isMouser := 0       
+    }
+    If !clicky
+       Return
     SetTimer, HideMouseClickGUI, 900
-    Sleep, 150
-    Gui, Mouser: Hide
+    Sleep, 50
+    ; Gui, Mouser: Hide
     MouseClickCounter := (MouseClickCounter > 10) ? 1 : 11
     TransparencyLevel := MouseVclickAlpha - MouseClickCounter*6
-    BoxW := 15 * ClickScale
-    BoxH := 40 * ClickScale
-    MouseDistance := 10 * ClickScale
+    BoxW := 15 * MouseVclickScale
+    BoxH := 40 * MouseVclickScale
+    MouseDistance := 10 * MouseVclickScale
     Loop, 2
     {
       MouseGetPos, mX, mY
@@ -220,21 +272,21 @@ ShowMouseClick(clicky) {
          mX := wa ? (mX - Wa*2 - MouseDistance) : (mX - BoxW*2 - MouseDistance)
       } Else If InStr(clicky, "MButton")
       {
-         BoxW := 45 * ClickScale
+         BoxW := 45 * MouseVclickScale
          mX := wa ? (mX - Wa/2) : (mX - BoxW/2)
       } Else If InStr(clicky, "RButton")
       {
          mX := mX + MouseDistance*2.5
       } Else If InStr(clicky, "Wheelup")
       {
-         BoxW := 50 * ClickScale
-         BoxH := 15 * ClickScale
+         BoxW := 50 * MouseVclickScale
+         BoxH := 15 * MouseVclickScale
          mX := wa ? (mX - Wa/2) : (mX - BoxW/2)
          mY := mY - MouseDistance*2.5
       } Else If InStr(clicky, "Wheeldown")
       {
-         BoxW := 50 * ClickScale
-         BoxH := 15 * ClickScale
+         BoxW := 50 * MouseVclickScale
+         BoxH := 15 * MouseVclickScale
          mX := wa ? (mX - Wa/2) : (mX - BoxW/2)
          mY := mY + BoxH*2 + MouseDistance/2
       }
@@ -249,18 +301,18 @@ ShowMouseClick(clicky) {
       If !isMouser
       {
           CreateMouseGUI()
-          Gui, Mouser: Color, %OuterColor%  ; outer rectangle
-          Gui, Mouser: Add, Progress, x%BorderSize% y%BorderSize% w%RectW% h%RectH% Background%InnerColor% c%InnerColor%, 100   ; inner rectangle
+          Gui, Mouser: Color, %InnerColor%  ; outer rectangle
+;          Gui, Mouser: Add, Progress, x%BorderSize% y%BorderSize% w%RectW% h%RectH% Background%InnerColor% c%InnerColor%, 100   ; inner rectangle
           isMouser := 1
       } Else
       {
-          GuiControl, Mouser:Move, msctls_progress321, w%RectW% h%RectH%
-          Gui, Mouser: Show, NoActivate x%mX% y%mY% w%BoxW% h%BoxH%, MousarWin
-          WinSet, Transparent, %TransparencyLevel%, MousarWin
-          If A_Index=2
+;          GuiControl, Mouser:Move, msctls_progress321, w%RectW% h%RectH%
+          Gui, Mouser: Show, NoActivate x%mX% y%mY% w%BoxW% h%BoxH%, %WinMouseVclick%
+          WinSet, Transparent, %TransparencyLevel%, %WinMouseVclick%
+          If (A_Index=2)
              Sleep, 250
           GuiGetSize(Wa, Ha, 4)
-          WinSet, AlwaysOnTop, On, MousarWin
+          WinSet, AlwaysOnTop, On, %WinMouseVclick%
       }
     }
 }
@@ -284,7 +336,7 @@ HideMouseClickGUI() {
           Break
        } Else
        {
-          WinSet, Transparent, 55, MousarWin
+          WinSet, Transparent, 55, %WinMouseVclick%
        }
     }
 }
@@ -304,73 +356,187 @@ GuiGetSize( ByRef W, ByRef H, vindov) {          ; function by VxE from https://
   H := NumGet(rect, 12, "UInt")
 }
 
-CaretHalo() {
+CaretHalo(restartNow:=0) {
     Static
-    doNotShow := 0
-    If (hostCaretHighlight=1 && ScriptelSuspendel!="Y") ; && (A_TimeIdle > 200)
+    Static lastFlash := A_TickCount
+    If (restartNow=1)
     {
-       mX := !A_CaretX ? 2 : A_CaretX - CaretHaloRadius/2
-       mY := !A_CaretY ? 2 : A_CaretY - CaretHaloRadius/3
-       mX := !mX ? 1 : mX
-       mY := !mY ? 1 : mY
+       Gui, CaretH: Destroy
+       IsHaloGui := 0       
+    }
+
+    doNotShow := 0
+    If (ShowCaretHalo=1 && ScriptelSuspendel!="Y") ; && (A_TimeIdle > 200)
+    {
+       tid := DllCall("user32\GetWindowThreadProcessId", "Ptr", hActive := WinExist("A"), "Ptr", NULL)
+       VarSetCapacity(GTI, sz := 24+6*A_PtrSize, 0)         ; GUITHREADINFO struct
+       NumPut(sz, GTI, 0, "UInt")  ; cbSize
+       If DllCall("user32\GetGUIThreadInfo", "UInt", tid, "Ptr", &GTI)
+          If !hWCaret := NumGet(GTI, 8+5*A_PtrSize, "Ptr")  ; hwndCaret
+;             If !hWCaret := NumGet(GTI, 8+A_PtrSize, "Ptr") ; hwndFocus
+;                If !hWCaret := NumGet(GTI, 8, "Ptr")        ; hwndActive
+                   hWCaret := hActive
+
+;       CaretW := NumGet(GTI, 16+6*A_PtrSize, "Int")-NumGet(GTI, 8+6*A_PtrSize, "Int")
+       CaretHeight := NumGet(GTI, 20+6*A_PtrSize, "Int")-NumGet(GTI, 12+6*A_PtrSize, "Int")
+       CaretHeight := CaretHeight>10 ? CaretHeight : 10
+       CaretHaloW := (CaretHaloWidth>15) ? CaretHaloWidth : 10
+       CaretHaloH := (CaretHaloMode=1) ? CaretHaloHeight : CaretHeight+2*CaretHaloThick+10
+       mX := !A_CaretX ? 2 : A_CaretX - CaretHaloW/2 + 1
+       mY := !A_CaretY ? 2 : Round(A_CaretY + CaretHeight/2 - CaretHaloH/2 + 1)
+       mX := !mX ? 2 : mX
+       mY := !mY ? 2 : mY
 
        If (mX=2 && mY=2)
        {
           lastFlash := A_TickCount
           doNotShow := 1
        }
-       If !isHaloGui
+       If !IsHaloGui
        {
            Gui, CaretH: +AlwaysOnTop -Caption +ToolWindow +E0x20 +hwndhHalo
            Gui, CaretH: Margin, 0, 0
            Gui, CaretH: Color, %CaretHaloColor%
-           Gui, CaretH: Show, NoActivate x%mX% y%mY% w%CaretHaloRadius% h%CaretHaloRadius%, CaratHallo
-           WinSet, Region, 0-0 W%CaretHaloRadius% H%CaretHaloRadius% E, ahk_id %hHalo%
-           WinSet, Transparent, %CaretHaloAlpha%, CaratHallo
-           WinSet, AlwaysOnTop, On, CaratHallo
-           isHaloGui := 1
+           Gui, CaretH: Show, NoActivate Hide x%mX% y%mY% w%CaretHaloW% h%CaretHaloH%, %WinCaretHalo%
+;           WinSet, Region, 0-0 W%CaretHaloHeight% H%CaretHaloHeight% E, ahk_id %hHalo%
+           HaloRegion%CaretHaloShape%(hHalo, 0, 0, CaretHaloW, CaretHaloH, CaretHaloThick)
+           WinSet, Transparent, %CaretHaloAlpha%, %WinCaretHalo%
+           WinSet, AlwaysOnTop, On, %WinCaretHalo%
+           IsHaloGui := 1
        }
        If (doNotShow!=1)
        {
-          Gui, CaretH: Show, NoActivate x%mX% y%mY% w%CaretHaloRadius% h%CaretHaloRadius%, CaratHallo
-          WinSet, Transparent, %CaretHaloAlpha%, CaratHallo
-          WinSet, AlwaysOnTop, On, CaratHallo
-          If (A_TickCount-lastFlash>300)
+          Gui, CaretH: Show, NoActivate x%mX% y%mY% w%CaretHaloW% h%CaretHaloH%, %WinCaretHalo%
+          WinSet, Transparent, %CaretHaloAlpha%, %WinCaretHalo%
+          WinSet, AlwaysOnTop, On, %WinCaretHalo%
+          If ((A_TickCount-lastFlash>CaretBlinkTime*2) && CaretHaloFlash)
           {
               CaretHaloAlphae := CaretHaloAlpha/2
-              WinSet, Transparent, %CaretHaloAlphae%, CaratHallo
+              WinSet, Transparent, %CaretHaloAlphae%, %WinCaretHalo%
               lastFlash := A_TickCount
           }
        }
     }
-    If ((hostCaretHighlight=1 && ScriptelSuspendel="Y") || doNotShow=1)
+    If ((ShowCaretHalo=1 && ScriptelSuspendel="Y") || doNotShow=1)
        Gui, CaretH: Hide
 }
 
-ToggleMouseTimerz(forceIT:=0) {
-    If (ScriptelSuspendel="Y" || forceIT="Y")
+ToggleMouseTimerz(force:=0) {
+    If (ScriptelSuspendel="Y" || force)
     {
-      If (hostCaretHighlight=1)
+      If (ShowCaretHalo=1)
          SetTimer, CaretHalo, off
 
-      If (FlashIdleMouse=1)
+      If (ShowMouseIdle=1)
          SetTimer, ShowMouseIdleLocation, off
 
       If (ShowMouseHalo=1)
-         SetTimer, MouseHalo, 40, off
+         SetTimer, MouseHalo, Off
+
+      If (ShowMouseVclick=1)
+      {
+        Loop, Parse, MButtons, |
+          Hotkey, % "~*" A_LoopField, Off
+        Loop, Parse, Wheels, |
+          Hotkey, % "~*" A_LoopField, Off
+      }
 
       Gui, MouseIdlah: Hide
       Gui, MouseH: Hide
       Gui, CaretH: Hide
     } Else
     {
-      If (hostCaretHighlight=1)
+      If (ShowCaretHalo=1)
          SetTimer, CaretHalo, 70, -50
 
-      If (FlashIdleMouse=1)
+      If (ShowMouseIdle=1)
          SetTimer, ShowMouseIdleLocation, 300, 0
 
       If (ShowMouseHalo=1)
          SetTimer, MouseHalo, 40, 0
+
+      If (ShowMouseVclick=1)
+      {
+        Loop, Parse, MButtons, |
+          Hotkey, % "~*" A_LoopField, On
+        Loop, Parse, Wheels, |
+          Hotkey, % "~*" A_LoopField, On
+      }
     }
+}
+;================================================================
+; by Drugwash: EVER HEARD OF M.C.HAMMER? DON'T TOUCH THIS !
+;================================================================
+HaloRegion1(hwnd, x:=0, y:=0, w:=0, h:=0, t:=0) {
+  hR1 := DllCall("gdi32\CreateEllipticRgn", "Int", x, "Int", y, "Int", w, "Int", h, "Ptr")
+  If t
+  {
+    hR2 := DllCall("gdi32\CreateEllipticRgn", "Int", x+t, "Int", y+t, "Int", w-t, "Int", h-t, "Ptr")
+    DllCall("gdi32\CombineRgn", "Ptr", hR1, "Ptr", hR1, "Ptr", hR2, "UInt", 3) ; RGN_XOR
+    DllCall("gdi32\DeleteObject", "Ptr", hR2)
+  }
+  Return DllCall("user32\SetWindowRgn", "Ptr", hwnd, "Ptr", hR1, "UInt", 1)
+}
+
+HaloRegion2(hwnd, x:=0, y:=0, w:=0, h:=0, t:=0) {
+  hR1 := DllCall("gdi32\CreateRectRgn", "Int", x, "Int", y, "Int", w, "Int", h, "Ptr")
+  If t
+  {
+   hR2 := DllCall("gdi32\CreateRectRgn", "Int", x+t, "Int", y+t, "Int", w-t, "Int", h-t, "Ptr")
+   DllCall("gdi32\CombineRgn", "Ptr", hR1, "Ptr", hR1, "Ptr", hR2, "UInt", 3) ; RGN_XOR
+   DllCall("gdi32\DeleteObject", "Ptr", hR2)
+  }
+  Return DllCall("user32\SetWindowRgn", "Ptr", hwnd, "Ptr", hR1, "UInt", 1)
+}
+
+HaloRegion3(hwnd, x:=0, y:=0, w:=0, h:=0, t:=0) {
+  hR1 := DllCall("gdi32\CreateRoundRectRgn", "Int", x, "Int", y, "Int", w, "Int", h, "Int", 2*t, "Int", 2*t, "Ptr")
+  If t
+  {
+   hR2 := DllCall("gdi32\CreateRoundRectRgn", "Int", x+t, "Int", y+t, "Int", w-t, "Int", h-t, "Int", t, "Int", t, "Ptr")
+   DllCall("gdi32\CombineRgn", "Ptr", hR1, "Ptr", hR1, "Ptr", hR2, "UInt", 3) ; RGN_XOR
+   DllCall("gdi32\DeleteObject", "Ptr", hR2)
+  }
+  Return DllCall("user32\SetWindowRgn", "Ptr", hwnd, "Ptr", hR1, "UInt", 1)
+}
+
+HaloRegion4(hwnd, x:=0, y:=0, w:=0, h:=0, t:=0) {
+   x1:=Round(w/2-CaretHeight/2-5)-1, y1:=0, x2 := x1+CaretHeight+10, y2:=0, x3:=Round(w/2)-1, y3:=t+4
+   VarSetCapacity(buf, 24, 0), NumPut(x1, buf, 0, "Int"), NumPut(x2, buf, 8, "Int")
+   NumPut(x3, buf, 16, "Int"), NumPut(y3, buf, 20, "Int")
+   hR1 := DllCall("gdi32\CreatePolygonRgn", "Ptr", &buf, "Int", 3, "Int", 1, "Ptr") ; ALTERNATE=1, WINDING=2
+   Return DllCall("user32\SetWindowRgn", "Ptr", hwnd, "Ptr", hR1, "UInt", 1)
+}
+
+HaloRegion5(hwnd, x:=0, y:=0, w:=0, h:=0, t:=0) {
+   x1:=Round(w/2-CaretHeight/2-5)-1, y1:=0, x2:=x1+CaretHeight+10, y2:=0, x3:=Round(w/2)-1, y3:=t+4
+   VarSetCapacity(buf, 24, 0), NumPut(x1, buf, 0, "Int"), NumPut(x2, buf, 8, "Int")
+   NumPut(x3, buf, 16, "Int"), NumPut(y3, buf, 20, "Int")
+   hR1 := DllCall("gdi32\CreatePolygonRgn", "Ptr", &buf, "Int", 3, "Int", 1, "Ptr") ; ALTERNATE=1, WINDING=2
+
+   x1:=w, y1:=Round(h/2-CaretHeight/2-5)-1, x2:=w, y2:=y1+CaretHeight+10, x3:=w-t-5, y3:=Round(h/2-1)
+   VarSetCapacity(buf, 24, 0), NumPut(x1, buf, 0, "Int"), NumPut(y1, buf, 4, "Int")
+   NumPut(x2, buf, 8, "Int"), NumPut(y2, buf, 12, "Int")
+   NumPut(x3, buf, 16, "Int"), NumPut(y3, buf, 20, "Int")
+   hR2 := DllCall("gdi32\CreatePolygonRgn", "Ptr", &buf, "Int", 3, "Int", 1, "Ptr") ; ALTERNATE=1, WINDING=2
+   DllCall("gdi32\CombineRgn", "Ptr", hR1, "Ptr", hR1, "Ptr", hR2, "UInt", 2) ; RGN_OR
+   DllCall("gdi32\DeleteObject", "Ptr", hR2)
+
+   x1:=Round(w/2+CaretHeight/2+5)-1, y1:=h-1, x2:=x1-CaretHeight-10, y2:=h-1, x3:=Round(w/2)-1, y3:=h-t-6
+   VarSetCapacity(buf, 24, 0), NumPut(x1, buf, 0, "Int"), NumPut(y1, buf, 4, "Int")
+   NumPut(x2, buf, 8, "Int"), NumPut(y2, buf, 12, "Int")
+   NumPut(x3, buf, 16, "Int"), NumPut(y3, buf, 20, "Int")
+   hR2 := DllCall("gdi32\CreatePolygonRgn", "Ptr", &buf, "Int", 3, "Int", 1, "Ptr") ; ALTERNATE=1, WINDING=2
+   DllCall("gdi32\CombineRgn", "Ptr", hR1, "Ptr", hR1, "Ptr", hR2, "UInt", 2) ; RGN_OR
+   DllCall("gdi32\DeleteObject", "Ptr", hR2)
+
+   x1:=0, y1:=Round(h/2-CaretHeight/2-5)-1, x2:=0, y2:=y1+CaretHeight+10, x3:=t+4, y3:=Round(h/2-1)
+   VarSetCapacity(buf, 24, 0), NumPut(x1, buf, 0, "Int"), NumPut(y1, buf, 4, "Int")
+   NumPut(x2, buf, 8, "Int"), NumPut(y2, buf, 12, "Int")
+   NumPut(x3, buf, 16, "Int"), NumPut(y3, buf, 20, "Int")
+   hR2 := DllCall("gdi32\CreatePolygonRgn", "Ptr", &buf, "Int", 3, "Int", 1, "Ptr") ; ALTERNATE=1, WINDING=2
+   DllCall("gdi32\CombineRgn", "Ptr", hR1, "Ptr", hR1, "Ptr", hR2, "UInt", 2) ; RGN_OR
+   DllCall("gdi32\DeleteObject", "Ptr", hR2)
+
+   Return DllCall("user32\SetWindowRgn", "Ptr", hwnd, "Ptr", hR1, "UInt", 1)
 }

@@ -20,8 +20,8 @@ SetBatchLines, -1
 ListLines, Off
 Critical, on
 
-global AltHook2keysUser  := 1
- , IniFile               := "keypress-osd.ini"
+Global IniFile            := "keypress-osd.ini"
+ , AltHook2keysUser       := 1
  , ScriptelSuspendel     := 0
  , isKeystrokesFile := 1
 
@@ -46,10 +46,6 @@ MainLoop() {
       EndKey := ErrorLevel
       ; ToolTip, %inputchar%
       Send_WM_COPYDATA(InputChar, TargetScriptTitle)
-      If (result="FAIL")
-          Sleep, 1
-      Else If (result=0)
-          Sleep, 0
    }
 }
 
@@ -61,7 +57,7 @@ Send_WM_COPYDATA(ByRef StringToSend, ByRef TargetScriptTitle) {
     SizeInBytes := (StrLen(StringToSend) + 1) * (A_IsUnicode ? 2 : 1)
     NumPut(SizeInBytes, CopyDataStruct, A_PtrSize)  ; OS requires that this be done.
     NumPut(&StringToSend, CopyDataStruct, 2*A_PtrSize)  ; Set lpData to point to the string itself.
-    TimeOutTime = 900  ; Optional. Milliseconds to wait for response from receiver.ahk. Default is 5000
+    TimeOutTime := 900  ; Optional. Milliseconds to wait for response from receiver.ahk. Default is 5000
     ; Must use SendMessage not PostMessage.
     SendMessage, 0x4a, 0, &CopyDataStruct,, %TargetScriptTitle%,,,, %TimeOutTime% ; 0x4a is WM_COPYDATA.
     return

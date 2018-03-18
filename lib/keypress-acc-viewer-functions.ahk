@@ -10,7 +10,7 @@ ComObjError(false)
 SetTimer, GetAccInfo, 450, 50
 Return
 */
-isAcc1File := 1
+Global isAcc1File := 1
 
 GetAccInfo(skipVerification:=0) {
   DetectHiddenWindows, On
@@ -54,7 +54,7 @@ UpdateAccInfo(Acc, ChildId, Obj_Path="") {
   NewInputMsg := AccViewName " " AccViewValue " " CtrlTextVar " " otherDetails
   StringReplace, NewInputMsg, NewInputMsg, %A_TAB%, %A_SPACE%, All
   StringReplace, NewInputMsg, NewInputMsg, %A_SPACE%%A_SPACE%, %A_SPACE%, All
-  If (NewInputMsg!=InputMsg) || (TextZoomer=0)
+  If (NewInputMsg!=InputMsg) || (AccTextCaptureActive=0)
   {
      ShowLongMsg(NewInputMsg)
      InputMsg := NewInputMsg
