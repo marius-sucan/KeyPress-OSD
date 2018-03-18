@@ -9,10 +9,15 @@
 #NoTrayIcon
 #SingleInstance force
 #NoEnv
+#MaxThreads 255
+#MaxThreadsPerHotkey 255
+#MaxThreadsBuffer On
 #MaxHotkeysPerInterval 500
+Critical, on
 SetWorkingDir, %A_ScriptDir%
 
-Global ToggleKeysBeeper  := 1
+Global IniFile           := "keypress-osd.ini"
+ , ToggleKeysBeeper      := 1
  , CapslockBeeper        := 1     ; only when the key is released
  , KeyBeeper             := 0     ; only when the key is released
  , ModBeeper             := 0     ; beeps for every modifier, when released
@@ -22,48 +27,43 @@ Global ToggleKeysBeeper  := 1
  , DTMFbeepers           := 0
  , BeepSentry            := 0
  , prioritizeBeepers     := 0     ; this will probably make the OSD stall
- , IniFile               := "keypress-osd.ini"
- , ScriptelSuspendel     := 0
- , SilentMode     := 0
+ , SilentMode            := 0
+
  , lastKeyUpTime := 0
  , lastModPressTime := 0
  , lastModPressTime2 := 0
  , LastFiredTime := 0
  , toggleLastState := 0
  , skipAbeep := 0
- , isBeeperzFile := 1
- , RunningCompiled := 0
+ , IsSoundsFile := 1
+ , beepFromRes := 0       ; 1 if compiled and  it looks for the sound files inside the binary
  , ScriptelSuspendel := 0
+ , moduleInitialized
 
-;  IniRead, RunningCompiled, %inifile%, TempSettings, RunningCompiled, %RunningCompiled%
-;  IniRead, ScriptelSuspendel, %inifile%, TempSettings, ScriptelSuspendel, %ScriptelSuspendel%
-  IniRead, SilentMode, %inifile%, SavedSettings, SilentMode, %SilentMode%
-  IniRead, MouseBeeper, %inifile%, SavedSettings, MouseBeeper, %MouseBeeper%
-  IniRead, beepFiringKeys, %inifile%, SavedSettings, beepFiringKeys, %beepFiringKeys%
-  IniRead, BeepSentry, %inifile%, SavedSettings, BeepSentry, %BeepSentry%
-  IniRead, CapslockBeeper, %inifile%, SavedSettings, CapslockBeeper, %CapslockBeeper%
-  IniRead, TypingBeepers, %inifile%, SavedSettings, TypingBeepers, %TypingBeepers%
-  IniRead, DTMFbeepers, %inifile%, SavedSettings, DTMFbeepers, %DTMFbeepers%
-  IniRead, ToggleKeysBeeper, %inifile%, SavedSettings, ToggleKeysBeeper, %ToggleKeysBeeper%
-  IniRead, KeyBeeper, %inifile%, SavedSettings, KeyBeeper, %KeyBeeper%
-  IniRead, ModBeeper, %inifile%, SavedSettings, ModBeeper, %ModBeeper%
-  IniRead, prioritizeBeepers, %inifile%, SavedSettings, prioritizeBeepers, %prioritizeBeepers%
+  IniRead, ScriptelSuspendel, %inifile%, TempSettings, ScriptelSuspendel, %ScriptelSuspendel%
+  IniRead, beepFiringKeys, %inifile%, Sounds, beepFiringKeys, %beepFiringKeys%
+  IniRead, BeepSentry, %inifile%, Sounds, BeepSentry, %BeepSentry%
+  IniRead, CapslockBeeper, %inifile%, Sounds, CapslockBeeper, %CapslockBeeper%
+  IniRead, DTMFbeepers, %inifile%, Sounds, DTMFbeepers, %DTMFbeepers%
+  IniRead, KeyBeeper, %inifile%, Sounds, KeyBeeper, %KeyBeeper%
+  IniRead, ModBeeper, %inifile%, Sounds, ModBeeper, %ModBeeper%
+  IniRead, MouseBeeper, %inifile%, Sounds, MouseBeeper, %MouseBeeper%
+  IniRead, prioritizeBeepers, %inifile%, Sounds, prioritizeBeepers, %prioritizeBeepers%
+  IniRead, SilentMode, %inifile%, Sounds, SilentMode, %SilentMode%
+  IniRead, ToggleKeysBeeper, %inifile%, Sounds, ToggleKeysBeeper, %ToggleKeysBeeper%
+  IniRead, TypingBeepers, %inifile%, Sounds, TypingBeepers, %TypingBeepers%
 
-if (ScriptelSuspendel=1 || SilentMode=1)
+If (ToggleKeysBeeper=0 && CapslockBeeper=0 && KeyBeeper=0 && ModBeeper=0 && MouseBeeper=0 && beepFiringKeys=0 && TypingBeepers=0 && DTMFbeepers=0)
    Return
 
-if (prioritizeBeepers=1)
-{
-   Critical, on
-   #MaxThreads 255
-   #MaxThreadsPerHotkey 255
-   #MaxThreadsBuffer On
-}
+If (ScriptelSuspendel=1 || SilentMode=1)
+   Return
 
 CreateHotkey()
 Return
 
 CreateHotkey() {
+    moduleInitialized := 1
 
     If (MouseBeeper=1)
     {
@@ -194,7 +194,7 @@ OnModPressed() {
        Return
     }
 
-    If (ModBeeper = 1) && (A_TickCount-lastKeyUpTime > 100) && (A_TickCount-lastModPressTime2 > 350)
+    If (ModBeeper=1 && (A_TickCount-LastKeyUpTime > 100) && (A_TickCount-LastModPressTime2 > 350))
        modsBeeper()
 
     Global lastModPressTime2 := A_TickCount
@@ -340,7 +340,7 @@ OnModUp() {
    Thread, Priority, -10
    Critical, off
 
-   If (ModBeeper = 1) && (A_TickCount-lastModPressTime > 250) && (A_TickCount-lastModPressTime2 > 450)
+   If (ModBeeper=1 && (A_TickCount-LastModPressTime > 250) && (A_TickCount-LastModPressTime2 > 450))
       modsBeeper()
 }
 
@@ -459,7 +459,7 @@ OnMousePressed() {
     If (silentMode=1)
        Return
 
-    If (MouseBeeper = 1) && (A_ThisHotkey ~= "i)(LButton|MButton|RButton)")
+    If (MouseBeeper=1 && (A_ThisHotkey ~= "i)(LButton|MButton|RButton)"))
     {
        If (TypingBeepers=1 && InStr(A_ThisHotkey, "RButton"))
           SoundPlay("sounds\clickR.wav")
@@ -467,7 +467,7 @@ OnMousePressed() {
           SoundPlay("sounds\clickM.wav")
        Else
           SoundPlay("sounds\clicks.wav")
-    } Else If (MouseBeeper = 1) && (A_ThisHotkey ~= "i)(WheelDown|WheelUp|WheelLeft|WheelRight)")
+    } Else If (MouseBeeper=1 && (A_ThisHotkey ~= "i)(WheelDown|WheelUp|WheelLeft|WheelRight)"))
     {
        SoundPlay("sounds\firedkey.wav")
        Sleep, 40
@@ -509,16 +509,21 @@ PlaySoundTest() {
    Sleep, 50
 }
 
+checkInit() {
+  If !moduleInitialized
+     CreateHotkey()
+}
+
 ; function by Drugwash:
 ; ===============================
 SoundPlay(snd, wait:=0) {
-  If (ScriptelSuspendel="Y")
+  If (ScriptelSuspendel="Y" || SilentMode=1)
      Return
 
   Static hM := DllCall("kernel32\GetModuleHandleW", "Str", A_ScriptFullPath, "Ptr")
   f := BeepSentry=1 ? "0x80012" : "0x12"
   w := wait ? 0 : 0x2001
-  If (RunningCompiled="Y")
+  If (beepFromRes="Y")
   {
 	  SplitPath, snd, snd
 	  StringUpper, snd, snd
