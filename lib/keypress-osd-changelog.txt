@@ -11,6 +11,11 @@ http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip
 
 by Marius Sucan (robodesign.ro)
 
+  v4.27.1 (2018-03-19)
+  - [new] quick settings menu at Installed Keyboard Layouts panel. I added this here because, on double-click on tray icon, this is the panel that opens; therefore, to improve usability I added this 'gateway' to various settings and to the other preferences panels.
+  - the coding of the global shortcuts panel is much lighter now; the code was reduced by 21 kb; however, the changes do not make it faster when it opens
+  - minor bug fixes
+
   v4.27 (2018-03-18)
   - [new] option to automatically erase text on window change
   - various bug fixes and minor improvements in varying contexts
@@ -855,32 +860,30 @@ Features to implement:
 
 - test TabletPro
 - sort *caps.
+- safer defaults?
+- test slow VM; laptop, pc
+- redo x32 compiled in XP, VM
 
+- caret gets out of synch in FF, multi-line fields
+
+- Drugwash: Fix ripples. New caret halo routine?
 - keyStrokes Helper: does it get turned off?
 
-- Reidentează codul.
-- Make use of the Caret position api? Hold still if caret did not move? Erase text when it jumps ? Don't erase if caret did not move on enter?
-
-Drugwash: Fix ripples. New caret halo routine?
-
-
-- caret gets out of synch in FF?
 - ditch iniReads
 - warnings. debugger?
 
-- zoomFactor și LargeUIFonts, când sunt toate panourile gata;
+- capture text to-do:
+  - wm-getobject, send message [chrome]
+  - get tool tips
+  - external GUI - multi-line
 
+- mouse ruler, trails, mouse focus [dim the rest]
 - auto-correct [with 1,2,3] - long words; visualize first
 - https://autohotkey.com/board/topic/54987-sift3-super-fast-and-accurate-string-distance-algorithm/
 - https://github.com/first20hours/google-10000-english
 - https://www.sketchengine.co.uk/word-lists/
 
 - pune Compiled version in downloads, desktop [win7, win10]
-
-- capture text to-do:
-  - wm-getobject, send message [chrome]
-  - get tool tips
-  - external GUI - multi-line
 
 
 https://www.chromium.org/developers/design-documents/accessibility#TOC-How-Chrome-detects-the-presence-of-Assistive-Technology

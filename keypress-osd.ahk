@@ -299,7 +299,7 @@
  , CaretHaloFlash         := 1
 
 ; Script's own global shortcuts (hotkeys)
- , KeyboardShortcuts      := 1     ; Enable system-wide shortcuts (hotkeys)
+ , GlobalKBDhotkeys      := 1     ; Enable system-wide shortcuts (hotkeys)
  , KBDaltTypeMode         := "^+CapsLock"
  , KBDpasteOSDcnt1        := "^+Insert"
  , KBDpasteOSDcnt2        := "^!Insert"
@@ -321,8 +321,8 @@
  , SafeModeExec           := 0
 
 ; Release info
- , Version                := "4.27"
- , ReleaseDate            := "2018 / 03 / 18"
+ , Version                := "4.27.1"
+ , ReleaseDate            := "2018 / 03 / 19"
  , hMutex, ScriptInitialized
 
 ; Check if INIT previously failed or if KP is running and then load settings.
@@ -425,6 +425,8 @@ Global Debug := 0    ; for testing purposes
  , AnyWindowOpen := 0
  , PreviewWindowText := "Preview │window... ║"
  , MainModsList := ["LCtrl", "RCtrl", "LAlt", "RAlt", "LShift", "RShift", "LWin", "RWin"]
+ , GlobalKBDsList := "KBDaltTypeMode,KBDpasteOSDcnt1,KBDpasteOSDcnt2,KBDsynchApp1,KBDsynchApp2,KBDTglNeverOSD,KBDTglPosition,KBDTglSilence,KBDidLangNow,KBDCapText,KBDReload,KBDsuspend,KBDclippyMenu"
+ , KeysComboList := "(Disabled)|(Restore Default)|[[ 0-9 / Digits ]]|[[ Letters ]]|Right|Left|Up|Down|Home|End|Page_Down|Page_Up|Backspace|Space|Tab|Delete|Enter|Escape|Insert|CapsLock|NumLock|ScrollLock|L_Click|M_Click|R_Click|PrintScreen|Pause|Break|CtrlBreak|AppsKey|F1|F2|F3|F4|F5|F6|F7|F8|F9|F10|F11|F12|Nav_Back|Nav_Favorites|Nav_Forward|Nav_Home|Nav_Refresh|Nav_Search|Nav_Stop|Help|Launch_App1|Launch_App2|Launch_Mail|Launch_Media|Media_Next|Media_Play_Pause|Media_Prev|Media_Stop|Pad0|Pad1|Pad2|Pad3|Pad4|Pad5|Pad6|Pad7|Pad8|Pad9|PadClear|PadDel|PadDiv|PadDot|PadHome|PadEnd|PadEnter|PadIns|PadLeft|PadRight|PadAdd|PadSub|PadMult|PadPage_Down|PadPage_Up|PadUp|PadDown|Sleep|Volume_Mute|Volume_Up|Volume_Down|WheelUp|WheelDown|WheelLeft|WheelRight|[[ VK nnn ]]|[[ SC nnn ]]"
  , hOSD, OSDhandles, dragOSDhandles, ColorPickerHandles
  , CCLVO := "-E0x200 +Border -Hdr -Multi +ReadOnly Report -Hidden AltSubmit gsetColors"
  , Emojis := "(☀|☹|☺|♥|⛄|❤|️|🌙|🌛|🌜|🌷|🌸|🎄|👄|👋|👍|👏|👙|👳|👶|👼|👽|💁|💃|💋|💏|💓|💕|💖|💗|💞|💤|💯|😀|😁|😂|😃|😄|😆|😇|😈|😉|😊|😋|😌|😍|😎|😐|😓|😔|😕|😗|😘|😙|😚|😛|😜|😝|😞|😡|😢|😥|😩|😫|😭|😮|😲|😳|😴|😶|🙁|🙂|🙃|🙈|🙊|🙏|🤔|🤢)"
@@ -465,15 +467,15 @@ If (EnableClipManager=1)
    InitClipboardManager()
 ModsLEDsIndicatorsManager(1)
 Sleep, 5
-RegWrite, REG_SZ, HKEY_CURRENT_USER\SOFTWARE\KeyPressOSD\v4, Initializing, No
-ScriptInitialized := 1      ; the end of the autoexec section and INIT
 
 If (EraseTextWinChange=1 && DisableTypingMode=0)
 {
-   DllCall( "RegisterShellHookWindow", UInt,hOSD)
-   MsgNum := DllCall( "RegisterWindowMessage", Str,"SHELLHOOK" )
-   OnMessage( MsgNum, "ShellMessage" )
+   DllCall("RegisterShellHookWindow", "UInt", hOSD)
+   MsgNum := DllCall("RegisterWindowMessage", "Str","SHELLHOOK")
+   OnMessage(MsgNum, "ShellMessage")
 }
+ScriptInitialized := 1      ; the end of the autoexec section and INIT
+RegWrite, REG_SZ, HKEY_CURRENT_USER\SOFTWARE\KeyPressOSD\v4, Initializing, No
 Return
 
 ;================================================================
@@ -2565,7 +2567,7 @@ CreateWordPairsFile(WordPairsFile) {
 
 InitExpandableWords() {
   Static hasInit
-  If (hasInit=1)
+  If (hasInit=1 && PrefOpen=0)
      Return
 
   If FileExist(WordPairsFile)
@@ -2583,7 +2585,7 @@ InitExpandableWords() {
     lineArr := StrSplit(line, " // ")
     key := lineArr[1]
     value := lineArr[2]
-    If (StrLen(key)<2 || StrLen(value)<2)
+    If (StrLen(key)<2 || StrLen(value)<2 || InStr(key, A_Space))
        Continue
     ExpandWordsList[key] := value
     ExpandWordsListEdit .= key " // " value "`n"
@@ -4243,7 +4245,7 @@ GenerateClippyMenu() {
       Menu, ClippyMenu, Add, { Delete All }, DeleteAllClippy
     }
 
-    If (DisableTypingMode=0 && (SendJumpKeys=1 || MediateNavKeys=1))
+    If (PrefOpen=0 && DisableTypingMode=0 && (SendJumpKeys=1 || MediateNavKeys=1))
     {
        Menu, ClippyMenu, Add
        Menu, ClippyMenu, Add, { Close }, dummy
@@ -4265,6 +4267,7 @@ PasteCurrentClippy() {
 PasteSelectedClippy() {
   If (PrefOpen=1)
      Return
+  ErrorLevel := 0
   StringLeft, ReadThisFile, A_ThisMenuItem, 2
   Global DoNotRepeatTimer := A_TickCount
   FileGetSize, FileSize, ClipsSaved\clip%readThisFile%.clp, M
@@ -4285,7 +4288,7 @@ PasteSelectedClippy() {
      Return
   }
   Global DoNotRepeatTimer := A_TickCount
-  Sleep, 25
+  Sleep, 70
   If (DoNotPasteClippy!=1 || SecondaryTypingMode=1)
   {
       If (SecondaryTypingMode=0)
@@ -4339,7 +4342,7 @@ ToggleTypingHistory() {
 
 RegisterGlobalShortcuts(HotKate,destination,apriori) {
    testHotKate := RegExReplace(HotKate, "i)^(\!|\^|\#|\+)$", "")
-   If (InStr(hotkate, "disa") || StrLen(HotKate)<1)
+   If (InStr(HotKate, "disa") || StrLen(HotKate)<1)
    {
       HotKate := "(Disabled)"
       Return HotKate
@@ -4365,15 +4368,16 @@ CreateGlobalShortcuts() {
        KBDpasteOSDcnt2 := RegisterGlobalShortcuts(KBDpasteOSDcnt2,"sendOSDcontent2", "^+!Insert")
     }
 
-    If (DisableTypingMode=0 && KeyboardShortcuts=1)
+    If (DisableTypingMode=0 && GlobalKBDhotkeys=1)
     {
        KBDsynchApp1 := RegisterGlobalShortcuts(KBDsynchApp1,"SynchronizeApp", "#Insert")
        KBDsynchApp2 := RegisterGlobalShortcuts(KBDsynchApp2,"SynchronizeApp2", "#!Insert")
     }
+
     If (EnableClipManager=1)
        KBDclippyMenu := RegisterGlobalShortcuts(KBDclippyMenu,"InvokeClippyMenu", "#v")
 
-    If (KeyboardShortcuts=1)
+    If (GlobalKBDhotkeys=1)
     {
        KBDTglNeverOSD := RegisterGlobalShortcuts(KBDTglNeverOSD,"ToggleNeverDisplay", "!+^F8")
        KBDTglPosition := RegisterGlobalShortcuts(KBDTglPosition,"TogglePosition", "!+^F9")
@@ -4724,6 +4728,84 @@ InvokeClippyMenu() {
 ; Section 6. Tray menu and related functions.
 ;================================================================
 
+QuickSettingsMenu() {
+    QuickMenuPrefPanels()
+
+    Menu, QuickMenu, Add, &KeyPress activated, SuspendScriptNow
+    Menu, QuickMenu, Add, &Restart, ReloadScriptNow
+    Menu, QuickMenu, Add
+    Menu, QuickMenu, Add, &Monitor keyboard layout, ToggleConstantDetection
+    Menu, QuickMenu, Add, &Allow OSD drag, ToggleOSDdragMode
+    Menu, QuickMenu, Add, &Private mode, ToggleNeverDisplay
+    Menu, QuickMenu, Add, L&arge UI fonts, QuickToggleLargeFonts
+    Menu, QuickMenu, Add, S&ilent mode, ToggleSilence
+    Menu, QuickMenu, Add, Sta&rt at boot, SetStartUp
+    Menu, QuickMenu, Add, R&un in Admin Mode, RunAdminMode
+    Menu, QuickMenu, Add
+    UpdateInfo := checkUpdateExistsAbout()
+    If UpdateInfo
+       Menu, QuickMenu, Add, &Check for updates, updateNow
+    Menu, QuickMenu, Add, &Help, HelpFAQstarter
+    Menu, QuickMenu, Add, &About, AboutWindow
+    Menu, QuickMenu, Add
+    Menu, QuickMenu, Add, Prefere&nces, :QuickPrefsMenu
+
+    If (MouseOSDbehavior=3)
+       Menu, QuickMenu, Check, &Allow OSD drag
+
+    If !A_IsSuspended
+       Menu, QuickMenu, Check, &KeyPress activated
+
+    If A_IsAdmin
+       Menu, QuickMenu, Delete, R&un in Admin Mode
+
+    RegRead, currentReg, HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Run, KeyPressOSD
+    If StrLen(currentReg)>5
+       Menu, QuickMenu, Check, Sta&rt at boot
+
+    If (SilentMode=1)
+       Menu, QuickMenu, Check, S&ilent mode
+
+    If (NeverDisplayOSD=1)
+    {
+       Menu, QuickMenu, Check, &Private mode
+       Menu, QuickMenu, Delete, &Allow OSD drag
+    }
+
+    If (ConstantAutoDetect=1)
+       Menu, QuickMenu, Check, &Monitor keyboard layout
+
+    If (PrefsLargeFonts=1)
+       Menu, QuickMenu, Check, L&arge UI fonts
+
+    If (!IsSoundsFile || MissingAudios=1 || SafeModeExec=1)     ; keypress-beeperz-functions.ahk
+       Menu, QuickMenu, Delete, S&ilent mode
+
+    faqHtml := "Lib\help\presentation.html"
+    If !FileExist(faqHtml)
+       If A_IsCompiled
+         FileInstall, Lib\help\presentation.html, Lib\help\presentation.html
+       Else Menu, QuickMenu, Delete, &Help / Troubleshoot
+}
+
+QuickMenuPrefPanels() {
+    Static hasInit
+    If (hasInit=1)
+       Return
+
+    Menu, QuickPrefsMenu, Add, &Quick start presets, PresetsWindow
+    Menu, QuickPrefsMenu, Add
+    Menu, QuickPrefsMenu, Add, &Keyboard, ShowKBDsettings
+    Menu, QuickPrefsMenu, Add, &Typing mode, ShowTypeSettings
+    Menu, QuickPrefsMenu, Add, &Sounds, ShowSoundsSettings
+    Menu, QuickPrefsMenu, Add, &Mouse, ShowMouseSettings
+    Menu, QuickPrefsMenu, Add, &OSD appearance, ShowOSDsettings
+    Menu, QuickPrefsMenu, Add, &Global shortcuts, ShowShortCutsSettings
+    Menu, QuickPrefsMenu, Add 
+    Menu, QuickPrefsMenu, Add, R&estore defaults, DeleteSettings
+    hasInit := 1
+}
+
 InitializeTray() {
     Menu, PrefsMenu, Add, &Keyboard, ShowKBDsettings
     Menu, PrefsMenu, Add, &Typing mode, ShowTypeSettings
@@ -4770,29 +4852,18 @@ InitializeTray() {
 
     RunType := A_IsCompiled ? "" : " [script]"
     Menu, Tray, NoStandard
-    If (AutoDetectKBD=1)
-    {
-       Menu, Tray, Add, &Monitor keyboard layout, ToggleConstantDetection
-       Menu, Tray, check, &Monitor keyboard layout
-       If (ConstantAutoDetect=0)
-          Menu, Tray, uncheck, &Monitor keyboard layout
-    }
+    Menu, Tray, Add, &Monitor keyboard layout, ToggleConstantDetection
+    If (ConstantAutoDetect=1)
+       Menu, Tray, Check, &Monitor keyboard layout
 
     Menu, Tray, Add, &Installed keyboard layouts, InstalledKBDsWindow
-    If (ConstantAutoDetect=0)
-    {
-       Menu, Tray, Add, &Detect keyboard layout now, DetectLangNow
-       Menu, Tray, Add, &Monitor keyboard layout, ToggleConstantDetection
-    }
-    Menu, Tray, Add
-
-    Menu, Tray, Add, &Quick start presets, PresetsWindow
-    Menu, Tray, Add, &Preferences, :PrefsMenu
-    Menu, Tray, Add
-
     If (ConstantAutoDetect=0 && LoadedLangz=1)
        Menu, Tray, Add, &Detect keyboard layout now, DetectLangNow
 
+    Menu, Tray, Add
+    Menu, Tray, Add, &Quick start presets, PresetsWindow
+    Menu, Tray, Add, &Preferences, :PrefsMenu
+    Menu, Tray, Add
     Menu, Tray, Add, &Toggle OSD positions, TogglePosition
     Menu, Tray, Add, &Do not show the OSD, ToggleNeverDisplay
     Menu, Tray, Add
@@ -4813,7 +4884,7 @@ InitializeTray() {
     Menu, Tray, Tip, KeyPress OSD v%Version%%RunType%
 
     If (NeverDisplayOSD=1)
-       Menu, Tray, Check, &Never show the OSD
+       Menu, Tray, Check, &Do not show the OSD
 
     If (IsAcc1File!=1 || IsAcc2File!=1 || A_OSVersion="WIN_XP") ; keypress-acc-viewer-functions.ahk
        Menu, Tray, Disable, Mouse text collector
@@ -4911,6 +4982,38 @@ ToggleLargeFonts() {
     IniWrite, %PrefsLargeFonts%, %IniFile%, SavedSettings, PrefsLargeFonts
     Menu, PrefsMenu, % (PrefsLargeFonts=0 ? "Uncheck" : "Check"), L&arge UI fonts
     Sleep, 200
+}
+
+OSDbehaviorConditions() {
+    If (MouseOSDbehavior=1)
+    {
+        DragOSDmode := 0
+        JumpHover := 0
+    } Else If (MouseOSDbehavior=2)
+    {
+        DragOSDmode := 0
+        JumpHover := 1
+    } Else If (MouseOSDbehavior=3)
+    {
+        DragOSDmode := 1
+        JumpHover := 0
+    }
+}
+
+ToggleOSDdragMode() {
+    MouseOSDbehavior := MouseOSDbehavior=1 ? 3 : 1
+    OSDbehaviorConditions()
+    Sleep, 10
+    CreateOSDGUI()
+    IniWrite, %MouseOSDbehavior%, %IniFile%, OSDprefs, MouseOSDbehavior
+}
+
+QuickToggleLargeFonts() {
+    PrefsLargeFonts := !PrefsLargeFonts
+    IniWrite, %PrefsLargeFonts%, %IniFile%, SavedSettings, PrefsLargeFonts
+    Menu, PrefsMenu, % (PrefsLargeFonts=0 ? "Uncheck" : "Check"), L&arge UI fonts
+    Sleep, 200
+    InstalledKBDsWindow()
 }
 
 ReloadScript(silent:=1) {
@@ -5490,7 +5593,6 @@ TypeOptionsShowHelp() {
     Gui, Tab
     Gui, Add, Button, xm+0 y+10 w90 h30 Default gCloseTypeSetHelp, C&lose
     Gui, Show, AutoSize, Typing mode settings [Help]: KeyPress OSD
-    verifySettingsWindowSize()
 }
 
 OpenTypeSetHelp() {
@@ -5692,185 +5794,95 @@ VerifyTypeOptions(enableApply:=1) {
       GuiControl, Disable, SaveWordPairsBTN
 }
 
+AddKBDmods(HotKate, HotKateRaw) {
+    Global
+    modBtnWidth := (PrefsLargeFonts=1) ? 45 : 32
+    reused := "x+0 +0x1000 w" modBtnWidth " hp gGenerateHotkeyStrS "
+    C%HotKate% := InStr(HotKateRaw, "^")
+    S%HotKate% := InStr(HotKateRaw, "+")
+    A%HotKate% := InStr(HotKateRaw, "!")
+    W%HotKate% := InStr(HotKateRaw, "#")
+
+    Gui, Add, Checkbox, % reused " Checked" C%HotKate% " vCtrl" HotKate, Ctrl
+    Gui, Add, Checkbox, % reused " Checked" S%HotKate% " vAlt" HotKate, Alt
+    Gui, Add, Checkbox, % reused " Checked" A%HotKate% " vShift" HotKate, Shift
+    Gui, Add, Checkbox, % reused " Checked" W%HotKate% " vWin" HotKate, Win
+}
+
+AddKBDcombo(HotKate, HotKateRaw) {
+    Global
+    col2width := (PrefsLargeFonts=1) ? 140 : 90
+    ComboChoice := ProcessChoiceKBD(HotKateRaw)
+    Gui, Add, ComboBox, % "x+0 w"col2width " gProcessComboKBD vCombo" HotKate, %KeysComboList%|%ComboChoice%||
+}
+
 ShowShortCutsSettings() {
     Global
     doNotOpen := initSettingsWindow()
     If (doNotOpen=1)
        Return
 
-    ComboList := "(Disabled)|(Restore Default)|[[ 0-9 / Digits ]]|[[ Letters ]]|Right|Left|Up|Down|Home|End|Page_Down|Page_Up|Backspace|Space|Tab|Delete|Enter|Escape|Insert|CapsLock|NumLock|ScrollLock|L_Click|M_Click|R_Click|PrintScreen|Pause|Break|CtrlBreak|AppsKey|F1|F2|F3|F4|F5|F6|F7|F8|F9|F10|F11|F12|Nav_Back|Nav_Favorites|Nav_Forward|Nav_Home|Nav_Refresh|Nav_Search|Nav_Stop|Help|Launch_App1|Launch_App2|Launch_Mail|Launch_Media|Media_Next|Media_Play_Pause|Media_Prev|Media_Stop|Pad0|Pad1|Pad2|Pad3|Pad4|Pad5|Pad6|Pad7|Pad8|Pad9|PadClear|PadDel|PadDiv|PadDot|PadHome|PadEnd|PadEnter|PadIns|PadLeft|PadRight|PadAdd|PadSub|PadMult|PadPage_Down|PadPage_Up|PadUp|PadDown|Sleep|Volume_Mute|Volume_Up|Volume_Down|WheelUp|WheelDown|WheelLeft|WheelRight|[[ VK nnn ]]|[[ SC nnn ]]"
     CurrentPrefWindow := 6
-    CBchoKBDaltTypeMode := ProcessChoiceKBD(KBDaltTypeMode)
-    CBchoKBDpasteOSDcnt1 := ProcessChoiceKBD(KBDpasteOSDcnt1)
-    CBchoKBDpasteOSDcnt2 := ProcessChoiceKBD(KBDpasteOSDcnt2)
-    CBchoKBDsynchApp1 := ProcessChoiceKBD(KBDsynchApp1)
-    CBchoKBDsynchApp2 := ProcessChoiceKBD(KBDsynchApp2)
-    CBchoKBDTglNeverOSD := ProcessChoiceKBD(KBDTglNeverOSD)
-    CBchoKBDTglPosition := ProcessChoiceKBD(KBDTglPosition)
-    CBchoKBDTglSilence := ProcessChoiceKBD(KBDTglSilence)
-    CBchoKBDidLangNow := ProcessChoiceKBD(KBDidLangNow)
-    CBchoKBDCapText := ProcessChoiceKBD(KBDCapText)
-    CBchoKBDReload := ProcessChoiceKBD(KBDReload)
-    CBchoKBDsuspend := ProcessChoiceKBD(KBDsuspend)
-    CBchoKBDclippyMenu := ProcessChoiceKBD(KBDclippyMenu)
-
-    CtrlKBDaltTypeMode := InStr(KBDaltTypeMode, "^")
-    ShiftKBDaltTypeMode := InStr(KBDaltTypeMode, "+")
-    AltKBDaltTypeMode := InStr(KBDaltTypeMode, "!")
-    WinKBDaltTypeMode := InStr(KBDaltTypeMode, "#")
-    CtrlKBDpasteOSDcnt1 := InStr(KBDpasteOSDcnt1, "^")
-    ShiftKBDpasteOSDcnt1 := InStr(KBDpasteOSDcnt1, "+")
-    AltKBDpasteOSDcnt1 := InStr(KBDpasteOSDcnt1, "!")
-    WinKBDpasteOSDcnt1 := InStr(KBDpasteOSDcnt1, "#")
-    CtrlKBDpasteOSDcnt2 := InStr(KBDpasteOSDcnt2, "^")
-    ShiftKBDpasteOSDcnt2 := InStr(KBDpasteOSDcnt2, "+")
-    AltKBDpasteOSDcnt2 := InStr(KBDpasteOSDcnt2, "!")
-    WinKBDpasteOSDcnt2 := InStr(KBDpasteOSDcnt2, "#")
-    CtrlKBDsynchApp1 := InStr(KBDsynchApp1, "^")
-    ShiftKBDsynchApp1 := InStr(KBDsynchApp1, "+")
-    AltKBDsynchApp1 := InStr(KBDsynchApp1, "!")
-    WinKBDsynchApp1 := InStr(KBDsynchApp1, "#")
-    CtrlKBDsynchApp2 := InStr(KBDsynchApp2, "^")
-    ShiftKBDsynchApp2 := InStr(KBDsynchApp2, "+")
-    AltKBDsynchApp2 := InStr(KBDsynchApp2, "!")
-    WinKBDsynchApp2 := InStr(KBDsynchApp2, "#")
-    CtrlKBDTglNeverOSD := InStr(KBDTglNeverOSD, "^")
-    ShiftKBDTglNeverOSD := InStr(KBDTglNeverOSD, "+")
-    AltKBDTglNeverOSD := InStr(KBDTglNeverOSD, "!")
-    WinKBDTglNeverOSD := InStr(KBDTglNeverOSD, "#")
-    CtrlKBDTglPosition := InStr(KBDTglPosition, "^")
-    ShiftKBDTglPosition := InStr(KBDTglPosition, "+")
-    AltKBDTglPosition := InStr(KBDTglPosition, "!")
-    WinKBDTglPosition := InStr(KBDTglPosition, "#")
-    CtrlKBDTglSilence := InStr(KBDTglSilence, "^")
-    ShiftKBDTglSilence := InStr(KBDTglSilence, "+")
-    AltKBDTglSilence := InStr(KBDTglSilence, "!")
-    WinKBDTglSilence := InStr(KBDTglSilence, "#")
-    CtrlKBDidLangNow := InStr(KBDidLangNow, "^")
-    ShiftKBDidLangNow := InStr(KBDidLangNow, "+")
-    AltKBDidLangNow := InStr(KBDidLangNow, "!")
-    WinKBDidLangNow := InStr(KBDidLangNow, "#")
-    CtrlKBDCapText := InStr(KBDCapText, "^")
-    ShiftKBDCapText := InStr(KBDCapText, "+")
-    AltKBDCapText := InStr(KBDCapText, "!")
-    WinKBDCapText := InStr(KBDCapText, "#")
-    CtrlKBDReload := InStr(KBDReload, "^")
-    ShiftKBDReload := InStr(KBDReload, "+")
-    AltKBDReload := InStr(KBDReload, "!")
-    WinKBDReload := InStr(KBDReload, "#")
-    CtrlKBDsuspend := InStr(KBDsuspend, "^")
-    ShiftKBDsuspend := InStr(KBDsuspend, "+")
-    AltKBDsuspend := InStr(KBDsuspend, "!")
-    WinKBDsuspend := InStr(KBDsuspend, "#")
-    CtrlKBDclippyMenu := InStr(KBDclippyMenu, "^")
-    ShiftKBDclippyMenu := InStr(KBDclippyMenu, "+")
-    AltKBDclippyMenu := InStr(KBDclippyMenu, "!")
-    WinKBDclippyMenu := InStr(KBDclippyMenu, "#")
-
     col1width := 290
-    col2width := 90
-    modBtnWidth := 32
     If (PrefsLargeFonts=1)
     {
-       modBtnWidth := 45
        col1width := 430
-       col2width := 140
        Gui, Font, s%LargeUIfontValue%
     }
-    reusable := "x+0 +0x1000 w" modBtnWidth " hp gGenerateHotkeyStrS "
 
     Gui, Add, Text, x15 y15 Section, All the shortcuts listed in this panel are available globally, in any application.
     Gui, Add, Checkbox, xs+0 y+10 w%col1width% gVerifyShortcutOptions Checked%AlternateTypingMode% vAlternateTypingMode, Enter alternate typing mode
-    Gui, Add, ComboBox, x+0 w%col2width% gProcessComboKBD vComboKBDaltTypeMode, %ComboList%|%CBchoKBDaltTypeMode%||
-    Gui, Add, Checkbox, %reusable% Checked%CtrlKBDaltTypeMode% vCtrlKBDaltTypeMode, Ctrl
-    Gui, Add, Checkbox, %reusable% Checked%ShiftKBDaltTypeMode% vShiftKBDaltTypeMode, Shift
-    Gui, Add, Checkbox, %reusable% Checked%AltKBDaltTypeMode% vAltKBDaltTypeMode, Alt
-    Gui, Add, Checkbox, %reusable% Checked%WinKBDaltTypeMode% vWinKBDaltTypeMode, Win
+    AddKBDcombo("KBDaltTypeMode", KBDaltTypeMode)
+    AddKBDmods("KBDaltTypeMode", KBDaltTypeMode)
 
     Gui, Add, Checkbox, xs+0 y+1 w%col1width% gVerifyShortcutOptions Checked%EnableClipManager% vEnableClipManager, Invoke the Clipboard History menu
-    Gui, Add, ComboBox, x+0 w%col2width% gProcessComboKBD vComboKBDclippyMenu, %ComboList%|%CBchoKBDclippyMenu%||
-    Gui, Add, Checkbox, %reusable% Checked%CtrlKBDclippyMenu% vCtrlKBDclippyMenu, Ctrl
-    Gui, Add, Checkbox, %reusable% Checked%ShiftKBDclippyMenu% vShiftKBDclippyMenu, Shift
-    Gui, Add, Checkbox, %reusable% Checked%AltKBDclippyMenu% vAltKBDclippyMenu, Alt
-    Gui, Add, Checkbox, %reusable% Checked%WinKBDclippyMenu% vWinKBDclippyMenu, Win
+    AddKBDcombo("KBDclippyMenu", KBDclippyMenu)
+    AddKBDmods("KBDclippyMenu", KBDclippyMenu)
 
     Gui, Add, Checkbox, xs+0 y+1 w%col1width% gVerifyShortcutOptions Checked%PasteOSDcontent% vPasteOSDcontent, Paste the OSD content in the active text area
-    Gui, Add, ComboBox, x+0 w%col2width% gProcessComboKBD vComboKBDpasteOSDcnt1, %ComboList%|%CBchoKBDpasteOSDcnt1%||
-    Gui, Add, Checkbox, %reusable% Checked%CtrlKBDpasteOSDcnt1% vCtrlKBDpasteOSDcnt1, Ctrl
-    Gui, Add, Checkbox, %reusable% Checked%ShiftKBDpasteOSDcnt1% vShiftKBDpasteOSDcnt1, Shift
-    Gui, Add, Checkbox, %reusable% Checked%AltKBDpasteOSDcnt1% vAltKBDpasteOSDcnt1, Alt
-    Gui, Add, Checkbox, %reusable% Checked%WinKBDpasteOSDcnt1% vWinKBDpasteOSDcnt1, Win
+    AddKBDcombo("KBDpasteOSDcnt1", KBDpasteOSDcnt1)
+    AddKBDmods("KBDpasteOSDcnt1", KBDpasteOSDcnt1)
 
     Gui, Add, Text, xs+0 y+1 w%col1width%, %A_Space%Replace entire text from the active text area with the OSD content
-    Gui, Add, ComboBox, x+0 w%col2width% gProcessComboKBD vComboKBDpasteOSDcnt2, %ComboList%|%CBchoKBDpasteOSDcnt2%||
-    Gui, Add, Checkbox, %reusable% Checked%CtrlKBDpasteOSDcnt2% vCtrlKBDpasteOSDcnt2, Ctrl
-    Gui, Add, Checkbox, %reusable% Checked%ShiftKBDpasteOSDcnt2% vShiftKBDpasteOSDcnt2, Shift
-    Gui, Add, Checkbox, %reusable% Checked%AltKBDpasteOSDcnt2% vAltKBDpasteOSDcnt2, Alt
-    Gui, Add, Checkbox, %reusable% Checked%WinKBDpasteOSDcnt2% vWinKBDpasteOSDcnt2, Win
+    AddKBDcombo("KBDpasteOSDcnt2", KBDpasteOSDcnt2)
+    AddKBDmods("KBDpasteOSDcnt2", KBDpasteOSDcnt2)
 
-    Gui, Add, Checkbox, xs+0 y+25 w%col1width% gVerifyShortcutOptions Checked%KeyboardShortcuts% vKeyboardShortcuts, Other global keyboard shortcuts
+    Gui, Add, Checkbox, xs+0 y+25 w%col1width% gVerifyShortcutOptions Checked%GlobalKBDhotkeys% vGlobalKBDhotkeys, Other global keyboard shortcuts
     Gui, Add, Text, xs+0 y+10 w%col1width%, Capture text from active text area (preferred choice)
-    Gui, Add, ComboBox, x+0 w%col2width% gProcessComboKBD vComboKBDsynchApp1, %ComboList%|%CBchoKBDsynchApp1%||
-    Gui, Add, Checkbox, %reusable% Checked%CtrlKBDsynchApp1% vCtrlKBDsynchApp1, Ctrl
-    Gui, Add, Checkbox, %reusable% Checked%ShiftKBDsynchApp1% vShiftKBDsynchApp1, Shift
-    Gui, Add, Checkbox, %reusable% Checked%AltKBDsynchApp1% vAltKBDsynchApp1, Alt
-    Gui, Add, Checkbox, %reusable% Checked%WinKBDsynchApp1% vWinKBDsynchApp1, Win
+    AddKBDcombo("KBDsynchApp1", KBDsynchApp1)
+    AddKBDmods("KBDsynchApp1", KBDsynchApp1)
 
     Gui, Add, Text, xs+0 y+1 w%col1width%, Capture text from active text area [only the current line]
-    Gui, Add, ComboBox, x+0 w%col2width% gProcessComboKBD vComboKBDsynchApp2, %ComboList%|%CBchoKBDsynchApp2%||
-    Gui, Add, Checkbox, %reusable% Checked%CtrlKBDsynchApp2% vCtrlKBDsynchApp2, Ctrl
-    Gui, Add, Checkbox, %reusable% Checked%ShiftKBDsynchApp2% vShiftKBDsynchApp2, Shift
-    Gui, Add, Checkbox, %reusable% Checked%AltKBDsynchApp2% vAltKBDsynchApp2, Alt
-    Gui, Add, Checkbox, %reusable% Checked%WinKBDsynchApp2% vWinKBDsynchApp2, Win
+    AddKBDcombo("KBDsynchApp2", KBDsynchApp2)
+    AddKBDmods("KBDsynchApp2", KBDsynchApp2)
 
     Gui, Add, Text, xs+0 y+1 w%col1width%, Toggle Private mode / Do not display the OSD
-    Gui, Add, ComboBox, x+0 w%col2width% gProcessComboKBD vComboKBDTglNeverOSD, %ComboList%|%CBchoKBDTglNeverOSD%||
-    Gui, Add, Checkbox, %reusable% Checked%CtrlKBDTglNeverOSD% vCtrlKBDTglNeverOSD, Ctrl
-    Gui, Add, Checkbox, %reusable% Checked%ShiftKBDTglNeverOSD% vShiftKBDTglNeverOSD, Shift
-    Gui, Add, Checkbox, %reusable% Checked%AltKBDTglNeverOSD% vAltKBDTglNeverOSD, Alt
-    Gui, Add, Checkbox, %reusable% Checked%WinKBDTglNeverOSD% vWinKBDTglNeverOSD, Win
+    AddKBDcombo("KBDTglNeverOSD", KBDTglNeverOSD)
+    AddKBDmods("KBDTglNeverOSD", KBDTglNeverOSD)
 
     Gui, Add, Text, xs+0 y+1 w%col1width%, Toggle OSD positions (A / B)
-    Gui, Add, ComboBox, x+0 w%col2width% gProcessComboKBD vComboKBDTglPosition, %ComboList%|%CBchoKBDTglPosition%||
-    Gui, Add, Checkbox, %reusable% Checked%CtrlKBDTglPosition% vCtrlKBDTglPosition, Ctrl
-    Gui, Add, Checkbox, %reusable% Checked%ShiftKBDTglPosition% vShiftKBDTglPosition, Shift
-    Gui, Add, Checkbox, %reusable% Checked%AltKBDTglPosition% vAltKBDTglPosition, Alt
-    Gui, Add, Checkbox, %reusable% Checked%WinKBDTglPosition% vWinKBDTglPosition, Win
+    AddKBDcombo("KBDTglPosition", KBDTglPosition)
+    AddKBDmods("KBDTglPosition", KBDTglPosition)
 
     Gui, Add, Text, xs+0 y+1 w%col1width%, Toggle Silent mode
-    Gui, Add, ComboBox, x+0 w%col2width% gProcessComboKBD vComboKBDTglSilence, %ComboList%|%CBchoKBDTglSilence%||
-    Gui, Add, Checkbox, %reusable% Checked%CtrlKBDTglSilence% vCtrlKBDTglSilence, Ctrl
-    Gui, Add, Checkbox, %reusable% Checked%ShiftKBDTglSilence% vShiftKBDTglSilence, Shift
-    Gui, Add, Checkbox, %reusable% Checked%AltKBDTglSilence% vAltKBDTglSilence, Alt
-    Gui, Add, Checkbox, %reusable% Checked%WinKBDTglSilence% vWinKBDTglSilence, Win
+    AddKBDcombo("KBDTglSilence", KBDTglSilence)
+    AddKBDmods("KBDTglSilence", KBDTglSilence)
 
     Gui, Add, Text, xs+0 y+1 w%col1width%, Detect keyboard layout
-    Gui, Add, ComboBox, x+0 w%col2width% gProcessComboKBD vComboKBDidLangNow, %ComboList%|%CBchoKBDidLangNow%||
-    Gui, Add, Checkbox, %reusable% Checked%CtrlKBDidLangNow% vCtrlKBDidLangNow, Ctrl
-    Gui, Add, Checkbox, %reusable% Checked%ShiftKBDidLangNow% vShiftKBDidLangNow, Shift
-    Gui, Add, Checkbox, %reusable% Checked%AltKBDidLangNow% vAltKBDidLangNow, Alt
-    Gui, Add, Checkbox, %reusable% Checked%WinKBDidLangNow% vWinKBDidLangNow, Win
+    AddKBDcombo("KBDidLangNow", KBDidLangNow)
+    AddKBDmods("KBDidLangNow", KBDidLangNow)
 
     Gui, Add, Text, xs+0 y+1 w%col1width%, Capture text underneath the mouse
-    Gui, Add, ComboBox, x+0 w%col2width% gProcessComboKBD vComboKBDCapText, %ComboList%|%CBchoKBDCapText%||
-    Gui, Add, Checkbox, %reusable% Checked%CtrlKBDCapText% vCtrlKBDCapText, Ctrl
-    Gui, Add, Checkbox, %reusable% Checked%ShiftKBDCapText% vShiftKBDCapText, Shift
-    Gui, Add, Checkbox, %reusable% Checked%AltKBDCapText% vAltKBDCapText, Alt
-    Gui, Add, Checkbox, %reusable% Checked%WinKBDCapText% vWinKBDCapText, Win
+    AddKBDcombo("KBDCapText", KBDCapText)
+    AddKBDmods("KBDCapText", KBDCapText)
 
     Gui, Add, Text, xs+0 y+1 w%col1width%, Restart / reload KeyPress OSD
-    Gui, Add, ComboBox, x+0 w%col2width% gProcessComboKBD vComboKBDReload, %ComboList%|%CBchoKBDReload%||
-    Gui, Add, Checkbox, %reusable% Checked%CtrlKBDReload% vCtrlKBDReload, Ctrl
-    Gui, Add, Checkbox, %reusable% Checked%ShiftKBDReload% vShiftKBDReload, Shift
-    Gui, Add, Checkbox, %reusable% Checked%AltKBDReload% vAltKBDReload, Alt
-    Gui, Add, Checkbox, %reusable% Checked%WinKBDReload% vWinKBDReload, Win
+    AddKBDcombo("KBDReload", KBDReload)
+    AddKBDmods("KBDReload", KBDReload)
 
     Gui, Add, Text, xs+0 y+1 w%col1width%, Suspend / deactivate KeyPress OSD
-    Gui, Add, ComboBox, x+0 w%col2width% gProcessComboKBD vComboKBDsuspend, %ComboList%|%CBchoKBDsuspend%||
-    Gui, Add, Checkbox, %reusable% Checked%CtrlKBDsuspend% vCtrlKBDsuspend, Ctrl
-    Gui, Add, Checkbox, %reusable% Checked%ShiftKBDsuspend% vShiftKBDsuspend, Shift
-    Gui, Add, Checkbox, %reusable% Checked%AltKBDsuspend% vAltKBDsuspend, Alt
-    Gui, Add, Checkbox, %reusable% Checked%WinKBDsuspend% vWinKBDsuspend, Win
+    AddKBDcombo("KBDsuspend", KBDsuspend)
+    AddKBDmods("KBDsuspend", KBDsuspend)
 
     Gui, Add, Button, xs+0 y+15 w70 h30 Default gApplySettings vApplySettingsBTN, A&pply
     Gui, Add, Button, x+8 wp hp gCloseSettings vCancelBTN, C&ancel
@@ -5882,212 +5894,32 @@ ShowShortCutsSettings() {
 }
 
 GenerateHotkeyStrS() {
-  GuiControlGet, ComboKBDaltTypeMode
-  GuiControlGet, ComboKBDpasteOSDcnt1
-  GuiControlGet, ComboKBDpasteOSDcnt2
-  GuiControlGet, ComboKBDsynchApp1
-  GuiControlGet, ComboKBDsynchApp2
-  GuiControlGet, ComboKBDTglNeverOSD
-  GuiControlGet, ComboKBDTglPosition
-  GuiControlGet, ComboKBDTglSilence
-  GuiControlGet, ComboKBDidLangNow
-  GuiControlGet, ComboKBDCapText
-  GuiControlGet, ComboKBDReload
-  GuiControlGet, ComboKBDsuspend
-  GuiControlGet, ComboKBDclippyMenu
-
-  GuiControlGet, CtrlKBDaltTypeMode
-  GuiControlGet, ShiftKBDaltTypeMode
-  GuiControlGet, AltKBDaltTypeMode
-  GuiControlGet, WinKBDaltTypeMode
-  GuiControlGet, CtrlKBDpasteOSDcnt1
-  GuiControlGet, ShiftKBDpasteOSDcnt1
-  GuiControlGet, AltKBDpasteOSDcnt1
-  GuiControlGet, WinKBDpasteOSDcnt1
-  GuiControlGet, CtrlKBDpasteOSDcnt2
-  GuiControlGet, ShiftKBDpasteOSDcnt2
-  GuiControlGet, AltKBDpasteOSDcnt2
-  GuiControlGet, WinKBDpasteOSDcnt2
-  GuiControlGet, CtrlKBDsynchApp1
-  GuiControlGet, ShiftKBDsynchApp1
-  GuiControlGet, AltKBDsynchApp1
-  GuiControlGet, WinKBDsynchApp1
-  GuiControlGet, CtrlKBDsynchApp2
-  GuiControlGet, ShiftKBDsynchApp2
-  GuiControlGet, AltKBDsynchApp2
-  GuiControlGet, WinKBDsynchApp2
-  GuiControlGet, CtrlKBDTglNeverOSD
-  GuiControlGet, ShiftKBDTglNeverOSD
-  GuiControlGet, AltKBDTglNeverOSD
-  GuiControlGet, WinKBDTglNeverOSD
-  GuiControlGet, CtrlKBDTglPosition
-  GuiControlGet, ShiftKBDTglPosition
-  GuiControlGet, AltKBDTglPosition
-  GuiControlGet, WinKBDTglPosition
-  GuiControlGet, CtrlKBDTglSilence
-  GuiControlGet, ShiftKBDTglSilence
-  GuiControlGet, AltKBDTglSilence
-  GuiControlGet, WinKBDTglSilence
-  GuiControlGet, CtrlKBDidLangNow
-  GuiControlGet, ShiftKBDidLangNow
-  GuiControlGet, AltKBDidLangNow
-  GuiControlGet, WinKBDidLangNow
-  GuiControlGet, CtrlKBDCapText
-  GuiControlGet, ShiftKBDCapText
-  GuiControlGet, AltKBDCapText
-  GuiControlGet, WinKBDCapText
-  GuiControlGet, CtrlKBDReload
-  GuiControlGet, ShiftKBDReload
-  GuiControlGet, AltKBDReload
-  GuiControlGet, WinKBDReload
-  GuiControlGet, CtrlKBDsuspend
-  GuiControlGet, ShiftKBDsuspend
-  GuiControlGet, AltKBDsuspend
-  GuiControlGet, WinKBDsuspend
-  GuiControlGet, CtrlKBDclippyMenu
-  GuiControlGet, ShiftKBDclippyMenu
-  GuiControlGet, AltKBDclippyMenu
-  GuiControlGet, WinKBDclippyMenu
   GuiControlGet, ApplySettingsBTN
 
-  KBDaltTypeMode := ""
-  KBDpasteOSDcnt1 := ""
-  KBDpasteOSDcnt2 := ""
-  KBDsynchApp1 := ""
-  KBDsynchApp2 := ""
-  KBDTglNeverOSD := ""
-  KBDTglPosition := ""
-  KBDTglSilence := ""
-  KBDidLangNow := ""
-  KBDCapText := ""
-  KBDReload := ""
-  KBDsuspend := ""
-  KBDclippyMenu := ""
-  KBDaltTypeMode .= CtrlKBDaltTypeMode=1 ? "^" : ""
-  KBDaltTypeMode .= ShiftKBDaltTypeMode=1 ? "+" : ""
-  KBDaltTypeMode .= AltKBDaltTypeMode=1 ? "!" : ""
-  KBDaltTypeMode .= WinKBDaltTypeMode=1 ? "#" : ""
-  KBDpasteOSDcnt1 .= CtrlKBDpasteOSDcnt1=1 ? "^" : ""
-  KBDpasteOSDcnt1 .= ShiftKBDpasteOSDcnt1=1 ? "+" : ""
-  KBDpasteOSDcnt1 .= AltKBDpasteOSDcnt1=1 ? "!" : ""
-  KBDpasteOSDcnt1 .= WinKBDpasteOSDcnt1=1 ? "#" : ""
-  KBDpasteOSDcnt2 .= CtrlKBDpasteOSDcnt2=1 ? "^" : ""
-  KBDpasteOSDcnt2 .= ShiftKBDpasteOSDcnt2=1 ? "+" : ""
-  KBDpasteOSDcnt2 .= AltKBDpasteOSDcnt2=1 ? "!" : ""
-  KBDpasteOSDcnt2 .= WinKBDpasteOSDcnt2=1 ? "#" : ""
-  KBDsynchApp1 .= CtrlKBDsynchApp1=1 ? "^" : ""
-  KBDsynchApp1 .= ShiftKBDsynchApp1=1 ? "+" : ""
-  KBDsynchApp1 .= AltKBDsynchApp1=1 ? "!" : ""
-  KBDsynchApp1 .= WinKBDsynchApp1=1 ? "#" : ""
-  KBDsynchApp2 .= CtrlKBDsynchApp2=1 ? "^" : ""
-  KBDsynchApp2 .= ShiftKBDsynchApp2=1 ? "+" : ""
-  KBDsynchApp2 .= AltKBDsynchApp2=1 ? "!" : ""
-  KBDsynchApp2 .= WinKBDsynchApp2=1 ? "#" : ""
-  KBDTglNeverOSD .= CtrlKBDTglNeverOSD=1 ? "^" : ""
-  KBDTglNeverOSD .= ShiftKBDTglNeverOSD=1 ? "+" : ""
-  KBDTglNeverOSD .= AltKBDTglNeverOSD=1 ? "!" : ""
-  KBDTglNeverOSD .= WinKBDTglNeverOSD=1 ? "#" : ""
-  KBDTglPosition .= CtrlKBDTglPosition=1 ? "^" : ""
-  KBDTglPosition .= ShiftKBDTglPosition=1 ? "+" : ""
-  KBDTglPosition .= AltKBDTglPosition=1 ? "!" : ""
-  KBDTglPosition .= WinKBDTglPosition=1 ? "#" : ""
-  KBDTglSilence .= CtrlKBDTglSilence=1 ? "^" : ""
-  KBDTglSilence .= ShiftKBDTglSilence=1 ? "+" : ""
-  KBDTglSilence .= AltKBDTglSilence=1 ? "!" : ""
-  KBDTglSilence .= WinKBDTglSilence=1 ? "#" : ""
-  KBDidLangNow .= CtrlKBDidLangNow=1 ? "^" : ""
-  KBDidLangNow .= ShiftKBDidLangNow=1 ? "+" : ""
-  KBDidLangNow .= AltKBDidLangNow=1 ? "!" : ""
-  KBDidLangNow .= WinKBDidLangNow=1 ? "#" : ""
-  KBDCapText .= CtrlKBDCapText=1 ? "^" : ""
-  KBDCapText .= ShiftKBDCapText=1 ? "+" : ""
-  KBDCapText .= AltKBDCapText=1 ? "!" : ""
-  KBDCapText .= WinKBDCapText=1 ? "#" : ""
-  KBDReload .= CtrlKBDReload=1 ? "^" : ""
-  KBDReload .= ShiftKBDReload=1 ? "+" : ""
-  KBDReload .= AltKBDReload=1 ? "!" : ""
-  KBDReload .= WinKBDReload=1 ? "#" : ""
-  KBDsuspend .= CtrlKBDsuspend=1 ? "^" : ""
-  KBDsuspend .= ShiftKBDsuspend=1 ? "+" : ""
-  KBDsuspend .= AltKBDsuspend=1 ? "!" : ""
-  KBDsuspend .= WinKBDsuspend=1 ? "#" : ""
-  KBDclippyMenu .= CtrlKBDclippyMenu=1 ? "^" : ""
-  KBDclippyMenu .= ShiftKBDclippyMenu=1 ? "+" : ""
-  KBDclippyMenu .= AltKBDclippyMenu=1 ? "!" : ""
-  KBDclippyMenu .= WinKBDclippyMenu=1 ? "#" : ""
-
-  KBDaltTypeMode .= ProcessChoiceKBD2(ComboKBDaltTypeMode)
-  KBDpasteOSDcnt1 .= ProcessChoiceKBD2(ComboKBDpasteOSDcnt1)
-  KBDpasteOSDcnt2 .= ProcessChoiceKBD2(ComboKBDpasteOSDcnt2)
-  KBDsynchApp1 .= ProcessChoiceKBD2(ComboKBDsynchApp1)
-  KBDsynchApp2 .= ProcessChoiceKBD2(ComboKBDsynchApp2)
-  KBDTglNeverOSD .= ProcessChoiceKBD2(ComboKBDTglNeverOSD)
-  KBDTglPosition .= ProcessChoiceKBD2(ComboKBDTglPosition)
-  KBDTglSilence .= ProcessChoiceKBD2(ComboKBDTglSilence)
-  KBDidLangNow .= ProcessChoiceKBD2(ComboKBDidLangNow)
-  KBDCapText .= ProcessChoiceKBD2(ComboKBDCapText)
-  KBDReload .= ProcessChoiceKBD2(ComboKBDReload)
-  KBDsuspend .= ProcessChoiceKBD2(ComboKBDsuspend)
-  KBDclippyMenu .= ProcessChoiceKBD2(ComboKBDclippyMenu)
-
-  kW1 := "disab"
-  kW2 := "restor"
+  kW1 := "disa"
+  kW2 := "resto"
   kWa := "(Disabled)"
   kWb := "(Restore Default)"
 
-  If InStr(ComboKBDaltTypeMode, kW1)
-     KBDaltTypeMode := kWa
-  If InStr(ComboKBDpasteOSDcnt1, kW1)
-     KBDpasteOSDcnt1 := kWa
-  If InStr(ComboKBDpasteOSDcnt2, kW1)
-     KBDpasteOSDcnt2 := kWa
-  If InStr(ComboKBDsynchApp1, kW1)
-     KBDsynchApp1 := kWa
-  If InStr(ComboKBDsynchApp2, kW1)
-     KBDsynchApp2 := kWa
-  If InStr(ComboKBDTglNeverOSD, kW1)
-     KBDTglNeverOSD := kWa
-  If InStr(ComboKBDTglPosition, kW1)
-     KBDTglPosition := kWa
-  If InStr(ComboKBDTglSilence, kW1)
-     KBDTglSilence := kWa
-  If InStr(ComboKBDidLangNow, kW1)
-     KBDidLangNow := kWa
-  If InStr(ComboKBDCapText, kW1)
-     KBDCapText := kWa
-  If InStr(ComboKBDReload, kW1)
-     KBDReload := kWa
-  If InStr(ComboKBDsuspend, kW1)
-     KBDsuspend := kWa
-  If InStr(ComboKBDclippyMenu, kW1)
-     KBDclippyMenu := kWa
+  Loop, Parse, GlobalKBDsList, CSV
+  {
+     GuiControlGet, Combo%A_LoopField%
+     GuiControlGet, Ctrl%A_LoopField%
+     GuiControlGet, Shift%A_LoopField%
+     GuiControlGet, Alt%A_LoopField%
+     GuiControlGet, Win%A_LoopField%
+     %A_LoopField% := ""
+     %A_LoopField% .= Ctrl%A_LoopField%=1 ? "^" : ""
+     %A_LoopField% .= Shift%A_LoopField%=1 ? "+" : ""
+     %A_LoopField% .= Alt%A_LoopField%=1 ? "!" : ""
+     %A_LoopField% .= Win%A_LoopField%=1 ? "#" : ""
+     %A_LoopField% .= ProcessChoiceKBD2(Combo%A_LoopField%)
+     If InStr(Combo%A_LoopField%, kW1)
+        %A_LoopField% := kWa
 
-  If InStr(ComboKBDaltTypeMode, kW2)
-     KBDaltTypeMode := kWb
-  If InStr(ComboKBDpasteOSDcnt1, kW2)
-     KBDpasteOSDcnt1 := kWb
-  If InStr(ComboKBDpasteOSDcnt2, kW2)
-     KBDpasteOSDcnt2 := kWb
-  If InStr(ComboKBDsynchApp1, kW2)
-     KBDsynchApp1 := kWb
-  If InStr(ComboKBDsynchApp2, kW2)
-     KBDsynchApp2 := kWb
-  If InStr(ComboKBDTglNeverOSD, kW2)
-     KBDTglNeverOSD := kWb
-  If InStr(ComboKBDTglPosition, kW2)
-     KBDTglPosition := kWb
-  If InStr(ComboKBDTglSilence, kW2)
-     KBDTglSilence := kWb
-  If InStr(ComboKBDidLangNow, kW2)
-     KBDidLangNow := kWb
-  If InStr(ComboKBDCapText, kW2)
-     KBDCapText := kWb
-  If InStr(ComboKBDReload, kW2)
-     KBDReload := kWb
-  If InStr(ComboKBDsuspend, kW2)
-     KBDsuspend := kWb
-  If InStr(ComboKBDclippyMenu, kW2)
-     KBDclippyMenu := kWb
+     If InStr(Combo%A_LoopField%, kW2)
+        %A_LoopField% := kWb
+  }
 
   KBDsTestDuplicate := KBDaltTypeMode "&" KBDpasteOSDcnt1 "&" KBDpasteOSDcnt2 "&" KBDsynchApp1 "&" KBDsynchApp2 "&" KBDTglNeverOSD "&" KBDTglPosition "&" KBDTglSilence "&" KBDidLangNow "&" KBDCapText "&" KBDReload "&" KBDsuspend "&" KBDclippyMenu
   disableds := st_count(KBDsTestDuplicate, "disable")>0 ? st_count(KBDsTestDuplicate, "disable") - 1 : 0
@@ -6111,49 +5943,14 @@ GenerateHotkeyStrS() {
 }
 
 ProcessComboKBD() {
-  ComboList := "(Disabled)|(Restore Default)|[[ 0-9 / Digits ]]|[[ Letters ]]|Right|Left|Up|Down|Home|End|Page_Down|Page_Up|Backspace|Space|Tab|Delete|Enter|Escape|Insert|CapsLock|NumLock|ScrollLock|L_Click|M_Click|R_Click|PrintScreen|Pause|Break|CtrlBreak|AppsKey|F1|F2|F3|F4|F5|F6|F7|F8|F9|F10|F11|F12|Nav_Back|Nav_Favorites|Nav_Forward|Nav_Home|Nav_Refresh|Nav_Search|Nav_Stop|Help|Launch_App1|Launch_App2|Launch_Mail|Launch_Media|Media_Next|Media_Play_Pause|Media_Prev|Media_Stop|Pad0|Pad1|Pad2|Pad3|Pad4|Pad5|Pad6|Pad7|Pad8|Pad9|PadClear|PadDel|PadDiv|PadDot|PadHome|PadEnd|PadEnter|PadIns|PadLeft|PadRight|PadAdd|PadSub|PadMult|PadPage_Down|PadPage_Up|PadUp|PadDown|Sleep|Volume_Mute|Volume_Up|Volume_Down|WheelUp|WheelDown|WheelLeft|WheelRight|[[ VK nnn ]]|[[ SC nnn ]]"
   forbiddenChars := "(\~|\!|\+|\^|\#|\$|\<|\>|\&)"
+  Loop, Parse, GlobalKBDsList, CSV
+  {
+      GuiControlGet, CbEdit%A_LoopField%,, Combo%A_LoopField%
+      If RegExMatch(CbEdit%A_LoopField%, forbiddenChars)
+         GuiControl,, Combo%A_LoopField%, | %KeysComboList%
+  }
 
-  GuiControlGet, CbEditKBDaltTypeMode,, ComboKBDaltTypeMode
-  GuiControlGet, CbEditKBDpasteOSDcnt1,, ComboKBDpasteOSDcnt1
-  GuiControlGet, CbEditKBDpasteOSDcnt2,, ComboKBDpasteOSDcnt2
-  GuiControlGet, CbEditKBDsynchApp1,, ComboKBDsynchApp1
-  GuiControlGet, CbEditKBDsynchApp2,, ComboKBDsynchApp2
-  GuiControlGet, CbEditKBDTglNeverOSD,, ComboKBDTglNeverOSD
-  GuiControlGet, CbEditKBDTglPosition,, ComboKBDTglPosition
-  GuiControlGet, CbEditKBDTglSilence,, ComboKBDTglSilence
-  GuiControlGet, CbEditKBDidLangNow,, ComboKBDidLangNow
-  GuiControlGet, CbEditKBDCapText,, ComboKBDCapText
-  GuiControlGet, CbEditKBDReload,, ComboKBDReload
-  GuiControlGet, CbEditKBDsuspend,, ComboKBDsuspend
-  GuiControlGet, CbEditKBDclippyMenu,, ComboKBDclippyMenu
-
-  If RegExMatch(CbEditKBDaltTypeMode, forbiddenChars)
-     GuiControl,, ComboKBDaltTypeMode, | %ComboList%
-  If RegExMatch(CbEditKBDpasteOSDcnt1, forbiddenChars)
-     GuiControl,, ComboKBDpasteOSDcnt1, | %ComboList%
-  If RegExMatch(CbEditKBDpasteOSDcnt2, forbiddenChars)
-     GuiControl,, ComboKBDpasteOSDcnt2, | %ComboList%
-  If RegExMatch(CbEditKBDsynchApp1, forbiddenChars)
-     GuiControl,, ComboKBDsynchApp1, | %ComboList%
-  If RegExMatch(CbEditKBDsynchApp2, forbiddenChars)
-     GuiControl,, ComboKBDsynchApp2, | %ComboList%
-  If RegExMatch(CbEditKBDTglNeverOSD, forbiddenChars)
-     GuiControl,, ComboKBDTglNeverOSD, | %ComboList%
-  If RegExMatch(CbEditKBDTglPosition, forbiddenChars)
-     GuiControl,, ComboKBDTglPosition, | %ComboList%
-  If RegExMatch(CbEditKBDTglSilence, forbiddenChars)
-     GuiControl,, ComboKBDTglSilence, | %ComboList%
-  If RegExMatch(CbEditKBDidLangNow, forbiddenChars)
-     GuiControl,, ComboKBDidLangNow, | %ComboList%
-  If RegExMatch(CbEditKBDCapText, forbiddenChars)
-     GuiControl,, ComboKBDCapText, | %ComboList%
-  If RegExMatch(CbEditKBDReload, forbiddenChars)
-     GuiControl,, ComboKBDReload, | %ComboList%
-  If RegExMatch(CbEditKBDsuspend, forbiddenChars)
-     GuiControl,, ComboKBDsuspend, | %ComboList%
-  If RegExMatch(CbEditKBDclippyMenu, forbiddenChars)
-     GuiControl,, ComboKBDclippyMenu, | %ComboList%
   GuiControl, Enable, ApplySettingsBTN
   GenerateHotkeyStrS()
 }
@@ -6183,211 +5980,81 @@ ProcessChoiceKBD2(strg) {
      Return strg
 }
 
+SwitchStateKBDbtn(HotKate, do) {
+    GuiControl, % (do=0) ? "Disable" : "Enable", Combo%HotKate%
+    GuiControl, % (do=0) ? "Disable" : "Enable", Ctrl%HotKate%
+    GuiControl, % (do=0) ? "Disable" : "Enable", Shift%HotKate%
+    GuiControl, % (do=0) ? "Disable" : "Enable", Alt%HotKate%
+    GuiControl, % (do=0) ? "Disable" : "Enable", Win%HotKate%
+}
+
 VerifyShortcutOptions(enableApply:=1) {
     GuiControlGet, AlternateTypingMode
     GuiControlGet, PasteOSDcontent
-    GuiControlGet, KeyboardShortcuts
+    GuiControlGet, GlobalKBDhotkeys
     GuiControlGet, EnableClipManager
 
     GuiControl, % (!enableApply ? "Disable" : "Enable"), ApplySettingsBTN
     If (AlternateTypingMode=0)
-    {
-        GuiControl, Disable, ComboKBDaltTypeMode
-        GuiControl, Disable, CtrlKBDaltTypeMode
-        GuiControl, Disable, ShiftKBDaltTypeMode
-        GuiControl, Disable, AltKBDaltTypeMode
-        GuiControl, Disable, WinKBDaltTypeMode
-    } Else
-    {
-        GuiControl, Enable, ComboKBDaltTypeMode
-        GuiControl, Enable, CtrlKBDaltTypeMode
-        GuiControl, Enable, ShiftKBDaltTypeMode
-        GuiControl, Enable, AltKBDaltTypeMode
-        GuiControl, Enable, WinKBDaltTypeMode
-    }
+       SwitchStateKBDbtn("KBDaltTypeMode", 0)
+    Else
+       SwitchStateKBDbtn("KBDaltTypeMode", 1)
 
     If (EnableClipManager=0)
-    {
-        GuiControl, Disable, ComboKBDclippyMenu
-        GuiControl, Disable, CtrlKBDclippyMenu
-        GuiControl, Disable, ShiftKBDclippyMenu
-        GuiControl, Disable, AltKBDclippyMenu
-        GuiControl, Disable, WinKBDclippyMenu
-    } Else
-    {
-        GuiControl, Enable, ComboKBDclippyMenu
-        GuiControl, Enable, CtrlKBDclippyMenu
-        GuiControl, Enable, ShiftKBDclippyMenu
-        GuiControl, Enable, AltKBDclippyMenu
-        GuiControl, Enable, WinKBDclippyMenu
-    }
+       SwitchStateKBDbtn("KBDclippyMenu", 0)
+    Else
+       SwitchStateKBDbtn("KBDclippyMenu", 1)
 
     If (PasteOSDcontent=0)
     {
-        GuiControl, Disable, ComboKBDpasteOSDcnt1
-        GuiControl, Disable, CtrlKBDpasteOSDcnt1
-        GuiControl, Disable, ShiftKBDpasteOSDcnt1
-        GuiControl, Disable, AltKBDpasteOSDcnt1
-        GuiControl, Disable, WinKBDpasteOSDcnt1
-        GuiControl, Disable, ComboKBDpasteOSDcnt2
-        GuiControl, Disable, CtrlKBDpasteOSDcnt2
-        GuiControl, Disable, ShiftKBDpasteOSDcnt2
-        GuiControl, Disable, AltKBDpasteOSDcnt2
-        GuiControl, Disable, WinKBDpasteOSDcnt2
+       SwitchStateKBDbtn("KBDpasteOSDcnt1", 0)
+       SwitchStateKBDbtn("KBDpasteOSDcnt2", 0)
     } Else
     {
-        GuiControl, Enable, ComboKBDpasteOSDcnt1
-        GuiControl, Enable, CtrlKBDpasteOSDcnt1
-        GuiControl, Enable, ShiftKBDpasteOSDcnt1
-        GuiControl, Enable, AltKBDpasteOSDcnt1
-        GuiControl, Enable, WinKBDpasteOSDcnt1
-        GuiControl, Enable, ComboKBDpasteOSDcnt2
-        GuiControl, Enable, CtrlKBDpasteOSDcnt2
-        GuiControl, Enable, ShiftKBDpasteOSDcnt2
-        GuiControl, Enable, AltKBDpasteOSDcnt2
-        GuiControl, Enable, WinKBDpasteOSDcnt2
+       SwitchStateKBDbtn("KBDpasteOSDcnt1", 1)
+       SwitchStateKBDbtn("KBDpasteOSDcnt2", 1)
     }
 
-    If (KeyboardShortcuts=0)
+    If (GlobalKBDhotkeys=0)
     {
-        GuiControl, Disable, ComboKBDsynchApp1
-        GuiControl, Disable, CtrlKBDsynchApp1
-        GuiControl, Disable, ShiftKBDsynchApp1
-        GuiControl, Disable, AltKBDsynchApp1
-        GuiControl, Disable, WinKBDsynchApp1
-        GuiControl, Disable, ComboKBDsynchApp2
-        GuiControl, Disable, CtrlKBDsynchApp2
-        GuiControl, Disable, ShiftKBDsynchApp2
-        GuiControl, Disable, AltKBDsynchApp2
-        GuiControl, Disable, WinKBDsynchApp2
-        GuiControl, Disable, ComboKBDTglNeverOSD
-        GuiControl, Disable, CtrlKBDTglNeverOSD
-        GuiControl, Disable, ShiftKBDTglNeverOSD
-        GuiControl, Disable, AltKBDTglNeverOSD
-        GuiControl, Disable, WinKBDTglNeverOSD
-        GuiControl, Disable, ComboKBDTglPosition
-        GuiControl, Disable, CtrlKBDTglPosition
-        GuiControl, Disable, ShiftKBDTglPosition
-        GuiControl, Disable, AltKBDTglPosition
-        GuiControl, Disable, WinKBDTglPosition
-        GuiControl, Disable, CtrlKBDTglSilence
-        GuiControl, Disable, ComboKBDTglSilence
-        GuiControl, Disable, ShiftKBDTglSilence
-        GuiControl, Disable, AltKBDTglSilence
-        GuiControl, Disable, WinKBDTglSilence
-        GuiControl, Disable, ComboKBDidLangNow
-        GuiControl, Disable, CtrlKBDidLangNow
-        GuiControl, Disable, ShiftKBDidLangNow
-        GuiControl, Disable, AltKBDidLangNow
-        GuiControl, Disable, WinKBDidLangNow
-        GuiControl, Disable, ComboKBDCapText
-        GuiControl, Disable, CtrlKBDCapText
-        GuiControl, Disable, ShiftKBDCapText
-        GuiControl, Disable, AltKBDCapText
-        GuiControl, Disable, WinKBDCapText
-        GuiControl, Disable, ComboKBDReload
-        GuiControl, Disable, CtrlKBDReload
-        GuiControl, Disable, ShiftKBDReload
-        GuiControl, Disable, AltKBDReload
-        GuiControl, Disable, WinKBDReload
-        GuiControl, Disable, ComboKBDsuspend
-        GuiControl, Disable, CtrlKBDsuspend
-        GuiControl, Disable, ShiftKBDsuspend
-        GuiControl, Disable, AltKBDsuspend
-        GuiControl, Disable, WinKBDsuspend
+        SwitchStateKBDbtn("KBDsynchApp1", 0)
+        SwitchStateKBDbtn("KBDsynchApp2", 0)
+        SwitchStateKBDbtn("KBDTglNeverOSD", 0)
+        SwitchStateKBDbtn("KBDTglPosition", 0)
+        SwitchStateKBDbtn("KBDTglSilence", 0)
+        SwitchStateKBDbtn("KBDidLangNow", 0)
+        SwitchStateKBDbtn("KBDReload", 0)
+        SwitchStateKBDbtn("KBDCapText", 0)
     } Else
     {
-       If (DisableTypingMode=0)
-       {
-           GuiControl, Enable, ComboKBDsynchApp1
-           GuiControl, Enable, CtrlKBDsynchApp1
-           GuiControl, Enable, ShiftKBDsynchApp1
-           GuiControl, Enable, AltKBDsynchApp1
-           GuiControl, Enable, WinKBDsynchApp1
-           GuiControl, Enable, ComboKBDsynchApp2
-           GuiControl, Enable, CtrlKBDsynchApp2
-           GuiControl, Enable, ShiftKBDsynchApp2
-           GuiControl, Enable, AltKBDsynchApp2
-           GuiControl, Enable, WinKBDsynchApp2
-       }
-        GuiControl, Enable, CtrlKBDTglNeverOSD
-        GuiControl, Enable, ShiftKBDTglNeverOSD
-        GuiControl, Enable, AltKBDTglNeverOSD
-        GuiControl, Enable, WinKBDTglNeverOSD
-        GuiControl, Enable, CtrlKBDTglPosition
-        GuiControl, Enable, ShiftKBDTglPosition
-        GuiControl, Enable, AltKBDTglPosition
-        GuiControl, Enable, WinKBDTglPosition
-        GuiControl, Enable, CtrlKBDTglSilence
-        GuiControl, Enable, ShiftKBDTglSilence
-        GuiControl, Enable, AltKBDTglSilence
-        GuiControl, Enable, WinKBDTglSilence
-        GuiControl, Enable, CtrlKBDidLangNow
-        GuiControl, Enable, ShiftKBDidLangNow
-        GuiControl, Enable, AltKBDidLangNow
-        GuiControl, Enable, WinKBDidLangNow
-        GuiControl, Enable, CtrlKBDCapText
-        GuiControl, Enable, ShiftKBDCapText
-        GuiControl, Enable, AltKBDCapText
-        GuiControl, Enable, WinKBDCapText
-        GuiControl, Enable, CtrlKBDReload
-        GuiControl, Enable, ShiftKBDReload
-        GuiControl, Enable, AltKBDReload
-        GuiControl, Enable, WinKBDReload
-        GuiControl, Enable, CtrlKBDsuspend
-        GuiControl, Enable, ShiftKBDsuspend
-        GuiControl, Enable, AltKBDsuspend
-        GuiControl, Enable, WinKBDsuspend
-        GuiControl, Enable, ComboKBDTglNeverOSD
-        GuiControl, Enable, ComboKBDTglPosition
-        GuiControl, Enable, ComboKBDTglSilence
-        GuiControl, Enable, ComboKBDidLangNow
-        GuiControl, Enable, ComboKBDCapText
-        GuiControl, Enable, ComboKBDReload
-        GuiControl, Enable, ComboKBDsuspend
+        If (DisableTypingMode=0)
+        {
+           SwitchStateKBDbtn("KBDsynchApp1", 1)
+           SwitchStateKBDbtn("KBDsynchApp2", 1)
+        }
+        SwitchStateKBDbtn("KBDsynchApp1", 1)
+        SwitchStateKBDbtn("KBDsynchApp2", 1)
+        SwitchStateKBDbtn("KBDTglNeverOSD", 1)
+        SwitchStateKBDbtn("KBDTglPosition", 1)
+        SwitchStateKBDbtn("KBDTglSilence", 1)
+        SwitchStateKBDbtn("KBDidLangNow", 1)
+        SwitchStateKBDbtn("KBDReload", 1)
+        SwitchStateKBDbtn("KBDCapText", 1)
     }
 
     If (DisableTypingMode=1)
     {
-        GuiControl, Disable, ComboKBDpasteOSDcnt1
-        GuiControl, Disable, CtrlKBDpasteOSDcnt1
-        GuiControl, Disable, ShiftKBDpasteOSDcnt1
-        GuiControl, Disable, AltKBDpasteOSDcnt1
-        GuiControl, Disable, WinKBDpasteOSDcnt1
-        GuiControl, Disable, ComboKBDpasteOSDcnt2
-        GuiControl, Disable, CtrlKBDpasteOSDcnt2
-        GuiControl, Disable, ShiftKBDpasteOSDcnt2
-        GuiControl, Disable, AltKBDpasteOSDcnt2
-        GuiControl, Disable, WinKBDpasteOSDcnt2
-        GuiControl, Disable, ComboKBDsynchApp1
-        GuiControl, Disable, CtrlKBDsynchApp1
-        GuiControl, Disable, ShiftKBDsynchApp1
-        GuiControl, Disable, AltKBDsynchApp1
-        GuiControl, Disable, WinKBDsynchApp1
-        GuiControl, Disable, ComboKBDsynchApp2
-        GuiControl, Disable, CtrlKBDsynchApp2
-        GuiControl, Disable, ShiftKBDsynchApp2
-        GuiControl, Disable, AltKBDsynchApp2
-        GuiControl, Disable, WinKBDsynchApp2
+       SwitchStateKBDbtn("KBDpasteOSDcnt1", 0)
+       SwitchStateKBDbtn("KBDpasteOSDcnt2", 0)
+       SwitchStateKBDbtn("KBDsynchApp1", 0)
+       SwitchStateKBDbtn("KBDsynchApp2", 0)
     }
 
     If (missingAudios=1 || SafeModeExec=1 || NoAhkH=1)
-    {
-        GuiControl, Disable, ComboKBDTglSilence
-        GuiControl, Disable, CtrlKBDTglSilence
-        GuiControl, Disable, ShiftKBDTglSilence
-        GuiControl, Disable, AltKBDTglSilence
-        GuiControl, Disable, WinKBDTglSilence
-    }
+       SwitchStateKBDbtn("KBDTglSilence", 0)
 
     If (A_OSVersion="WIN_XP")
-    {
-        GuiControl, Disable, ComboKBDCapText
-        GuiControl, Disable, CtrlKBDCapText
-        GuiControl, Disable, ShiftKBDCapText
-        GuiControl, Disable, AltKBDCapText
-        GuiControl, Disable, WinKBDCapText
-    }
+       SwitchStateKBDbtn("KBDCapText", 0)
 }
 
 PresetsWindow() {
@@ -6645,7 +6312,8 @@ ShowSoundsSettings() {
     Gui, Add, Checkbox, gVerifySoundsOptions y+7 Checked%DTMFbeepers% vDTMFbeepers, DTMF beeps for numpad keys
     Gui, Add, Checkbox, gVerifySoundsOptions y+7 Checked%BeepFiringKeys% vBeepFiringKeys, Generic beep for every key fire
     Gui, Add, Checkbox, gVerifySoundsOptions y+7 Checked%AudioAlerts% vAudioAlerts, At start, beep for every failed key binding
-    Gui, Add, Checkbox, gVerifySoundsOptions y+14 Checked%BeepSentry% vBeepSentry, Generate visual sound event [for Windows Accessibility]
+    If (A_OSVersion!="WIN_XP")
+       Gui, Add, Checkbox, gVerifySoundsOptions y+14 Checked%BeepSentry% vBeepSentry, Generate visual sound event [for Windows Accessibility]
     Gui, Add, Checkbox, gVerifySoundsOptions y+7 Checked%PrioritizeBeepers% vPrioritizeBeepers, Attempt to play every beep (may interfere with typing mode)`nIf beeps rarely play, enable this.
     Gui, Add, Text, y+10 h25 +0x200 Section vvolLevel, % "Volume: " BeepsVolume " %"
     Gui, Add, Slider, x+5 hp ToolTip NoTicks gVolSlider w200 vBeepsVolume Range5-99, %BeepsVolume%
@@ -7023,8 +6691,8 @@ ShowMouseSettings() {
     If (OnlyTypingMode!=1)
        Gui, Add, Checkbox, gVerifyMouseOptions y+5 Checked%ShowMouseButton% vShowMouseButton, Show mouse clicks in the OSD
     Gui, Add, Text, y+15 Section, Show on mouse clicks: 
-    Gui, Add, Checkbox, gVerifyMouseOptions x+5 Checked%ShowMouseVclick% vShowMouseVclick, Blocks
-    Gui, Add, Checkbox, gVerifyMouseOptions x+5 Checked%ShowMouseRipples% vShowMouseRipples, Ripples
+    Gui, Add, Checkbox, x+5 gVerifyMouseOptions Checked%ShowMouseVclick% vShowMouseVclick, Blocks
+    Gui, Add, Checkbox, x+5 gVerifyMouseOptions Checked%ShowMouseRipples% vShowMouseRipples, Ripples
     Gui, Add, Text, xs+16 y+10 veditF17, Scale. Color, Opacity.
     Gui, Add, Edit, y+5 w55 r1 limit2 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF1, %MouseVclickScaleUser%
     Gui, Add, UpDown, vMouseVclickScaleUser gVerifyMouseOptions Range5-70, %MouseVclickScaleUser%
@@ -7252,6 +6920,7 @@ updateRealTimeSettings() {
      MouseRipplesThread.ahkPostFunction["MouseRippleUpdate"]
   } Else If (CurrentPrefWindow=1)
   {
+     MouseFuncThread.ahkassign("ShowCaretHalo", ShowCaretHalo)
      MouseFuncThread.ahkassign("CaretHaloAlpha", CaretHaloAlpha)
      MouseFuncThread.ahkassign("CaretHaloColor", CaretHaloColor)
      MouseFuncThread.ahkassign("CaretHaloHeight", CaretHaloHeight)
@@ -7628,6 +7297,13 @@ ActionListViewKBDs() {
   }
 }
 
+InvokeQuickMenu() {
+    Menu, QuickMenu, Delete
+    QuickSettingsMenu()
+    Sleep, 10
+    Menu, QuickMenu, Show
+}
+
 InstalledKBDsWindow() {
     If (PrefOpen=1)
     {
@@ -7635,22 +7311,24 @@ InstalledKBDsWindow() {
         WinActivate, KeyPress OSD
         Return
     }
+    Global ListViewKBDs, btn100, RefreshBTN
     KbLayoutRaw := checkWindowKBD()
     Sleep, 25
     initLangFile()
     Sleep, 25
+    AnyWindowOpen := 2
     IniRead, KBDsDetected, %LangFile%, Options, KBDsDetected, 1
     DLC := KBDsDetected>10 ? 10 : StrLen(KBDsDetected)>0 ? KBDsDetected+1 : 5 ; I have 11 layouts, there's one extra just in case, so leave it as is
     IniWrite, %ReleaseDate%, %IniFile%, SavedSettings, ReleaseDate
     IniWrite, %Version%, %IniFile%, SavedSettings, Version
     SettingsGUI()
-    Global ListViewKBDs, btn100, RefreshBTN
     countList := 0
-    AnyWindowOpen := 2
     txtWid := 370
+    btnWid := 70
     If (PrefsLargeFonts=1)
     {
-       txtWid := 570
+       txtWid := txtWid + 200
+       btnWid := btnWid + 35
        Gui, Font, s%LargeUIfontValue%
     }
     kbdCode := SubStr(CurrentKBD, InStr(CurrentKBD, ". ")+2, 100)
@@ -7742,9 +7420,10 @@ InstalledKBDsWindow() {
       Gui, Add, Text, y+10 w%txtWid%, WARNING: Automatic keyboard layout detection is disabled.
       Gui, Font, Normal
     }
-    Gui, Add, Button, y+15 w75 Default gCloseWindow, &Close
+    Gui, Add, Button, y+15 w%btnWid% Default gCloseWindow, &Close
+    Gui, Add, Button, x+5 w%btnWid% gInvokeQuickMenu, &Settings
     If FileExist(LangFile)
-       Gui, Add, Button, x+3 w120 gDeleteLangFile vRefreshBTN, &Refresh list
+       Gui, Add, Button, x+5 w%btnWid% gDeleteLangFile vRefreshBTN, &Refresh list
     Gui, Add, Text, x+10 hp +0x200, Total layouts detected: %countList%
     Gui, Show, AutoSize, KeyPress OSD: Installed keyboard layouts
     IniWrite, %countList%, %LangFile%, Options, KBDsDetected
@@ -8354,7 +8033,7 @@ SaveSettings() {
   IniWrite, %CaretHaloShape%, %IniFile%, Mouse, CaretHaloShape
 
 ; Hotkey settings
-  IniWrite, %KeyboardShortcuts%, %IniFile%, Hotkeys, KeyboardShortcuts
+  IniWrite, %GlobalKBDhotkeys%, %IniFile%, Hotkeys, GlobalKBDhotkeys
   IniWrite, %KBDaltTypeMode%, %IniFile%, Hotkeys, KBDaltTypeMode
   IniWrite, %KBDpasteOSDcnt1%, %IniFile%, Hotkeys, KBDpasteOSDcnt1
   IniWrite, %KBDpasteOSDcnt2%, %IniFile%, Hotkeys, KBDpasteOSDcnt2
@@ -8507,7 +8186,7 @@ LoadSettings() {
   IniRead, CaretHaloShape, %IniFile%, Mouse, CaretHaloShape, %CaretHaloShape%
 
 ; Hotkey settings
-  IniRead, KeyboardShortcuts, %IniFile%, Hotkeys, KeyboardShortcuts, %KeyboardShortcuts%
+  IniRead, GlobalKBDhotkeys, %IniFile%, Hotkeys, GlobalKBDhotkeys, %GlobalKBDhotkeys%
   IniRead, KBDaltTypeMode, %IniFile%, Hotkeys, KBDaltTypeMode, %KBDaltTypeMode%
   IniRead, KBDpasteOSDcnt1, %IniFile%, Hotkeys, KBDpasteOSDcnt1, %KBDpasteOSDcnt1%
   IniRead, KBDpasteOSDcnt2, %IniFile%, Hotkeys, KBDpasteOSDcnt2, %KBDpasteOSDcnt2%
@@ -8561,7 +8240,7 @@ CheckSettings() {
     IgnoreAdditionalKeys := (IgnoreAdditionalKeys=0 || IgnoreAdditionalKeys=1) ? IgnoreAdditionalKeys : 0
     JumpHover := (JumpHover=0 || JumpHover=1) ? JumpHover : 0
     KeyBeeper := (KeyBeeper=0 || KeyBeeper=1) ? KeyBeeper : 0
-    KeyboardShortcuts := (KeyboardShortcuts=0 || KeyboardShortcuts=1) ? KeyboardShortcuts : 1
+    GlobalKBDhotkeys := (GlobalKBDhotkeys=0 || GlobalKBDhotkeys=1) ? GlobalKBDhotkeys : 1
     MediateNavKeys := (MediateNavKeys=0 || MediateNavKeys=1) ? MediateNavKeys : 0
     ModBeeper := (ModBeeper=0 || ModBeeper=1) ? ModBeeper : 0
     MouseBeeper := (MouseBeeper=0 || MouseBeeper=1) ? MouseBeeper : 0
@@ -8602,20 +8281,7 @@ CheckSettings() {
     UpDownAsLR := (UpDownAsLR=0 || UpDownAsLR=1) ? UpDownAsLR : 0
     UseMUInames := (UseMUInames=0 || UseMUInames=1) ? UseMUInames : 1
 
-    If (MouseOSDbehavior=1)
-    {
-        DragOSDmode := 0
-        JumpHover := 0
-    } Else If (MouseOSDbehavior=2)
-    {
-        DragOSDmode := 0
-        JumpHover := 1
-    } Else If (MouseOSDbehavior=3)
-    {
-        DragOSDmode := 1
-        JumpHover := 0
-    }
-
+    OSDbehaviorConditions()
     If (UpDownAsHE=1 && UpDownAsLR=1)
        UpDownAsLR := 0
 
@@ -8898,7 +8564,7 @@ SetMyVolume() {
 
 ShellMessage(wParam, lParam) {
    ; WinGetTitle, title, ahk_id %lParam%
-   If (SecondaryTypingMode=0 && OSDvisible=1 && (A_TickCount-DoNotRepeatTimer>2000) && EraseTextWinChange=1 && StrLen(Typed)>1 && (wParam == 4 || wParam == 17 || wParam == 32772))
+   If (SecondaryTypingMode=0 && (A_TickCount-DoNotRepeatTimer>2000) && EraseTextWinChange=1 && StrLen(Typed)>1 && (wParam == 4 || wParam == 17 || wParam == 32772))
    {  ; HSHELL_WINDOWACTIVATED Or HSHELL_RUDEAPPACTIVATED
       If (EnableTypingHistory=1)
          recordTypedHistory()
