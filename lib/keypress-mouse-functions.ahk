@@ -1,5 +1,6 @@
 ﻿; KeypressOSD.ahk - mouse features file
 ; Latest version at:
+; https://github.com/marius-sucan/KeyPress-OSD
 ; http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd.ahk
 ;
 ; Charset For this file must be UTF 8 with BOM.
@@ -49,7 +50,8 @@ Global IniFile           := "keypress-osd.ini"
  
  , CaretHeight
  , CaretBlinkTime := DllCall("user32\GetCaretBlinkTime")
- , wa := ha := 0
+ , wa := 0
+ , ha := 0
  , ScriptelSuspendel := 0
  , MouseClickCounter := 0
  , MouseVclickScale := MouseVclickScaleUser/10
@@ -61,39 +63,14 @@ Global IniFile           := "keypress-osd.ini"
  , Wheels := "WheelDown|WheelUp|WheelLeft|WheelRight|XButton1|XButton2"
  , isMouseFile := 1
 
-  IniRead, ShowMouseHalo, %IniFile%, Mouse, ShowMouseHalo, %ShowMouseHalo%
-  IniRead, ShowMouseIdle, %IniFile%, Mouse, ShowMouseIdle, %ShowMouseIdle%
-  IniRead, ShowMouseVclick, %IniFile%, Mouse, ShowMouseVclick, %ShowMouseVclick%
-  IniRead, MouseHaloAlpha, %IniFile%, Mouse, MouseHaloAlpha, %MouseHaloAlpha%
-  IniRead, MouseHaloColor, %IniFile%, Mouse, MouseHaloColor, %MouseHaloColor%
-  IniRead, MouseHaloRadius, %IniFile%, Mouse, MouseHaloRadius, %MouseHaloRadius%
-  IniRead, MouseIdleAfter, %IniFile%, Mouse, MouseIdleAfter, %MouseIdleAfter%
-  IniRead, MouseIdleAlpha, %IniFile%, Mouse, MouseIdleAlpha, %MouseIdleAlpha%
-  IniRead, MouseIdleColor, %IniFile%, Mouse, MouseIdleColor, %MouseIdleColor%
-  IniRead, MouseIdleRadius, %IniFile%, Mouse, MouseIdleRadius, %MouseIdleRadius%
-  IniRead, MouseIdleFlash, %IniFile%, Mouse, MouseIdleFlash, %MouseIdleFlash%
-  IniRead, MouseVclickAlpha, %IniFile%, Mouse, MouseVclickAlpha, %MouseVclickAlpha%
-  IniRead, MouseVclickColor, %IniFile%, Mouse, MouseVclickColor, %MouseVclickColor%
-  IniRead, MouseVclickScaleUser, %IniFile%, Mouse, MouseVclickScaleUser, %MouseVclickScaleUser%
-  IniRead, ShowCaretHalo, %IniFile%, Mouse, ShowCaretHalo, %ShowCaretHalo%
-  IniRead, CaretHaloFlash, %IniFile%, Mouse, CaretHaloFlash, %CaretHaloFlash%
-  IniRead, CaretHaloAlpha, %IniFile%, Mouse, CaretHaloAlpha, %CaretHaloAlpha%
-  IniRead, CaretHaloColor, %IniFile%, Mouse, CaretHaloColor, %CaretHaloColor%
-  IniRead, CaretHaloHeight, %IniFile%, Mouse, CaretHaloHeight, %CaretHaloHeight%
-  IniRead, CaretHaloWidth, %IniFile%, Mouse, CaretHaloWidth, %CaretHaloWidth%
-  IniRead, CaretHaloThick, %IniFile%, Mouse, CaretHaloThick, %CaretHaloThick%
-  IniRead, CaretHaloShape, %IniFile%, Mouse, CaretHaloShape, %CaretHaloShape%
-  MouseVclickScale := MouseVclickScaleUser/10
-  CaretHaloThick := (CaretHaloThick > Round(CaretHaloHeight/2-1)) ? Round(CaretHaloHeight/2-1) : Round(CaretHaloThick)
-  CaretHaloThick := (CaretHaloThick > 60) ? 60 : Round(CaretHaloThick)
-
-MouseInit()
 OnExit("MouseClose")
 Return
 
 MouseInit() {
     If (ScriptelSuspendel="Y" || (ShowMouseVclick=0 && ShowMouseIdle=0 && ShowMouseHalo=0 && ShowCaretHalo=0))
        Return
+    CaretHaloThick := (CaretHaloThick > Round(CaretHaloHeight/2-1)) ? Round(CaretHaloHeight/2-1) : Round(CaretHaloThick)
+    CaretHaloThick := (CaretHaloThick > 60) ? 60 : Round(CaretHaloThick)
 
     If (ShowMouseHalo=1)
        SetTimer, MouseHalo, 40, 0
@@ -362,7 +339,8 @@ CaretHalo(restartNow:=0) {
     If (restartNow=1)
     {
        Gui, CaretH: Destroy
-       IsHaloGui := 0       
+       IsHaloGui := 0
+       SetTimer, CaretHalo, 70, -50
     }
 
     doNotShow := 0
@@ -411,8 +389,9 @@ CaretHalo(restartNow:=0) {
           WinSet, AlwaysOnTop, On, %WinCaretHalo%
           If ((A_TickCount-lastFlash>CaretBlinkTime*2) && CaretHaloFlash)
           {
-              CaretHaloAlphae := CaretHaloAlpha/2
+              CaretHaloAlphae := CaretHaloAlpha/3
               WinSet, Transparent, %CaretHaloAlphae%, %WinCaretHalo%
+              Sleep, CaretBlinkTime/2
               lastFlash := A_TickCount
           }
        }

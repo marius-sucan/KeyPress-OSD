@@ -11,6 +11,13 @@ http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip
 
 by Marius Sucan (robodesign.ro)
 
+  v4.27.2 (2018-03-20)
+  - reduced the code by 7-8 kb, by making the CheckSettings() function more compact
+  - further reduced IniWrites during start/restart procedures
+  - eliminated iniReads from the auxiliary threads [mouse, beepers and ripples]
+  - reorganized more the main script code
+  - fixed bugs... and hopefully introduced none
+
   v4.27.1 (2018-03-19)
   - [new] quick settings menu at Installed Keyboard Layouts panel. I added this here because, on double-click on tray icon, this is the panel that opens; therefore, to improve usability I added this 'gateway' to various settings and to the other preferences panels.
   - the coding of the global shortcuts panel is much lighter now; the code was reduced by 21 kb; however, the changes do not make it faster when it opens
@@ -864,12 +871,15 @@ Features to implement:
 - test slow VM; laptop, pc
 - redo x32 compiled in XP, VM
 
-- caret gets out of synch in FF, multi-line fields
+- elimină iniWrite for clipboard manager? then make ID per install
+
+- finalizează lucrul la [dez]activaterea automată la MODs în shortcuts panel
+
+- min. caret halo height based on the function provided by Dragoș
 
 - Drugwash: Fix ripples. New caret halo routine?
-- keyStrokes Helper: does it get turned off?
+- keyStrokes Helper: does it get turned off? wox launcher
 
-- ditch iniReads
 - warnings. debugger?
 
 - capture text to-do:
@@ -904,6 +914,8 @@ https://autohotkey.com/board/topic/53672-get-the-text-content-of-a-tool-tip-wind
 - test on different computers - slow computers...
 
 Glitches to fix or think of possible solutions:
+- caret gets out of synch in FF, multi-line fields
+  - use real caret data?
 - make the OSD text field non-selectable
 - OSD is never on top of Start menu in Windows 10
 - support for Bengali, Assamese and other similar scripts is shady

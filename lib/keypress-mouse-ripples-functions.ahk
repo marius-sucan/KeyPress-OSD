@@ -1,6 +1,9 @@
 ﻿; Script by MrRight in 2015.
 ; from https://autohotkey.com/boards/viewtopic.php?t=8963
-; Modified by Marius Sucan in 2018. Included in KeyPress OSD.
+; Modified by Marius Sucan and Drugwash in 2018. Included in KeyPress OSD.
+; Latest version at:
+; https://github.com/marius-sucan/KeyPress-OSD
+; http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd.ahk
 
 #NoEnv
 #SingleInstance, Force
@@ -33,25 +36,7 @@ Global IniFile           := "keypress-osd.ini"
  , Period, PointDir, tf
  , isRipplesFile := 1
 
-  IniRead, ShowMouseRipples, %IniFile%, Mouse, ShowMouseRipples, %ShowMouseRipples%
-  IniRead, MouseRippleMaxSize, %IniFile%, Mouse, MouseRippleMaxSize, %MouseRippleMaxSize%
-  IniRead, MouseRippleThickness, %IniFile%, Mouse, MouseRippleThickness, %MouseRippleThickness%
-  IniRead, MouseRippleFrequency, %IniFile%, Mouse, MouseRippleFrequency, %MouseRippleFrequency%
-  IniRead, MouseRippleOpacity, %IniFile%, Mouse, MouseRippleOpacity, %MouseRippleOpacity%
-  IniRead, MouseRippleWbtnColor, %IniFile%, Mouse, MouseRippleWbtnColor, %MouseRippleWbtnColor%
-  IniRead, MouseRippleLbtnColor, %IniFile%, Mouse, MouseRippleLbtnColor, %MouseRippleLbtnColor%
-  IniRead, MouseRippleRbtnColor, %IniFile%, Mouse, MouseRippleRbtnColor, %MouseRippleRbtnColor%
-  IniRead, MouseRippleMbtnColor, %IniFile%, Mouse, MouseRippleMbtnColor, %MouseRippleMbtnColor%
-
-;  AhkExe := AhkExported()
-;  ShowMouseRipples := AhkExe.ahkgetvar("ShowMouseRipples")
-
 OnExit("MouseRippleClose")
-
-If (ScriptelSuspendel="Y" || ShowMouseRipples=0)
-   Return
-
-MouseRippleSetup()
 Return
 
 MouseRippleClose() {

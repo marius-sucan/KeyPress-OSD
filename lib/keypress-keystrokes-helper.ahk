@@ -1,12 +1,13 @@
 ﻿; KeypressOSD.ahk - file used for alternative hooks
 ; Latest version at:
+; https://github.com/marius-sucan/KeyPress-OSD
 ; http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd.ahk
 ;
 ; Charset for this file must be UTF 8 with BOM.
 ; it may not function properly otherwise.
 
 ; Script based on the tutorials from the AHK documentation
-; and TypingAid 2.22 by Maniac
+; and TypingAid 2.22 by Maniac.
 
 #SingleInstance force
 #Persistent
@@ -21,23 +22,16 @@ ListLines, Off
 Critical, on
 
 Global IniFile            := "keypress-osd.ini"
- , AltHook2keysUser       := 1
- , ScriptelSuspendel     := 0
+ , AltHook2keysUser := 1
+ , ScriptelSuspendel := 0
  , isKeystrokesFile := 1
-
-  IniRead, ScriptelSuspendel, %inifile%, TempSettings, ScriptelSuspendel, %ScriptelSuspendel%
-  IniRead, AltHook2keysUser, %inifile%, SavedSettings, AltHook2keysUser, %AltHook2keysUser%
-
-AlternativeHook2keys := (AltHook2keysUser=0) ? 0 : 1
-
-if (ScriptelSuspendel=1) ; || (AlternativeHook2keys=0)
-   Return
+ , AlternativeHook2keys := (AltHook2keysUser=0) ? 0 : 1
 
 MainLoop()
 Return
 
 MainLoop() {
-   global TargetScriptTitle := "KeyPressOSDwin"
+   Global TargetScriptTitle := "KeyPressOSDwin"
    Loop 
    { 
       ; Get one key at a time 
@@ -45,8 +39,15 @@ MainLoop() {
       Input, InputChar, L1 B V E I, {tab}
       EndKey := ErrorLevel
       ; ToolTip, %inputchar%
+      If (AlternativeHook2keys=0)
+      {
+         hasEnded := 1
+         Break
+      }
       Send_WM_COPYDATA(InputChar, TargetScriptTitle)
    }
+   If (hasEnded!=1)
+      MainLoop()
 }
 
 ; This function sends the specified string to the specified window and returns the reply.
