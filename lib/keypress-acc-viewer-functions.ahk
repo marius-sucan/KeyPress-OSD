@@ -2,6 +2,12 @@
 ; by Sean and jethrow
 ; http://www.autohotkey.com/board/topic/77888-accessible-info-viewer-alpha-release-2012-09-20/
 ; https://dl.dropbox.com/u/47573473/Accessible%20Info%20Viewer/AccViewer%20Source.ahk
+; Modified in 2018 by Marius Șucan for KeyPress OSD. 
+;
+; Latest version at:
+; https://github.com/marius-sucan/KeyPress-OSD
+; http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd.ahk
+
 /*
 DetectHiddenWindows, On
 OnMessage(0x200,"WM_MOUSEMOVE")

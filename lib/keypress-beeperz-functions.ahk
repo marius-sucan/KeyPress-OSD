@@ -1,5 +1,6 @@
 ﻿; KeypressOSD.ahk - beepers functions file
 ; Latest version at:
+; https://github.com/marius-sucan/KeyPress-OSD
 ; http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd.ahk
 ;
 ; Charset for this file must be UTF 8 with BOM.
@@ -40,31 +41,13 @@ Global IniFile           := "keypress-osd.ini"
  , ScriptelSuspendel := 0
  , moduleInitialized
 
-  IniRead, ScriptelSuspendel, %inifile%, TempSettings, ScriptelSuspendel, %ScriptelSuspendel%
-  IniRead, beepFiringKeys, %inifile%, Sounds, beepFiringKeys, %beepFiringKeys%
-  IniRead, BeepSentry, %inifile%, Sounds, BeepSentry, %BeepSentry%
-  IniRead, CapslockBeeper, %inifile%, Sounds, CapslockBeeper, %CapslockBeeper%
-  IniRead, DTMFbeepers, %inifile%, Sounds, DTMFbeepers, %DTMFbeepers%
-  IniRead, KeyBeeper, %inifile%, Sounds, KeyBeeper, %KeyBeeper%
-  IniRead, ModBeeper, %inifile%, Sounds, ModBeeper, %ModBeeper%
-  IniRead, MouseBeeper, %inifile%, Sounds, MouseBeeper, %MouseBeeper%
-  IniRead, prioritizeBeepers, %inifile%, Sounds, prioritizeBeepers, %prioritizeBeepers%
-  IniRead, SilentMode, %inifile%, Sounds, SilentMode, %SilentMode%
-  IniRead, ToggleKeysBeeper, %inifile%, Sounds, ToggleKeysBeeper, %ToggleKeysBeeper%
-  IniRead, TypingBeepers, %inifile%, Sounds, TypingBeepers, %TypingBeepers%
-
-If (ToggleKeysBeeper=0 && CapslockBeeper=0 && KeyBeeper=0 && ModBeeper=0 && MouseBeeper=0 && beepFiringKeys=0 && TypingBeepers=0 && DTMFbeepers=0)
-   Return
-
-If (ScriptelSuspendel=1 || SilentMode=1)
-   Return
-
-CreateHotkey()
 Return
 
 CreateHotkey() {
-    moduleInitialized := 1
+    If (ToggleKeysBeeper=0 && CapslockBeeper=0 && KeyBeeper=0 && ModBeeper=0 && MouseBeeper=0 && beepFiringKeys=0 && TypingBeepers=0 && DTMFbeepers=0) || (SilentMode=1)
+       Return
 
+    moduleInitialized := 1
     If (MouseBeeper=1)
     {
        Loop, Parse, % "LButton|MButton|RButton|WheelDown|WheelUp|WheelLeft|WheelRight", |
@@ -154,7 +137,6 @@ CreateHotkey() {
         MediaKeys := "Volume_Mute|Volume_Down|Volume_Up|Media_Next|Media_Prev|Media_Stop|Media_Play_Pause"
         Loop, Parse, MediaKeys, |
             Hotkey, % "~*" A_LoopField, OnMediaPressed, useErrorLevel
-
     }
 
     If (modBeeper=1 || beepFiringKeys=1)
