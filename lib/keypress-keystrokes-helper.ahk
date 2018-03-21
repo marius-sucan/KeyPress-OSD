@@ -61,5 +61,5 @@ Send_WM_COPYDATA(ByRef StringToSend, ByRef TargetScriptTitle) {
     TimeOutTime := 900  ; Optional. Milliseconds to wait for response from receiver.ahk. Default is 5000
     ; Must use SendMessage not PostMessage.
     SendMessage, 0x4a, 0, &CopyDataStruct,, %TargetScriptTitle%,,,, %TimeOutTime% ; 0x4a is WM_COPYDATA.
-    return
+    Return
 }

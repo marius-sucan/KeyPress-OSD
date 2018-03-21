@@ -76,7 +76,6 @@ CreateHotkey() {
         }
 
         NumpadSymbols := "NumpadDot|NumpadDiv|NumpadMult|NumpadAdd|NumpadSub"
-
         Loop, Parse, NumpadSymbols, |
         {
            Hotkey, % "~*" A_LoopField, OnKeyPressed, useErrorLevel
@@ -204,63 +203,63 @@ OnToggleUp() {
 OnTypingLeftUp() {
    Global lastKeyUpTime := A_TickCount
    Sleep, 15
-   SoundPlay("sounds\typingkeysArrowsL.wav", prioritizeBeepers)
+   SndPlay("sounds\typingkeysArrowsL.wav", prioritizeBeepers)
    checkIfSkipAbeep()
 }
 
 OnTypingHomeUp() {
    Global lastKeyUpTime := A_TickCount
    Sleep, 15
-   SoundPlay("sounds\typingkeysHome.wav", prioritizeBeepers)
+   SndPlay("sounds\typingkeysHome.wav", prioritizeBeepers)
    checkIfSkipAbeep()
 }
 
 OnTypingEndUp() {
    Global lastKeyUpTime := A_TickCount
    Sleep, 15
-   SoundPlay("sounds\typingkeysEnd.wav", prioritizeBeepers)
+   SndPlay("sounds\typingkeysEnd.wav", prioritizeBeepers)
    checkIfSkipAbeep()
 }
 
 OnTypingPgUpUp() {
    Global lastKeyUpTime := A_TickCount
    Sleep, 15
-   SoundPlay("sounds\typingkeysPgUp.wav", prioritizeBeepers)
+   SndPlay("sounds\typingkeysPgUp.wav", prioritizeBeepers)
    checkIfSkipAbeep()
 }
 
 OnTypingPgDnUp() {
    Global lastKeyUpTime := A_TickCount
    Sleep, 15
-   SoundPlay("sounds\typingkeysPgDn.wav", prioritizeBeepers)
+   SndPlay("sounds\typingkeysPgDn.wav", prioritizeBeepers)
    checkIfSkipAbeep()
 }
 
 OnTypingRightUp() {
    Global lastKeyUpTime := A_TickCount
    Sleep, 15
-   SoundPlay("sounds\typingkeysArrowsR.wav", prioritizeBeepers)
+   SndPlay("sounds\typingkeysArrowsR.wav", prioritizeBeepers)
    checkIfSkipAbeep()
 }
 
 OnFunctionKeyUp() {
    Global lastKeyUpTime := A_TickCount
    Sleep, 15
-   SoundPlay("sounds\functionKeys.wav", prioritizeBeepers)
+   SndPlay("sounds\functionKeys.wav", prioritizeBeepers)
    checkIfSkipAbeep()
 }
 
 ONotherDistinctKeysUp() {
    Global lastKeyUpTime := A_TickCount
    Sleep, 15
-   SoundPlay("sounds\otherDistinctKeys.wav", prioritizeBeepers)
+   SndPlay("sounds\otherDistinctKeys.wav", prioritizeBeepers)
    checkIfSkipAbeep()
 }
 
 OnNumpadsGeneralUp() {
    Global lastKeyUpTime := A_TickCount
    Sleep, 15
-   SoundPlay("sounds\numpads.wav", prioritizeBeepers)
+   SndPlay("sounds\numpads.wav", prioritizeBeepers)
    checkIfSkipAbeep()
 }
 
@@ -272,49 +271,49 @@ OnNumpadsDTMFUp() {
    If InStr(A_ThisHotkey, "dot")
       sound2PlayNow := "A"
 
-   SoundPlay("sounds\num" sound2PlayNow "pad.wav", prioritizeBeepers)
+   SndPlay("sounds\num" sound2PlayNow "pad.wav", prioritizeBeepers)
    checkIfSkipAbeep()
 }
 
 OnTypingKeysEnterUp() {
    Global lastKeyUpTime := A_TickCount
    Sleep, 15
-   SoundPlay("sounds\typingkeysEnter.wav", prioritizeBeepers)
+   SndPlay("sounds\typingkeysEnter.wav", prioritizeBeepers)
    checkIfSkipAbeep()
 }
 
 OnTypingKeysDelUp() {
    Global lastKeyUpTime := A_TickCount
    Sleep, 15
-   SoundPlay("sounds\typingkeysDel.wav", prioritizeBeepers)
+   SndPlay("sounds\typingkeysDel.wav", prioritizeBeepers)
    checkIfSkipAbeep()
 }
 
 OnTypingKeysBkspUp() {
    Global lastKeyUpTime := A_TickCount
    Sleep, 15
-   SoundPlay("sounds\typingkeysBksp.wav", prioritizeBeepers)
+   SndPlay("sounds\typingkeysBksp.wav", prioritizeBeepers)
    checkIfSkipAbeep()
 }
 
 OnTypingKeysSpaceUp() {
    Global lastKeyUpTime := A_TickCount
    Sleep, 15
-   SoundPlay("sounds\typingkeysSpace.wav", prioritizeBeepers)
+   SndPlay("sounds\typingkeysSpace.wav", prioritizeBeepers)
    checkIfSkipAbeep()
 }
 
 OnTypingUpUp() {
    Global lastKeyUpTime := A_TickCount
    Sleep, 15
-   SoundPlay("sounds\typingkeysArrowsU.wav", prioritizeBeepers)
+   SndPlay("sounds\typingkeysArrowsU.wav", prioritizeBeepers)
    checkIfSkipAbeep()
 }
 
 OnTypingDnUp() {
    Global lastKeyUpTime := A_TickCount
    Sleep, 15
-   SoundPlay("sounds\typingkeysArrowsD.wav", prioritizeBeepers)
+   SndPlay("sounds\typingkeysArrowsD.wav", prioritizeBeepers)
    checkIfSkipAbeep()
 }
 
@@ -329,19 +328,19 @@ OnModUp() {
 toggleBeeper() {
    Sleep, 15
    If (toggleLastState=1)
-      SoundPlay("sounds\caps.wav", prioritizeBeepers)
+      SndPlay("sounds\caps.wav", prioritizeBeepers)
    Else
-      SoundPlay("sounds\cups.wav", prioritizeBeepers)
+      SndPlay("sounds\cups.wav", prioritizeBeepers)
 }
 
 capsBeeper() {
    Sleep, 15
-   SoundPlay("sounds\caps.wav", prioritizeBeepers)
+   SndPlay("sounds\caps.wav", prioritizeBeepers)
 }
 
 keysBeeper() {
    Sleep, 15
-   SoundPlay("sounds\keys.wav", prioritizeBeepers)
+   SndPlay("sounds\keys.wav", prioritizeBeepers)
 }
 
 volBeeperTimer() {
@@ -352,13 +351,13 @@ volBeeperTimer() {
       Return
    }
    Sleep, 15
-   SoundPlay("sounds\media.wav", prioritizeBeepers)
+   SndPlay("sounds\media.wav", prioritizeBeepers)
    SetTimer, , off
 }
 
 deadKeysBeeper() {
    Critical, on
-   SoundPlay("sounds\deadkeys.wav", 1)
+   SndPlay("sounds\deadkeys.wav", 1)
 }
 
 modsBeeper() {
@@ -366,7 +365,7 @@ modsBeeper() {
    Critical, off
 
    Global lastModPressTime := A_TickCount
-   SoundPlay("sounds\mods.wav", prioritizeBeepers)
+   SndPlay("sounds\mods.wav", prioritizeBeepers)
 }
 
 firedBeeperTimer() {
@@ -386,7 +385,7 @@ firedBeeperTimer() {
       SetTimer, , off
       Return
    }
-   SoundPlay("sounds\firedkey.wav")
+   SndPlay("sounds\firedkey.wav")
    Sleep, 40
    Global LastFiredTime := A_TickCount
    SetTimer, , off
@@ -402,7 +401,7 @@ modfiredBeeperTimer() {
       SetTimer, , off
       Return
    }
-   SoundPlay("sounds\modfiredkey.wav")
+   SndPlay("sounds\modfiredkey.wav")
    Sleep, 40
    Global LastFiredTime := A_TickCount
 
@@ -444,14 +443,14 @@ OnMousePressed() {
     If (MouseBeeper=1 && (A_ThisHotkey ~= "i)(LButton|MButton|RButton)"))
     {
        If (TypingBeepers=1 && InStr(A_ThisHotkey, "RButton"))
-          SoundPlay("sounds\clickR.wav")
+          SndPlay("sounds\clickR.wav")
        Else If (TypingBeepers=1 && InStr(A_ThisHotkey, "MButton"))
-          SoundPlay("sounds\clickM.wav")
+          SndPlay("sounds\clickM.wav")
        Else
-          SoundPlay("sounds\clicks.wav")
+          SndPlay("sounds\clicks.wav")
     } Else If (MouseBeeper=1 && (A_ThisHotkey ~= "i)(WheelDown|WheelUp|WheelLeft|WheelRight)"))
     {
-       SoundPlay("sounds\firedkey.wav")
+       SndPlay("sounds\firedkey.wav")
        Sleep, 40
     }
 
@@ -471,7 +470,7 @@ firingKeys() {
    Thread, Priority, -20
    Critical, off
 
-   SoundPlay("sounds\modfiredkey.wav")
+   SndPlay("sounds\modfiredkey.wav")
    Sleep, 20
 }
 
@@ -479,7 +478,7 @@ holdingKeys() {
    Thread, Priority, -20
    Critical, off
 
-   SoundPlay("sounds\holdingKeys.wav")
+   SndPlay("sounds\holdingKeys.wav")
    Sleep, 20
 }
 
@@ -487,7 +486,7 @@ PlaySoundTest() {
    Thread, Priority, -20
    Critical, off
    Sleep, 50
-   SoundPlay("sounds\keys.wav")
+   SndPlay("sounds\keys.wav")
    Sleep, 50
 }
 
@@ -498,12 +497,12 @@ checkInit() {
 
 ; function by Drugwash:
 ; ===============================
-SoundPlay(snd, wait:=0) {
+SndPlay(snd, wait:=0, noSentry:=0) {
   If (ScriptelSuspendel="Y" || SilentMode=1)
      Return
 
   Static hM := DllCall("kernel32\GetModuleHandleW", "Str", A_ScriptFullPath, "Ptr")
-  f := BeepSentry=1 ? "0x80012" : "0x12"
+  f := (BeepSentry=1 && noSentry=0) ? "0x80012" : "0x12"
   w := wait ? 0 : 0x2001
   If (beepFromRes="Y")
   {
@@ -514,9 +513,15 @@ SoundPlay(snd, wait:=0) {
 	{
 	  hMod := 0, flags := f|w|0x20000
 	}
-
+  SetTimer, sillySoundHack, 1900, 90
   Return DllCall("winmm\PlaySoundW"
 	  , "Str", snd
 	  , "Ptr", hMod
 	  , "UInt", flags)	; SND_RESOURCE|SND_NOWAIT|SND_NOSTOP|SND_NODEFAULT|SND_ASYNC
+}
+
+sillySoundHack() {   ; this helps mitigate issues caused by apps like Team Viewer
+   Sleep, 1
+   SndPlay("sounds\silence.wav", 0, 1)
+   SetTimer,, off
 }
