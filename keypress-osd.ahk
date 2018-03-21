@@ -128,7 +128,7 @@
 ;@Ahk2Exe-SetMainIcon Lib\keypress.ico
 ;@Ahk2Exe-SetName KeyPress OSD v4
 ;@Ahk2Exe-SetDescription KeyPress OSD v4 [mirror keyboard and mouse usage]
-;@Ahk2Exe-SetVersion 4.27.0
+;@Ahk2Exe-SetVersion 4.27.3
 ;@Ahk2Exe-SetCopyright Marius Şucan (2017-2018)
 ;@Ahk2Exe-SetCompanyName ROBODesign.ro
 ;@Ahk2Exe-SetOrigFilename keypress-osd.ahk
@@ -148,6 +148,7 @@
  #MaxThreadsPerHotkey 255
  #MaxThreadsBuffer On
  #WinActivateForce
+ ; #Warn deebug
  ComObjError(false)
  SetTitleMatchMode, 2
  SetBatchLines, -1
@@ -321,8 +322,8 @@
  , SafeModeExec           := 0
 
 ; Release info
- , Version                := "4.27.2"
- , ReleaseDate            := "2018 / 03 / 20"
+ , Version                := "4.27.3"
+ , ReleaseDate            := "2018 / 03 / 21"
  , hMutex, ScriptInitialized
  , KPregEntry := "HKEY_CURRENT_USER\SOFTWARE\KeyPressOSD\v4"
 
@@ -332,10 +333,14 @@
     RegRead, InitCheckReg, %KPregEntry%, Initializing
     If (InitCheckReg="Yes")
     {
+        IniRead, SafeModeExec, %IniFile%, SavedSettings, SafeModeExec, %SafeModeExec%
         RegWrite, REG_SZ, %KPregEntry%, Initializing, No
-        MsgBox, 4,, The app seems to have crashed at start. `nWould you like to run it in Safe Mode?
-        IfMsgBox, Yes
-          ToggleRunSafeMode(1)
+        If (SafeModeExec!=1)
+        {
+           MsgBox, 4,, The app seems to have crashed at start. `nWould you like to run it in Safe Mode?
+           IfMsgBox, Yes
+             ToggleRunSafeMode(1)
+        }
     } Else RegWrite, REG_SZ, %KPregEntry%, Initializing, Yes
 
     CheckIfRunning()
@@ -2005,6 +2010,16 @@ TypedLetter(key,onLatterUp:=0) {
    Return Typed
 }
 
+StartKeystrokesThread() {
+   Static hasInit
+   If (hasInit=1 || !IsKeystrokesFile)
+      Return
+   AlternativeHook2keys := (AltHook2keysUser=1) ? 1 : 0
+   KeyStrokesThread.ahkassign("AlternativeHook2keys", AlternativeHook2keys)
+   KeyStrokesThread.ahkPostFunction["MainLoop"]
+   hasInit := 1
+}
+
 toUnicodeExtended(uVirtKey,uScanCode,shiftPressed:=0,AltGrPressed:=0,wFlags:=0,onLatterUp:=0) {
 ; Many thanks to Helgef for helping me with this function:
 ; https://autohotkey.com/boards/viewtopic.php?f=5&t=41065&p=187582#p187582
@@ -2015,8 +2030,9 @@ toUnicodeExtended(uVirtKey,uScanCode,shiftPressed:=0,AltGrPressed:=0,wFlags:=0,o
 
   If (nsa<=0 && DeadKeys=0 && SecondaryTypingMode=0)
   {
+     StartKeystrokesThread()
      Global DeadKeyPressed := A_TickCount
-     If (DeadKeyBeeper = 1 && ShowSingleKey = 1)
+     If (DeadKeyBeeper=1 && ShowSingleKey=1)
         SoundsThread.ahkPostFunction["OnDeathKeyPressed", ""]
 
      RmDkSymbol := "▪"
@@ -2041,7 +2057,7 @@ toUnicodeExtended(uVirtKey,uScanCode,shiftPressed:=0,AltGrPressed:=0,wFlags:=0,o
 
   If (onLatterUp=1)
   {
-     for modifier, vk in {Shift:0x10, Control:0x11, Alt:0x12}
+     For modifier, vk in {Shift:0x10, Control:0x11, Alt:0x12}
          NumPut(128*(GetKeyState("L" modifier) || GetKeyState("R" modifier)) , lpKeyState, vk, "Uchar")
   }
 
@@ -2615,9 +2631,9 @@ CreateWordPairsFile(WordPairsFile) {
       Return ExpandPairs
 }
 
-InitExpandableWords() {
+InitExpandableWords(ForceIT:=0) {
   Static hasInit
-  If (hasInit=1 && PrefOpen=0)
+  If (hasInit=1 && PrefOpen=0 && ForceIT=0)
      Return
 
   If FileExist(WordPairsFile)
@@ -2636,9 +2652,19 @@ InitExpandableWords() {
     key := lineArr[1]
     value := lineArr[2]
     If (StrLen(key)<2 || StrLen(value)<2 || InStr(key, A_Space))
+    {
+       needsResave := 1
        Continue
+    }
     ExpandWordsList[key] := value
     ExpandWordsListEdit .= key " // " value "`n"
+  }
+  If (needsResave=1)
+  {
+     Sleep, 25
+     FileDelete, %WordPairsFile%
+     Sleep, 25
+     FileAppend, %ExpandWordsListEdit%, %WordPairsFile%, UTF-16
   }
   hasInit := 1
 }
@@ -3512,7 +3538,7 @@ CreateHotkey() {
 
 ; bind to dead keys to show the proper symbol when such a key is pressed
 
-    If ((DeadKeys=1) && (DoNotBindAltGrDeadKeys=0)) || ((DeadKeys=1) && (DoNotBindDeadKeys=0))
+    If (DeadKeys=1 && DoNotBindAltGrDeadKeys=0) || (DeadKeys=1 && DoNotBindDeadKeys=0)
     {
         Loop, Parse, DKaltGR_list, .
         {
@@ -5314,7 +5340,13 @@ QuickSettingsMenu() {
     Menu, QuickMenu, Add, L&arge UI fonts, QuickToggleLargeFonts
     Menu, QuickMenu, Add, S&ilent mode, ToggleSilence
     Menu, QuickMenu, Add, Sta&rt at boot, SetStartUp
-    Menu, QuickMenu, Add, R&un in Admin Mode, RunAdminMode
+    If !A_IsAdmin
+       Menu, QuickMenu, Add, R&un in Admin Mode, RunAdminMode
+    If (SafeModeExec=1)
+    {
+       Menu, QuickMenu, Add, Ru&n in Safe Mode, ToggleRunSafeMode
+       Menu, QuickMenu, Check, Ru&n in Safe Mode
+    }
     Menu, QuickMenu, Add
     UpdateInfo := checkUpdateExistsAbout()
     If UpdateInfo
@@ -5322,16 +5354,14 @@ QuickSettingsMenu() {
     Menu, QuickMenu, Add, &Help, HelpFAQstarter
     Menu, QuickMenu, Add, &About, AboutWindow
     Menu, QuickMenu, Add
-    Menu, QuickMenu, Add, Prefere&nces, :QuickPrefsMenu
+    Menu, QuickMenu, Add, &Quick start presets, PresetsWindow
+    Menu, QuickMenu, Add, Prefere&nces, OpenLastWindow
 
     If (MouseOSDbehavior=3)
        Menu, QuickMenu, Check, &Allow OSD drag
 
     If !A_IsSuspended
        Menu, QuickMenu, Check, &KeyPress activated
-
-    If A_IsAdmin
-       Menu, QuickMenu, Delete, R&un in Admin Mode
 
     RegRead, currentReg, HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows\CurrentVersion\Run, KeyPressOSD
     If StrLen(currentReg)>5
@@ -5367,16 +5397,12 @@ QuickMenuPrefPanels() {
     If (hasInit=1)
        Return
 
-    Menu, QuickPrefsMenu, Add, &Quick start presets, PresetsWindow
-    Menu, QuickPrefsMenu, Add
     Menu, QuickPrefsMenu, Add, &Keyboard, ShowKBDsettings
     Menu, QuickPrefsMenu, Add, &Typing mode, ShowTypeSettings
     Menu, QuickPrefsMenu, Add, &Sounds, ShowSoundsSettings
     Menu, QuickPrefsMenu, Add, &Mouse, ShowMouseSettings
     Menu, QuickPrefsMenu, Add, &OSD appearance, ShowOSDsettings
     Menu, QuickPrefsMenu, Add, &Global shortcuts, ShowShortCutsSettings
-    Menu, QuickPrefsMenu, Add 
-    Menu, QuickPrefsMenu, Add, R&estore defaults, DeleteSettings
 
     If (!IsSoundsFile || MissingAudios=1 || SafeModeExec=1)     ; keypress-beeperz-functions.ahk
        Menu, QuickPrefsMenu, Delete, &Sounds
@@ -5508,14 +5534,20 @@ ToggleRunSafeMode(quickMode:=0) {
     ConstantAutoDetect := 0
     ClipMonitor := 0
     EnableClipManager := 0
+    IniWrite, %SafeModeExec%, %IniFile%, SavedSettings, SafeModeExec
     IniWrite, %AutoDetectKBD%, %IniFile%, SavedSettings, AutoDetectKBD
     IniWrite, %ConstantAutoDetect%, %IniFile%, SavedSettings, ConstantAutoDetect
     IniWrite, %ClipMonitor%, %IniFile%, ClipboardManager, ClipMonitor
     IniWrite, %EnableClipManager%, %IniFile%, ClipboardManager, EnableClipManager
-    IniWrite, %SafeModeExec%, %IniFile%, SavedSettings, SafeModeExec
-    Sleep, 25
+    Sleep, 50
     If (quickMode=1)
+    {
+       Cleanup()
+       Sleep, 50
        Reload
+       Sleep, 50
+       ExitApp
+    }
     Sleep, 25
     ReloadScriptNow()
 }
@@ -5602,7 +5634,13 @@ ReloadScript(silent:=1) {
     Thread, Priority, 50
     Critical, On
     If (ScriptInitialized!=1)
+    {
+       Cleanup()
+       Sleep, 25
        Reload
+       Sleep, 50
+       ExitApp
+    }
     If (PrefOpen=1)
     {
        CloseSettings()
@@ -5921,6 +5959,24 @@ SwitchPreferences(forceReopenSame:=0) {
     }
 }
 
+OpenLastWindow() {
+    RegRead, win2open, %KPregEntry%, LastOpen
+    If (win2open=1)
+       ShowKBDsettings()
+    Else If (win2open=2)
+       ShowTypeSettings()
+    Else If (win2open=3)
+       ShowSoundsSettings()
+    Else If (win2open=4)
+       ShowMouseSettings()
+    Else If (win2open=5)
+       ShowOSDsettings()
+    Else If (win2open=6)
+       ShowShortCutsSettings()
+    Else
+       Menu, QuickPrefsMenu, Show
+}
+
 ApplySettings() {
     Gui, SettingsGUIA: Submit, NoHide
     CheckSettings()
@@ -5931,6 +5987,7 @@ ApplySettings() {
     }
     PrefOpen := 0
     RegWrite, REG_SZ, %KPregEntry%, PrefOpen, %PrefOpen%
+    RegWrite, REG_SZ, %KPregEntry%, LastOpen, %CurrentPrefWindow%
     SaveSettings()
     Sleep, 100
     ReloadScript()
@@ -5957,6 +6014,7 @@ CloseSettings() {
    {
       PrefOpen := 0
       RegWrite, REG_SZ, %KPregEntry%, PrefOpen, %PrefOpen%
+      RegWrite, REG_SZ, %KPregEntry%, LastOpen, %CurrentPrefWindow%
       Sleep, 25
       CloseWindow()
       SuspendScript()
@@ -5964,6 +6022,7 @@ CloseSettings() {
    }
    PrefOpen := 0
    RegWrite, REG_SZ, %KPregEntry%, PrefOpen, %PrefOpen%
+   RegWrite, REG_SZ, %KPregEntry%, LastOpen, %CurrentPrefWindow%
    Sleep, 100
    CloseWindow()
    ReloadScript()
@@ -6005,7 +6064,10 @@ SaveWordPairsNow() {
   ExpandWordsListEdit := ""
   GuiControlGet, ExpandWordsListEdit
   FileAppend, %ExpandWordsListEdit%, %WordPairsFile%, UTF-16
+  ExpandWordsListEdit := ""
+  InitExpandableWords(1)
   GuiControl, Disable, SaveWordPairsBTN
+  GuiControl, , ExpandWordsListEdit, %ExpandWordsListEdit%
   VerifyTypeOptions()
 }
 
@@ -6019,7 +6081,8 @@ ShowTypeSettings() {
     If (doNotOpen=1)
        Return
 
-    deadKstatus := (DeadKeys=1) ? "Dead keys present." : "No dead keys detected."
+    deadKstatus := (DeadKeys=1 && AutoDetectKBD=1) ? "Dead keys present." : "No dead keys detected."
+    deadKstatus := (AutoDetectKBD=1) ? deadKstatus : ""
     Global CurrentPrefWindow := 2
     Global editF1, editF2, editF3, editF4, SaveWordPairsBTN, DefaultWordPairsBTN, OpenWordPairsBTN
     txtWid := 350
@@ -6072,7 +6135,7 @@ ShowTypeSettings() {
     If (AutoDetectKBD=0)
     {
        Gui, Add, Text, y+8 w%txtWid%, WARNING: Automatic keyboard layout detection is deactivated. For dead keys support, please enable it.
-       Gui, Add, Checkbox, xp+15 y+8 gVerifyKeybdOptions Checked%AutoDetectKBD% vAutoDetectKBD, Detect keyboard layout at start
+       Gui, Add, Checkbox, xp+15 y+8 Checked%AutoDetectKBD% vAutoDetectKBD, Detect keyboard layout at start
     }
     Gui, Font, Normal
 
@@ -6470,12 +6533,12 @@ ShowShortCutsSettings() {
     Gui, Add, Button, x+8 wp hp gCloseSettings vCancelBTN, C&ancel
     Gui, Add, DropDownList, x+8 AltSubmit gSwitchPreferences choose%CurrentPrefWindow% vCurrentPrefWindow , Keyboard|Typing mode|Sounds|Mouse|Appearance|Shortcuts
     Gui, Show, AutoSize, Global shortcuts: KeyPress OSD
-    GenerateHotkeyStrS()
     verifySettingsWindowSize()
     VerifyShortcutOptions(0)
+    ProcessComboKBD(0)
 }
 
-GenerateHotkeyStrS() {
+GenerateHotkeyStrS(enableApply:=1) {
   GuiControlGet, ApplySettingsBTN
 
   kW1 := "disa"
@@ -6503,47 +6566,64 @@ GenerateHotkeyStrS() {
         %A_LoopField% := kWb
   }
 
+  keywords := "i)(disa|resto)"
   KBDsTestDuplicate := KBDaltTypeMode "&" KBDpasteOSDcnt1 "&" KBDpasteOSDcnt2 "&" KBDsynchApp1 "&" KBDsynchApp2 "&" KBDTglNeverOSD "&" KBDTglPosition "&" KBDTglSilence "&" KBDidLangNow "&" KBDCapText "&" KBDReload "&" KBDsuspend "&" KBDclippyMenu
-  disableds := st_count(KBDsTestDuplicate, "disable")>0 ? st_count(KBDsTestDuplicate, "disable") - 1 : 0
-  restores := st_count(KBDsTestDuplicate, "restore")>0 ? st_count(KBDsTestDuplicate, "restore") - 1 : 0
-  expectedNumerber := 13 - disableds - restores
-  Sort, KBDsTestDuplicate, U D&
-  Loop, Parse, KBDsTestDuplicate, &
-      countKBDs++
-  If (countKBDs<expectedNumerber)
+  For each, kbd2test in StrSplit(KBDsTestDuplicate, "&")
   {
+      countDuplicate := 0
+      Loop, Parse, KBDsTestDuplicate, &
+      {
+          If RegExMatch(A_LoopField, keywords)
+             Continue
+          If (kbd2test=A_LoopField)
+             countDuplicate++
+      }
+      If countDuplicate>1
+         disableButtons := 1
+  }
+
+  If (disableButtons=1)
+  {
+     ToolTip, Duplicate keyboard shorcuts...
      SoundBeep
      GuiControl, Disable, ApplySettingsBTN
      GuiControl, Disable, CurrentPrefWindow
      GuiControl, Disable, CancelBTN
+     SetTimer, DupeHotkeysToolTipDummy, 1500
   } Else
   {
-     GuiControl, Enable, ApplySettingsBTN
+     GuiControl, % (!enableApply ? "Disable" : "Enable"), ApplySettingsBTN
      GuiControl, Enable, CurrentPrefWindow
      GuiControl, Enable, CancelBTN
   }
 }
 
-ProcessComboKBD() {
+DupeHotkeysToolTipDummy() {
+  ToolTip
+  SetTimer,, off
+}
+
+ProcessComboKBD(enableApply:=1) {
   forbiddenChars := "(\~|\!|\+|\^|\#|\$|\<|\>|\&)"
-  keywords := "i)(disa|resto|\s|\[\[|\]\])"
+  keywords := "i)(\(.|^([\p{Z}\p{P}\p{S}\p{C}\p{N}].)|disa|resto|\s|\[\[|\]\])"
   GuiControlGet, activeCtrl, FocusV
   Loop, Parse, GlobalKBDsList, CSV
   {
       GuiControlGet, CbEdit%A_LoopField%,, Combo%A_LoopField%
       If RegExMatch(CbEdit%A_LoopField%, forbiddenChars)
          GuiControl,, Combo%A_LoopField%, | %KeysComboList%
+      If RegExMatch(CbEdit%A_LoopField%, keywords)
+         SwitchStateKBDbtn(A_LoopField, 0, 0)
   }
-  /*
+
   StringReplace, activeCtrl, activeCtrl, ComboK, K
-  ToolTip, %activeCtrl%
-  If RegExMatch(CbEdit%activeCtrl%, keywords) || StrLen(CbEdit%activeCtrl%)<1
-     SwitchStateKBDbtn(%activeCtrl%, 0, 0)
+  If (RegExMatch(CbEdit%activeCtrl%, keywords) || StrLen(CbEdit%activeCtrl%)<1)
+     SwitchStateKBDbtn(activeCtrl, 0, 0)
   Else
-     SwitchStateKBDbtn(%activeCtrl%, 1, 0)
-*/
-  GuiControl, Enable, ApplySettingsBTN
-  GenerateHotkeyStrS()
+     SwitchStateKBDbtn(activeCtrl, 1, 0)
+  
+  GuiControl, % (!enableApply ? "Disable" : "Enable"), ApplySettingsBTN
+  GenerateHotkeyStrS(enableApply)
 }
 
 ProcessChoiceKBD(strg) {
@@ -6647,6 +6727,7 @@ VerifyShortcutOptions(enableApply:=1) {
 
     If (A_OSVersion="WIN_XP")
        SwitchStateKBDbtn("KBDCapText", 0)
+    ProcessComboKBD()
 }
 
 PresetsWindow() {
@@ -7503,6 +7584,7 @@ SendVarsMouseAHKthread(initMode) {
 
 SendVarsSoundsAHKthread() {
    SoundsThread.ahkassign("beepFiringKeys", beepFiringKeys)
+   SoundsThread.ahkassign("BeepSentry", BeepSentry)
    SoundsThread.ahkassign("CapslockBeeper", CapslockBeeper)
    SoundsThread.ahkassign("DTMFbeepers", DTMFbeepers)
    SoundsThread.ahkassign("KeyBeeper", KeyBeeper)
@@ -8459,44 +8541,9 @@ VerifyNonCrucialFiles() {
     presentationHtml := "Lib\help\presentation.html"
     shortcutsHtml := "Lib\help\shortcuts.html"
     featuresHtml := "Lib\help\features.html"
-    soundFile1 := "sounds\caps.wav"
-    soundFile2 := "sounds\clickM.wav"
-    soundFile3 := "sounds\clickR.wav"
-    soundFile4 := "sounds\clicks.wav"
-    soundFile5 := "sounds\cups.wav"
-    soundFile6 := "sounds\deadkeys.wav"
-    soundFile7 := "sounds\firedkey.wav"
-    soundFile8 := "sounds\functionKeys.wav"
-    soundFile9 := "sounds\holdingKeys.wav"
-    soundFile10 := "sounds\keys.wav"
-    soundFile11 := "sounds\media.wav"
-    soundFile12 := "sounds\modfiredkey.wav"
-    soundFile13 := "sounds\mods.wav"
-    soundFile14 := "sounds\num0pad.wav"
-    soundFile15 := "sounds\num1pad.wav"
-    soundFile16 := "sounds\num2pad.wav"
-    soundFile17 := "sounds\num3pad.wav"
-    soundFile18 := "sounds\num4pad.wav"
-    soundFile19 := "sounds\num5pad.wav"
-    soundFile20 := "sounds\num6pad.wav"
-    soundFile21 := "sounds\num7pad.wav"
-    soundFile22 := "sounds\num8pad.wav"
-    soundFile23 := "sounds\num9pad.wav"
-    soundFile24 := "sounds\numApad.wav"
-    soundFile25 := "sounds\numpads.wav"
-    soundFile26 := "sounds\otherDistinctKeys.wav"
-    soundFile27 := "sounds\typingkeysArrowsD.wav"
-    soundFile28 := "sounds\typingkeysArrowsL.wav"
-    soundFile29 := "sounds\typingkeysArrowsR.wav"
-    soundFile30 := "sounds\typingkeysArrowsU.wav"
-    soundFile31 := "sounds\typingkeysBksp.wav"
-    soundFile32 := "sounds\typingkeysDel.wav"
-    soundFile33 := "sounds\typingkeysEnd.wav"
-    soundFile34 := "sounds\typingkeysEnter.wav"
-    soundFile35 := "sounds\typingkeysHome.wav"
-    soundFile36 := "sounds\typingkeysPgDn.wav"
-    soundFile37 := "sounds\typingkeysPgUp.wav"
-    soundFile38 := "sounds\typingkeysSpace.wav"
+    sndFiles := "silence,caps,clickM,clickR,clicks,cups,deadkeys,firedkey,functionKeys,holdingKeys,keys,media,modfiredkey,mods,num0pad,num1pad,num2pad,num3pad,num4pad,num5pad,num6pad,num7pad,num8pad,num9pad,numApad,numpads,otherDistinctKeys,typingkeysArrowsD,typingkeysArrowsL,typingkeysArrowsR,typingkeysArrowsU,typingkeysBksp,typingkeysDel,typingkeysEnd,typingkeysEnter,typingkeysHome,typingkeysPgDn,typingkeysPgUp,typingkeysSpace"
+    Loop, Parse, sndFiles, CSV
+        soundFile%A_Index% := "sounds\" A_LoopField ".wav"
 
     FilePack := "DeadKeysAidFile,beepersFile,ripplesFile,mouseFile,historyFile,faqHtml,presentationHtml,shortcutsHtml,featuresHtml"
     IniRead, VerifyNonCrucialFilesRan, %IniFile%, TempSettings, VerifyNonCrucialFilesRan, 0
@@ -8526,7 +8573,7 @@ VerifyNonCrucialFiles() {
     MissingAudios := 0
     If !A_IsCompiled
     {
-      Loop, 38
+      Loop, 39
       {
         If !FileExist(soundFile%A_Index%)
            downloadSoundPackNow := MissingAudios := 1
@@ -8617,7 +8664,7 @@ VerifyNonCrucialFiles() {
     }
     MissingAudios := 0
     If !A_isCompiled
-       Loop, 38
+       Loop, 39
        {
          If !FileExist(soundFile%A_Index%)
             downloadSoundPackNow := MissingAudios := 1

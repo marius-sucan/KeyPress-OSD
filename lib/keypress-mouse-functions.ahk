@@ -74,15 +74,12 @@ MouseInit() {
 
     If (ShowMouseHalo=1)
        SetTimer, MouseHalo, 40, 0
-    Else Gui, MouseH: Hide
 
     If (ShowMouseIdle=1)
        SetTimer, ShowMouseIdleLocation, 300, 0
-    Else Gui, MouseIdlah: Hide
 
     If (ShowCaretHalo=1)
        SetTimer, CaretHalo, 70, -50
-    Else Gui, CaretH: Hide
 
     If (ShowMouseVclick=1)
     {
@@ -91,13 +88,6 @@ MouseInit() {
              Hotkey, % "~*" A_LoopField, OnMousePressed, On UseErrorLevel
        Loop, parse, Wheels, |
              Hotkey, % "~*" A_LoopField, OnKeyPressed, On UseErrorLevel
-    } Else
-    {
-       Loop, Parse, MButtons, |
-             Hotkey, % "~*" A_LoopField, OnMousePressed, Off UseErrorLevel
-       Loop, Parse, Wheels, |
-             Hotkey, % "~*" A_LoopField, OnKeyPressed, Off UseErrorLevel
-       Gui, Mouser: Hide
     }
 }
 
@@ -358,9 +348,9 @@ CaretHalo(restartNow:=0) {
 ;       CaretW := NumGet(GTI, 16+6*A_PtrSize, "Int")-NumGet(GTI, 8+6*A_PtrSize, "Int")
        CaretHeight := NumGet(GTI, 20+6*A_PtrSize, "Int")-NumGet(GTI, 12+6*A_PtrSize, "Int")
        CaretHeight := CaretHeight>10 ? CaretHeight : 10
-       CaretHaloW := (CaretHaloWidth>15) ? CaretHaloWidth : 10
+       CaretHaloW := (CaretHaloWidth>10) ? CaretHaloWidth : 10
        CaretHaloH := (CaretHaloMode=1) ? CaretHaloHeight : CaretHeight+2*CaretHaloThick+10
-       mX := !A_CaretX ? 2 : A_CaretX - CaretHaloW/2 + 1
+       mX := !A_CaretX ? 2 : A_CaretX - Round(CaretHaloW/2 + 1)
        mY := !A_CaretY ? 2 : Round(A_CaretY + CaretHeight/2 - CaretHaloH/2 + 1)
        mX := !mX ? 2 : mX
        mY := !mY ? 2 : mY
@@ -419,7 +409,6 @@ ToggleMouseTimerz(force:=0) {
         Loop, Parse, Wheels, |
           Hotkey, % "~*" A_LoopField, Off
       }
-
       Gui, MouseIdlah: Hide
       Gui, MouseH: Hide
       Gui, CaretH: Hide
@@ -443,6 +432,7 @@ ToggleMouseTimerz(force:=0) {
       }
     }
 }
+
 ;================================================================
 ; by Drugwash: EVER HEARD OF M.C.HAMMER? DON'T TOUCH THIS !
 ;================================================================
@@ -519,3 +509,4 @@ HaloRegion5(hwnd, x:=0, y:=0, w:=0, h:=0, t:=0) {
 
    Return DllCall("user32\SetWindowRgn", "Ptr", hwnd, "Ptr", hR1, "UInt", 1)
 }
+
