@@ -11,11 +11,16 @@ http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip
 
 by Marius Sucan (robodesign.ro)
 
+  v4.27.4 (2018-03-23)
+  - more work on the code
+  - minor fixes and changes
+
   v4.27.3 (2018-03-21)
   - [improvement] proper duplicate hotkeys detection at the Global Shortcuts panel...
   - the alternative hook no longer runs in background if no dead keys detected
   - the auto-replace text area now updates itself on save
-  - fixed sound issues through team viewer; sounds were never stopping
+  - partially fixed sound issues through team viewer; sounds were never stopping
+  - other minor fixes
 
   v4.27.2 (2018-03-20)
   - reduced the code by 7-8 kb, by making the CheckSettings() function more compact
@@ -875,19 +880,14 @@ Features to implement:
 - sort *caps.
 - safer defaults?
 - test slow VM; laptop, pc
-- redo x32 compiled in XP, VM
 
 - elimină iniWrite for clipboard manager? then make ID per install
- - simplify about window
+ - warnings. debugger?
  - reparații la mouse ripples; thickness vs size; wheel up/down frequency mess-up
- - adjust main column, kbds window; fixed size
  - adjust caret halo height based on the function provided by Dragoș
  - typing in edit fields, trigger updates; [wrapper]
 
 - Drugwash: Fix ripples. New caret halo routine?
-- keyStrokes Helper: does it get turned off? wox launcher
-
-- warnings. debugger?
 
 - capture text to-do:
   - wm-getobject, send message [chrome]
