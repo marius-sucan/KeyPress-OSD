@@ -83,7 +83,7 @@ CreateHotkey() {
         }
 
         Otherkeys := "XButton1|XButton2|Browser_Forward|Browser_Back|Browser_Refresh|Browser_Stop|Browser_Search|Browser_Favorites|Browser_Home|Launch_Mail|Launch_Media|Launch_App1|Launch_App2|Help|Sleep|PrintScreen|CtrlBreak|Break|AppsKey|Tab|Enter|Esc"
-                   . "|Left|Right|Down|Up|End|Home|PgUp|PgDn|Space|Del|BackSpace|Insert|CapsLock|ScrollLock|NumLock|Pause|Volume_Mute|Volume_Down|Volume_Up|Media_Next|Media_Prev|Media_Stop|Media_Play_Pausesc146|sc123"
+                   . "|Left|Right|Down|Up|End|Home|PgUp|PgDn|Space|Del|BackSpace|Insert|CapsLock|ScrollLock|NumLock|Pause|Volume_Mute|Volume_Down|Volume_Up|Media_Next|Media_Prev|Media_Stop|Media_Play_Pause|sc146|sc123"
         Loop, Parse, Otherkeys, |
         {
             Hotkey, % "~*" A_LoopField, OnKeyPressed, useErrorLevel
@@ -131,7 +131,7 @@ CreateHotkey() {
         Loop, Parse, Enterz, |
             Hotkey, % "~*" A_LoopField " Up", OnTypingKeysEnterUp, useErrorLevel
         Loop, Parse, OtherTypingKeysz, |
-            Hotkey, % "~*" A_LoopField " Up", ONotherDistinctKeysUp, useErrorLevel
+            Hotkey, % "~*" A_LoopField " Up", OnOtherDistinctKeysUp, useErrorLevel
 
         MediaKeys := "Volume_Mute|Volume_Down|Volume_Up|Media_Next|Media_Prev|Media_Stop|Media_Play_Pause"
         Loop, Parse, MediaKeys, |
@@ -249,7 +249,7 @@ OnFunctionKeyUp() {
    checkIfSkipAbeep()
 }
 
-ONotherDistinctKeysUp() {
+OnOtherDistinctKeysUp() {
    Global lastKeyUpTime := A_TickCount
    Sleep, 15
    SndPlay("sounds\otherDistinctKeys.wav", prioritizeBeepers)
