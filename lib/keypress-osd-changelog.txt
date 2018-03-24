@@ -11,7 +11,12 @@ http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip
 
 by Marius Sucan (robodesign.ro)
 
+  v4.27.5 (2018-03-24)
+  - minor fixes
+  
   v4.27.4 (2018-03-23)
+  - improved Safe Mode
+  - it now remembers last opened window and tab
   - more work on the code
   - minor fixes and changes
 
@@ -880,6 +885,8 @@ Features to implement:
 - sort *caps.
 - safer defaults?
 - test slow VM; laptop, pc
+
+- Kill switch. On click exit. Force exit. 
 
 - elimină iniWrite for clipboard manager? then make ID per install
  - warnings. debugger?

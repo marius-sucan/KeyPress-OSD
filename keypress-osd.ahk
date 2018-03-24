@@ -132,7 +132,7 @@
 ;@Ahk2Exe-SetMainIcon Lib\keypress.ico
 ;@Ahk2Exe-SetName KeyPress OSD v4
 ;@Ahk2Exe-SetDescription KeyPress OSD v4 [mirror keyboard and mouse usage]
-;@Ahk2Exe-SetVersion 4.27.3
+;@Ahk2Exe-SetVersion 4.27.5
 ;@Ahk2Exe-SetCopyright Marius Şucan (2017-2018)
 ;@Ahk2Exe-SetCompanyName ROBODesign.ro
 ;@Ahk2Exe-SetOrigFilename keypress-osd.ahk
@@ -322,8 +322,8 @@
  , SafeModeExec           := 0
 
 ; Release info
- , Version                := "4.27.4"
- , ReleaseDate            := "2018 / 03 / 23"
+ , Version                := "4.27.5"
+ , ReleaseDate            := "2018 / 03 / 24"
  , hMutex, ScriptInitialized
  , KPregEntry := "HKEY_CURRENT_USER\SOFTWARE\KeyPressOSD\v4"
 
@@ -364,7 +364,7 @@
         ConstantAutoDetect := 0
         ClipMonitor := 0
         EnableClipManager := 0
-        TrayTip, KeyPress OSD, Stared in Safe mode, 5
+        TrayTip, KeyPress OSD, Started in Safe mode due to crashes, 5
     } Else RegWrite, REG_SZ, %KPregEntry%, Initializing, Yes
 
     CheckIfRunning()
@@ -2030,6 +2030,7 @@ TypedLetter(key,onLatterUp:=0) {
    Return Typed
 }
 
+
 StartKeystrokesThread() {
    Static hasInit
    If (hasInit=1 || !IsKeystrokesFile)
@@ -2589,13 +2590,7 @@ textClipboard2OSD(toPaste) {
     SetTimer, HideGUI, % -DisplayTimeTyping
 }
 
-ExpandFeatureFunction() {
-  If (LastMatchedExpandPair="!") || (A_TickCount-DoNotRepeatTimer < 900)
-  {
-     LastMatchedExpandPair := ""
-     Return
-  }
-  LastMatchedExpandPair := ""
+MatchProxyWord() {
   TypedTrim := SubStr(Typed, CaretPos)
   StringReplace, TypedTrim2, Typed, %TypedTrim%
   If InStr(TypedTrim2, A_Space)
@@ -2603,21 +2598,32 @@ ExpandFeatureFunction() {
      TypedTrim3 := SubStr(TypedTrim2, InStr(TypedTrim2, A_Space,, -1))
      StringReplace, TypedTrim3, TypedTrim3, %A_Space%
   } Else (TypedTrim3 := TypedTrim2)
+  Return TypedTrim3
+}
 
-  If ExpandWordsList[TypedTrim3] && (A_TickCount-LastTypedSince < NoExpandAfter)
+ExpandFeatureFunction() {
+  If (LastMatchedExpandPair="!") || (A_TickCount-DoNotRepeatTimer < 900)
   {
-     StringReplace, Typed, Typed, %TypedTrim3%%A_Space%%Lola%, % ExpandWordsList[TypedTrim3] Lola
+     LastMatchedExpandPair := ""
+     Return
+  }
+  LastMatchedExpandPair := ""
+  UserTypedWord := MatchProxyWord()
+
+  If ExpandWordsList[UserTypedWord] && (A_TickCount-LastTypedSince < NoExpandAfter)
+  {
+     StringReplace, Typed, Typed, %UserTypedWord%%A_Space%%Lola%, % ExpandWordsList[UserTypedWord] Lola
      StringGetPos, CaretPos, Typed, %Lola%
-     times2pressKey := StrLen(TypedTrim3) + 1
+     times2pressKey := StrLen(UserTypedWord) + 1
      DoNotRepeatTimer := A_TickCount
      If (SecondaryTypingMode!=1)
      {
         SendInput, {BackSpace %times2pressKey% }
         Sleep, 25
-        Text2Send := ExpandWordsList[TypedTrim3]
+        Text2Send := ExpandWordsList[UserTypedWord]
         SendInput, {text}%Text2Send%
      }
-     LastMatchedExpandPair := TypedTrim3 " // " ExpandWordsList[TypedTrim3]
+     LastMatchedExpandPair := UserTypedWord " // " ExpandWordsList[UserTypedWord]
   }
 }
 
@@ -2664,7 +2670,7 @@ InitExpandableWords(ForceIT:=0) {
      Return
 
   If FileExist(WordPairsFile)
-     FileRead, ExpandPairs, %WordPairsFile%
+     Try FileRead, ExpandPairs, %WordPairsFile%
   Else
      ExpandPairs := CreateWordPairsFile(WordPairsFile)
 
@@ -4903,12 +4909,12 @@ PasteSelectedClippy() {
   StringLeft, ReadThisFile, A_ThisMenuItem, 2
   Global DoNotRepeatTimer := A_TickCount
   FileGetSize, FileSize, ClipsSaved\clip%readThisFile%.clp, M
-  FileRead, Clipboard, *c ClipsSaved\clip%ReadThisFile%.clp
+  Try FileRead, Clipboard, *c ClipsSaved\clip%ReadThisFile%.clp
   If ErrorLevel
   {
      Sleep, 50
      FileGetSize, FileSize, ClipsSaved\clip%readThisFile%.ctx, M
-     FileRead, ClipData, ClipsSaved\clip%readThisFile%.ctx
+     Try FileRead, ClipData, ClipsSaved\clip%readThisFile%.ctx
      Clipboard := ClipData
      TxtMode := 1
   }
@@ -5013,7 +5019,7 @@ CreateGlobalShortcuts() {
     {
        KBDTglNeverOSD := RegisterGlobalShortcuts(KBDTglNeverOSD,"ToggleNeverDisplay", "!+^F8")
        KBDTglPosition := RegisterGlobalShortcuts(KBDTglPosition,"TogglePosition", "!+^F9")
-       If (IsSoundsFile && missingAudios=0 && SafeModeExec=0 && NoAhkH!=1)
+       If (IsSoundsFile && MissingAudios=0 && SafeModeExec=0 && NoAhkH!=1)
           KBDTglSilence := RegisterGlobalShortcuts(KBDTglSilence,"ToggleSilence", "!+^F10")
        KBDidLangNow := RegisterGlobalShortcuts(KBDidLangNow,"DetectLangNow", "!+^F11")
        KBDReload := RegisterGlobalShortcuts(KBDReload,"ReloadScriptNow", "!+^F12")
@@ -5247,7 +5253,7 @@ ToggleNeverDisplay() {
    NeverDisplayOSD := !NeverDisplayOSD
    Save2INI("NeverDisplayOSD", "OSDprefs")
    Menu, Tray, % (NeverDisplayOSD=0 ? "Uncheck" : "Check"), &Do not show the OSD
-   ShowLongMsg("Do not display the OSD = " NeverDisplayOSD)
+   ShowLongMsg("Hide OSD = " NeverDisplayOSD)
    SetTimer, HideGUI, % -DisplayTime/2
 }
 
@@ -5637,10 +5643,7 @@ ToggleOSDdragMode() {
 }
 
 QuickToggleLargeFonts() {
-    PrefsLargeFonts := !PrefsLargeFonts
-    Save2INI("PrefsLargeFonts", "SavedSettings")
-    Menu, PrefsMenu, % (PrefsLargeFonts=0 ? "Uncheck" : "Check"), L&arge UI fonts
-    Sleep, 200
+    ToggleLargeFonts()
     InstalledKBDsWindow()
 }
 
@@ -5812,8 +5815,8 @@ DeleteSettings() {
        FileSetAttrib, -R, %LangFile%
        FileDelete, %IniFile%
        FileDelete, %LangFile%
-       VerifyNonCrucialFilesRan := 2
-       IniWrite, %VerifyNonCrucialFilesRan%, %IniFile%, TempSettings, VerifyNonCrucialFilesRan
+       checkFilesRan := 2
+       IniWrite, %checkFilesRan%, %IniFile%, TempSettings, checkFilesRan
        ReloadScriptNow()
     }
 }
@@ -5824,12 +5827,8 @@ KillScript(showMSG:=1) {
    If (ScriptInitialized!=1)
       ExitApp
 
-   If (PrefOpen=1)
-   {
-      CloseSettings()
-      Return
-   }
-
+   PrefOpen := 0
+   RegWrite, REG_SZ, %KPregEntry%, PrefOpen, %PrefOpen%
    If (FileExist(ThisFile) && showMSG)
    {
       SaveSettings()
@@ -6003,7 +6002,8 @@ ApplySettings() {
     PrefOpen := 0
     RegWrite, REG_SZ, %KPregEntry%, PrefOpen, %PrefOpen%
     RegWrite, REG_SZ, %KPregEntry%, LastOpen, %CurrentPrefWindow%
-    RegWrite, REG_SZ, %KPregEntry%, Window%CurrentPrefWindow%, %CurrentTab%
+    If CurrentTab
+       RegWrite, REG_SZ, %KPregEntry%, Window%CurrentPrefWindow%, %CurrentTab%
     SaveSettings()
     Sleep, 100
     ReloadScript()
@@ -6028,9 +6028,10 @@ CloseSettings() {
    GuiControlGet, ApplySettingsBTN, Enabled
    GuiControlGet, CurrentTab
    PrefOpen := 0
-   RegWrite, REG_SZ, %KPregEntry%, Window%CurrentPrefWindow%, %CurrentTab%
    RegWrite, REG_SZ, %KPregEntry%, PrefOpen, %PrefOpen%
    RegWrite, REG_SZ, %KPregEntry%, LastOpen, %CurrentPrefWindow%
+   If CurrentTab
+      RegWrite, REG_SZ, %KPregEntry%, Window%CurrentPrefWindow%, %CurrentTab%
    CloseWindow()
    If (ApplySettingsBTN=0)
    {
@@ -6733,7 +6734,7 @@ VerifyShortcutOptions(enableApply:=1) {
        SwitchStateKBDbtn("KBDsynchApp2", 0)
     }
 
-    If (missingAudios=1 || SafeModeExec=1 || NoAhkH=1)
+    If (MissingAudios=1 || SafeModeExec=1 || NoAhkH=1)
        SwitchStateKBDbtn("KBDTglSilence", 0)
 
     If (A_OSVersion="WIN_XP")
@@ -6753,12 +6754,12 @@ PresetsWindow() {
     If (PrefsLargeFonts=1)
        Gui, Font, s%LargeUIfontValue%
     Gui, Add, Text, x15 y15, Choose the preset based on `nwhat you would like to use KeyPress for.
-    If (NoAhkH!=1 && SafeModeExec!=1 && IsSoundsFile && IsMouseFile && missingAudios!=1)
+    If (NoAhkH!=1 && SafeModeExec!=1 && IsSoundsFile && IsMouseFile && MissingAudios!=1)
        Gui, Add, DropDownList, y+7 wp+110 gVerifyPresetOptions AltSubmit vPresetChosen, [ Presets list ] ||Screen casts / presentations|Typing mode only|Mixed mode|Only beep on key presses [anything else deactivated]|Mouse features only [anything else deactivated]
     Else
        Gui, Add, DropDownList, y+7 wp+110 gVerifyPresetOptions AltSubmit vPresetChosen, [ Presets list ] ||Screen casts / presentations|Typing mode only|Mixed mode
     Gui, Add, Checkbox, y+7 gVerifyPresetOptions Checked%OutputOSDtoToolTip% vOutputOSDtoToolTip, Show the OSD as a mouse tooltip
-    If (NoAhkH!=1 && SafeModeExec!=1 && IsSoundsFile && missingAudios!=1)
+    If (NoAhkH!=1 && SafeModeExec!=1 && IsSoundsFile && MissingAudios!=1)
        Gui, Add, Checkbox, y+7 gVerifyPresetOptions Checked%EnableBeeperzPresets% vEnableBeeperzPresets, Sounds on key presses
     Gui, Add, Checkbox, y+7 gVerifyPresetOptions Checked%MediateKeysFeatures% vMediateKeysFeatures, Mediate navigation keys when typing `n[this helps to enforce consistency across applications]`n(strongly recommended)
     Gui, Add, Button, y+20 w70 h30 Default gApplySettings vApplySettingsBTN, A&pply
@@ -6974,7 +6975,7 @@ ShowSoundsSettings() {
        Return
 
     VerifyNonCrucialFiles()
-    Global ApplySettingsBTN, volLevel
+    Global ApplySettingsBTN, volLevel, txt1
     Global CurrentPrefWindow := 3
     txtWid := 285
     If (PrefsLargeFonts=1)
@@ -6982,7 +6983,7 @@ ShowSoundsSettings() {
        txtWid := 470
        Gui, Font, s%LargeUIfontValue%
     }
-    Gui, Add, Text, x15 y15, Make a beep when the following keys are released:
+    Gui, Add, Text, x15 y15 vtxt1, Make a beep when the following keys are released:
     Gui, Add, Checkbox, gVerifySoundsOptions xp+15 y+7 Checked%KeyBeeper% vKeyBeeper, All bound keys
     Gui, Add, Checkbox, gVerifySoundsOptions y+7 Checked%DeadKeyBeeper% vDeadKeyBeeper, Recognized dead keys
     Gui, Add, Checkbox, gVerifySoundsOptions y+7 Checked%ModBeeper% vModBeeper, Modifiers (Ctrl, Alt, WinKey, Shift)
@@ -7000,12 +7001,12 @@ ShowSoundsSettings() {
     Gui, Add, Slider, x+5 hp ToolTip NoTicks gVolSlider w200 vBeepsVolume Range5-99, %BeepsVolume%
     Gui, Add, Checkbox, x+5 hp +0x1000 gVerifySoundsOptions Checked%SilentMode% vSilentMode, Silent
     If (DisableTypingMode=1)
-       Gui, Add, Text, xs+0 y+15 w%txtWid%, Some options are disabled, because typing mode is not activated
+       Gui, Add, Text, xs+0 y+15 w%txtWid%, Some options are disabled, because typing mode is not activated.
 
     If (MissingAudios=1)
     {
        Gui, Font, Bold
-       Gui, Add, Text, xs+0 y+15 w%txtWid%, WARNING. Sound files are missing. The attempts to download them seem to have failed. The beeps will be synthesized at a high volume.
+       Gui, Add, Text, xs+0 y+15 w%txtWid%, WARNING. Files required for these features are missing. The attempts to download them seem to have failed. Features unavailable.
        Gui, Font, Normal
     }
     Gui, Add, Button, xs+0 y+20 w70 h30 Default gApplySettings vApplySettingsBTN, A&pply
@@ -7022,7 +7023,10 @@ VerifySoundsOptions(EnableApply:=1) {
     GuiControlGet, SilentMode
 
     GuiControl, % (EnableApply=0 ? "Disable" : "Enable"), ApplySettingsBTN
-    If (SilentMode=1 || MissingAudios=1)
+    If (!IsSoundsFile || MissingAudios=1 || SafeModeExec=1 || NoAhkH=1)
+       SilentMode := 1
+
+    If (SilentMode=1)
     {
        GuiControl, Disable, BeepSentry
        GuiControl, Disable, CapslockBeeper
@@ -7039,6 +7043,7 @@ VerifySoundsOptions(EnableApply:=1) {
        GuiControl, Disable, BeepSentry
        GuiControl, Disable, BeepsVolume
        GuiControl, Disable, volLevel
+       GuiControl, Disable, txt1
     } Else
     {
        GuiControl, Enable, BeepSentry
@@ -7056,12 +7061,13 @@ VerifySoundsOptions(EnableApply:=1) {
        GuiControl, Enable, BeepSentry
        GuiControl, Enable, BeepsVolume
        GuiControl, Enable, volLevel
+       GuiControl, Enable, txt
     }
 
     If (SilentMode=0)
        GuiControl, % (KeyBeeper=0 ? "Disable" : "Enable"), TypingBeepers
 
-    If (AutoDetectKBD=0) || (DoNotBindDeadKeys=1)
+    If (AutoDetectKBD=0 || DoNotBindDeadKeys=1)
        GuiControl, Disable, DeadKeyBeeper
 
     If (DisableTypingMode=1)
@@ -7362,9 +7368,12 @@ ShowMouseSettings() {
     Global RealTimeUpdates := 0
     Global CurrentPrefWindow := 4
     Global editF1, editF2, editF3, editF4, editF5, editF6, editF7, editF8, editF9, editF10, editF11, editF12, editF13, editF14, editF15, editF16, editF17
+
     sliderWidth := 85
+    txtWid := 275
     If (PrefsLargeFonts=1)
     {
+       txtWid := txtWid + 90
        sliderWidth := sliderWidth + 60
        Gui, Font, s%LargeUIfontValue%
     }
@@ -7398,10 +7407,10 @@ ShowMouseSettings() {
     Gui, Add, ListView, x+5 wp hp %CCLVO% Background%MouseRippleMbtnColor% vMouseRippleMbtnColor hwndhLV9,
     Gui, Add, ListView, x+5 wp hp %CCLVO% Background%MouseRippleRbtnColor% vMouseRippleRbtnColor hwndhLV10,
     Gui, Add, ListView, x+5 wp hp %CCLVO% Background%MouseRippleWbtnColor% vMouseRippleWbtnColor hwndhLV11,
-    If (!IsSoundsFile || !IsRipplesFile) ; keypress-beeperz-functions.ahk / keypress-mouse-ripples-functions.ahk
+    If (!IsSoundsFile || SafeModeExec=1 || NoAhkH=1 || !IsMouseFile || !IsRipplesFile) ; keypress-beeperz-functions.ahk / keypress-mouse-ripples-functions.ahk
     {
        Gui, Font, Bold
-       Gui, Add, Text, y+7, Some option(s) are disabled because files are missing.
+       Gui, Add, Text, xs+0 y+7 w%txtWid%, Some option(s) are disabled because files are missing or running in a limited mode.
        Gui, Font, Normal
     }
 
@@ -7450,6 +7459,19 @@ VerifyMouseOptions(EnableApply:=1) {
     GuiControlGet, MouseVclickScaleUser
     GuiControlGet, MouseRippleOpacity
     GuiControlGet, MouseRippleFrequency
+
+    If (!IsRipplesFile || SafeModeExec=1 || NoAhkH=1)
+       ShowMouseRipples := 0
+
+    If (!IsMouseFile || SafeModeExec=1 || NoAhkH=1)
+    {
+       ShowMouseVclick := 0
+       ShowMouseHalo := 0
+       ShowMouseIdle := 0
+       GuiControl, Disable, ShowMouseVclick
+       GuiControl, Disable, ShowMouseHalo
+       GuiControl, Disable, ShowMouseIdle
+    }
 
     GuiControl, % (EnableApply=0 ? "Disable" : "Enable"), ApplySettingsBTN
     If (ShowMouseVclick=0)
@@ -7553,8 +7575,6 @@ VerifyMouseOptions(EnableApply:=1) {
     If !IsSoundsFile ; keypress-beeperz-functions.ahk
        GuiControl, Disable, MouseBeeper
 
-    If !IsRipplesFile ; keypress-mouse-ripples-functions.ahk
-       GuiControl, Disable, ShowMouseRipples
     If (RealTimeUpdates=1)
        SetTimer, updateRealTimeSettings, 400, -50
     If (ShowMouseVclick=1)
@@ -7565,6 +7585,15 @@ VerifyMouseOptions(EnableApply:=1) {
        GuiControl, , editF7, % Round(MouseIdleAlpha / 255 * 100) " % opacity"
     If (ShowMouseRipples=1)
        GuiControl, , editF12, % Round(MouseRippleOpacity / 255 * 100) " % opacity"
+
+    If (!IsRipplesFile || SafeModeExec=1 || NoAhkH=1)
+       GuiControl, Disable, ShowMouseRipples
+    If (!IsMouseFile || SafeModeExec=1 || NoAhkH=1)
+    {
+       GuiControl, Disable, ShowMouseVclick
+       GuiControl, Disable, ShowMouseHalo
+       GuiControl, Disable, ShowMouseIdle
+    }
 }
 
 SendVarsMouseAHKthread(initMode) {
@@ -7960,7 +7989,7 @@ trimArray(arr) { ; Hash O(n)
 ; Function by errorseven from:
 ; https://stackoverflow.com/questions/46432447/how-do-i-remove-duplicates-from-an-autohotkey-array
     hash := {}, newArr := []
-    for e, v in arr
+    For e, v in arr
         If (!hash.Haskey(v))
             hash[(v)] := 1, newArr.push(v)
     Return newArr
@@ -8044,8 +8073,8 @@ OpenChangeLog() {
      If FileExist(historyFile)
      {
          Sleep, 350
-         FileRead, Contents, %historyFile%
-         If not ErrorLevel
+         Try FileRead, Contents, %historyFile%
+         If !ErrorLevel
          {
              StringLeft, Contents, Contents, 100
              If InStr(contents, "// KeyPress OSD - CHANGELOG")
@@ -8402,8 +8431,8 @@ updateNow() {
      MsgBox, 4, Question, Do you want to abort updating?
      IfMsgBox, Yes
      {
-       VerifyNonCrucialFilesRan := 1
-       IniWrite, %VerifyNonCrucialFilesRan%, %IniFile%, TempSettings, VerifyNonCrucialFilesRan
+       checkFilesRan := 1
+       IniWrite, %checkFilesRan%, %IniFile%, TempSettings, checkFilesRan
        Return
      }
      If (A_IsSuspended!=1)
@@ -8424,8 +8453,8 @@ updateNow() {
 
      If FileExist(mainFileTmp)
      {
-         FileRead, Contents, %mainFileTmp%
-         If not ErrorLevel
+         Try FileRead, Contents, %mainFileTmp%
+         If !ErrorLevel
          {
 
              StringLeft, Contents, Contents, 31
@@ -8464,8 +8493,8 @@ updateNow() {
 
      If FileExist(zipFileTmp)
      {
-         FileRead, Contents, %zipFileTmp%
-         If not ErrorLevel
+         Try FileRead, Contents, %zipFileTmp%
+         If !ErrorLevel
          {
              StringLeft, Contents, Contents, 50
              If InStr(contents, "PK")
@@ -8516,8 +8545,8 @@ updateNow() {
      }
 
      FileDelete, UpdateInfo.ini
-     VerifyNonCrucialFilesRan := 1
-     IniWrite, %VerifyNonCrucialFilesRan%, %IniFile%, TempSettings, VerifyNonCrucialFilesRan
+     checkFilesRan := 1
+     IniWrite, %checkFilesRan%, %IniFile%, TempSettings, checkFilesRan
      If (completeSucces=1)
      {
         MsgBox, Update seems to be succesful. No errors detected. `nThe script will now reload.
@@ -8538,7 +8567,6 @@ updateNow() {
         } Else ReloadScript()
      }
 }
-
 
 VerifyNonCrucialFiles() {
      If (A_IsSuspended!=1)
@@ -8582,29 +8610,31 @@ VerifyNonCrucialFiles() {
         soundFile%A_Index% := "sounds\" A_LoopField ".wav"
 
     FilePack := "DeadKeysAidFile,beepersFile,ripplesFile,mouseFile,historyFile,faqHtml,presentationHtml,shortcutsHtml,featuresHtml"
-    IniRead, VerifyNonCrucialFilesRan, %IniFile%, TempSettings, VerifyNonCrucialFilesRan, 0
-    IniRead, checkVersion, %IniFile%, SavedSettings, Version, 0
     If !FileExist(A_ScriptDir "\Lib")
     {
         FileCreateDir, Lib
         If FileExist(A_ScriptDir "\keypress-files")
         {
-          ErrorCount := MoveFilesAndFolders(A_ScriptDir "\keypress-files\*.*", A_ScriptDir "\Lib\")
-          If (ErrorCount <> 0)
-             MsgBox, The KeyPress files could not be moved to \Lib.
+           ErrorCount := MoveFilesAndFolders(A_ScriptDir "\keypress-files\*.*", A_ScriptDir "\Lib\")
+           If (ErrorCount <> 0)
+              MsgBox, The KeyPress files could not be moved to \Lib.
+           Else
+              reloadRequired := 1
         }
         FileCreateDir, Lib\Help
         If A_IsCompiled
         {
-            FileInstall, Lib\Help\faq.html, %faqHtml%
-            FileInstall, Lib\Help\presentation.html, %presentationHtml%
-            FileInstall, Lib\Help\shortcuts.html, %shortcutsHtml%
-            FileInstall, Lib\Help\features.html, %featuresHtml%
-        } Else (reloadRequired := 1)
+           FileInstall, Lib\Help\faq.html, %faqHtml%
+           FileInstall, Lib\Help\presentation.html, %presentationHtml%
+           FileInstall, Lib\Help\shortcuts.html, %shortcutsHtml%
+           FileInstall, Lib\Help\features.html, %featuresHtml%
+        }
     }
 
+    IniRead, checkFilesRan, %IniFile%, TempSettings, checkFilesRan, 0
+    IniRead, checkVersion, %IniFile%, SavedSettings, Version, 0
     If (Version!=checkVersion)
-       VerifyNonCrucialFilesRan := 0
+       checkFilesRan := 0
 
     MissingAudios := 0
     If !A_IsCompiled
@@ -8628,17 +8658,17 @@ VerifyNonCrucialFiles() {
 
     If (timeNow > 25)
     {
-      VerifyNonCrucialFilesRan := 2
-      IniWrite, %VerifyNonCrucialFilesRan%, %IniFile%, TempSettings, VerifyNonCrucialFilesRan
+      checkFilesRan := 2
+      IniWrite, %checkFilesRan%, %IniFile%, TempSettings, checkFilesRan
     }
 
-    If (downloadPackNow=1 && VerifyNonCrucialFilesRan>2)
+    If (downloadPackNow=1 && checkFilesRan>2)
        Return
 
-    If (downloadPackNow=1 && VerifyNonCrucialFilesRan<3 && !A_IsCompiled)
+    If (downloadPackNow=1 && checkFilesRan<3 && !A_IsCompiled)
     {
-       VerifyNonCrucialFilesRan := VerifyNonCrucialFilesRan+1
-       IniWrite, %VerifyNonCrucialFilesRan%, %IniFile%, TempSettings, VerifyNonCrucialFilesRan
+       checkFilesRan := checkFilesRan+1
+       IniWrite, %checkFilesRan%, %IniFile%, TempSettings, checkFilesRan
        ShowLongMsg("Downloading files...")
        SetTimer, HideGUI, % -DisplayTime*2
        UrlDownloadToFile, %zipUrl%, %zipFileTmp%
@@ -8646,8 +8676,8 @@ VerifyNonCrucialFiles() {
 
        If FileExist(zipFileTmp)
        {
-           FileRead, Contents, %zipFileTmp%
-           If not ErrorLevel
+           Try FileRead, Contents, %zipFileTmp%
+           If !ErrorLevel
            {
                StringLeft, Contents, Contents, 50
                If InStr(contents, "PK")
@@ -8661,10 +8691,10 @@ VerifyNonCrucialFiles() {
        }
     }
 
-    If (downloadSoundPackNow=1 && VerifyNonCrucialFilesRan<4)
+    If (downloadSoundPackNow=1 && checkFilesRan<4)
     {
-       VerifyNonCrucialFilesRan := VerifyNonCrucialFilesRan+1
-       IniWrite, %VerifyNonCrucialFilesRan%, %IniFile%, TempSettings, VerifyNonCrucialFilesRan
+       checkFilesRan := checkFilesRan+1
+       IniWrite, %checkFilesRan%, %IniFile%, TempSettings, checkFilesRan
        ShowLongMsg("Downloading files...")
        SetTimer, HideGUI, % -DisplayTime*2
 
@@ -8673,8 +8703,8 @@ VerifyNonCrucialFiles() {
 
        If FileExist(SoundsZipFileTmp)
        {
-           FileRead, Contents, %SoundsZipFileTmp%
-           If not ErrorLevel
+           Try FileRead, Contents, %SoundsZipFileTmp%
+           If !ErrorLevel
            {
                StringLeft, Contents, Contents, 50
                If InStr(contents, "PK")
@@ -8691,7 +8721,8 @@ VerifyNonCrucialFiles() {
         MsgBox, 4,, Important files were downloaded. Do you want to restart this app?
         IfMsgBox Yes
         {
-           IniWrite, %VerifyNonCrucialFilesRan%, %IniFile%, TempSettings, VerifyNonCrucialFilesRan
+           RegWrite, REG_SZ, %KPregEntry%, Initializing, No
+           IniWrite, %checkFilesRan%, %IniFile%, TempSettings, checkFilesRan
            Save2INI("version", "SavedSettings")
            ReloadScript()
         }
@@ -8704,6 +8735,7 @@ VerifyNonCrucialFiles() {
             downloadSoundPackNow := MissingAudios := 1
        } Until (MissingAudios=1)
 }
+
 Is64BitExe(path) {
   DllCall("kernel32\GetBinaryType", "AStr", path, "UInt*", type)
   Return (6 = type)
@@ -9797,16 +9829,20 @@ Fnt_EnumFontFamExProc(lpelfe,lpntme,FontType,p_Flags) {
 }
 ; ------------------------------------------------------------- ; Font Library
 
-CheckAcc:
-#Include *i %A_ScriptDir%\Lib\keypress-acc-viewer-functions.ahk
-#Include *i %A_ScriptDir%\Lib\UIA_Interface.ahk
-Return
-
 dummy() {
     Return
-    ahkThread_Free(deleteME)   ; comment/delete this line to execute this script with AHK_L
 }
 
 #SPACE::
+Return
+
+CheckAcc:
+#Include *i %A_ScriptDir%\Lib\keypress-acc-viewer-functions.ahk
+#Include *i %A_ScriptDir%\Lib\UIA_Interface.ahk
+If (SafeModeExec!=1)
+{
+   Sleep, 1
+   addScript("ahkThread_Free(deleteME)",0)   ; comment/delete this line to execute this script with AHK_L
+}
 Return
 
