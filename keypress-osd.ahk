@@ -31,6 +31,16 @@
 ; grouped into Section 9. In each section you can find
 ; additional details. Beyond this, I have been told the code
 ; is poorly structured, lacks a consistent coding style, and others .
+
+; The script runs on both, AHK_H and AHK_L. To enable compatibility
+; with AHK_L, the line with addScript("ahkThread_Free(deleteME)",0) 
+; must be deleted or commented. When it runs with AHK_L, 
+; many features will deactivated, because it has no support for
+; threads.
+
+; This script file can be executed alone, without any additional files.
+; It will attempt to download the auxiliary files. To avoid this, please
+; set DownloadExternalFiles to 0.
 ;
 ; When the script first initializes, it saves the default 
 ; settings in an INI file, then it attempts to identify all 
@@ -132,7 +142,7 @@
 ;@Ahk2Exe-SetMainIcon Lib\keypress.ico
 ;@Ahk2Exe-SetName KeyPress OSD v4
 ;@Ahk2Exe-SetDescription KeyPress OSD v4 [mirror keyboard and mouse usage]
-;@Ahk2Exe-SetVersion 4.27.5
+;@Ahk2Exe-SetVersion 4.27.6
 ;@Ahk2Exe-SetCopyright Marius Şucan (2017-2018)
 ;@Ahk2Exe-SetCompanyName ROBODesign.ro
 ;@Ahk2Exe-SetOrigFilename keypress-osd.ahk
@@ -301,8 +311,8 @@
  , CaretHaloFlash         := 1
 
 ; Script's own global shortcuts (hotkeys)
- , GlobalKBDhotkeys      := 1     ; Enable system-wide shortcuts (hotkeys)
- , KBDaltTypeMode         := "^+CapsLock"
+ , GlobalKBDhotkeys       := 1     ; Enable system-wide shortcuts (hotkeys)
+ , KBDaltTypeMode         := "!^+CapsLock"
  , KBDpasteOSDcnt1        := "^+Insert"
  , KBDpasteOSDcnt2        := "^!Insert"
  , KBDsynchApp1           := "#Insert"
@@ -320,11 +330,12 @@
  , ShowPreview            := 0     ; let it be a persistent setting
  , ThisFile               := A_ScriptName
  , SafeModeExec           := 0
+ , DownloadExternalFiles  := 1
 
 ; Release info
- , Version                := "4.27.5"
- , ReleaseDate            := "2018 / 03 / 24"
- , hMutex, ScriptInitialized
+ , Version                := "4.27.6"
+ , ReleaseDate            := "2018 / 03 / 25"
+ , hMutex, ScriptInitialized, FirstRun
  , KPregEntry := "HKEY_CURRENT_USER\SOFTWARE\KeyPressOSD\v4"
 
 ; Possible caret symbols; all are WStr chars
@@ -1146,13 +1157,14 @@ OnBspPressed() {
         If (ExpandWords=1 && StrLen(LastMatchedExpandPair)>1 && (A_TickCount-LastTypedSince < NoExpandAfter))
         {
            searchThis := SubStr(LastMatchedExpandPair, InStr(LastMatchedExpandPair, "// ")+3)
+           searchThis2 := RegExReplace(searchThis, Emojis, "1")
            StringReplace, replaceWith, LastMatchedExpandPair, %searchThis%
            StringReplace, replaceWith, replaceWith, %A_Space%//%A_Space%
            StringReplace, Typed, Typed, %searchThis%%Lola%, % replaceWith A_Space Lola, UseErrorLevel
            If (ErrorLevel>0)
            {
              StringGetPos, CaretPos, Typed, %Lola%
-             times2pressKey := StrLen(searchThis)-1
+             times2pressKey := StrLen(searchThis2)-1
              SendInput, {BackSpace %times2pressKey% }
              If (SecondaryTypingMode!=1)
              {
@@ -2609,6 +2621,7 @@ ExpandFeatureFunction() {
   }
   LastMatchedExpandPair := ""
   UserTypedWord := MatchProxyWord()
+  UserTypedWord := RegExReplace(UserTypedWord, Emojis, "1")
 
   If ExpandWordsList[UserTypedWord] && (A_TickCount-LastTypedSince < NoExpandAfter)
   {
@@ -4998,7 +5011,7 @@ RegisterGlobalShortcuts(HotKate,destination,apriori) {
 CreateGlobalShortcuts() {
     KBDsuspend := RegisterGlobalShortcuts(KBDsuspend,"SuspendScript", "+Pause")
     If (AlternateTypingMode=1)
-       KBDaltTypeMode := RegisterGlobalShortcuts(KBDaltTypeMode,"SwitchSecondaryTypingMode", "^+CapsLock")
+       KBDaltTypeMode := RegisterGlobalShortcuts(KBDaltTypeMode,"SwitchSecondaryTypingMode", "!^+CapsLock")
 
     If (PasteOSDcontent=1 && DisableTypingMode=0)
     {
@@ -6177,16 +6190,25 @@ ShowTypeSettings() {
     Gui, Add, Text, y+10, Do not replace words after (in seconds)
     Gui, Add, Edit, x+15 w60 r1 limit2 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF4, %NoExpandAfterTuser%
     Gui, Add, UpDown, vNoExpandAfterTuser gVerifyTypeOptions Range1-30, %NoExpandAfterTuser%
-    Gui, Add, Text, xs+0 y+10, When {Space} is pressed... string to match // string to replace with
+    Gui, Add, Text, xs+0 y+10, When {Space} is pressed... string* to match // string* to replace with
     Gui, Add, Edit, y+10 r7 w%editWid% gwordPairsEditing vExpandWordsListEdit, %ExpandWordsListEdit%
-    Gui, Add, Button, xp+0 y+15 w90 h30 gSaveWordPairsNow vSaveWordPairsBTN, Save li&st
-    Gui, Add, Button, x+10 yp+0 w110 hp gOpenExpandableWordsFile vOpenWordPairsBTN, Open &file
-    Gui, Add, Button, x+10 yp+0 w150 hp gRestoreExpandableWordsFile vDefaultWordPairsBTN, Restore d&efaults
+    If (PrefsLargeFonts=1)
+    {
+       Gui, Add, Button, xp+0 y+15 w90 h30 gSaveWordPairsNow vSaveWordPairsBTN, Save li&st
+       Gui, Add, Button, x+10 yp+0 w110 hp gOpenExpandableWordsFile vOpenWordPairsBTN, Open &file
+       Gui, Add, Button, x+10 yp+0 w150 hp gRestoreExpandableWordsFile vDefaultWordPairsBTN, Restore d&efaults
+    } Else
+    {
+       Gui, Add, Button, xp+0 y+15 w70 h30 gSaveWordPairsNow vSaveWordPairsBTN, Save li&st
+       Gui, Add, Button, x+10 yp+0 w80 hp gOpenExpandableWordsFile vOpenWordPairsBTN, Open &file
+       Gui, Add, Button, x+10 yp+0 w120 hp gRestoreExpandableWordsFile vDefaultWordPairsBTN, Restore d&efaults
+    }
+    Gui, Add, Text, xs+0 y+10, (*) Each string must be at least two characters long.
 
     Gui, Tab
     Gui, Add, Button, xm+0 y+10 w70 h30 Default gApplySettings vApplySettingsBTN, A&pply
     Gui, Add, Button, x+8 wp hp gCloseSettings, C&ancel
-    Gui, Add, Button, x+8 w100 hp gOpenTypeSetHelp, Sho&w help
+    Gui, Add, Button, x+8 wp hp gOpenTypeSetHelp, &Help
     Gui, Add, DropDownList, x+8 AltSubmit gSwitchPreferences choose%CurrentPrefWindow% vCurrentPrefWindow , Keyboard|Typing mode|Sounds|Mouse|Appearance|Shortcuts
     Gui, Show, AutoSize, Typing mode settings: KeyPress OSD
     verifySettingsWindowSize()
@@ -7407,12 +7429,6 @@ ShowMouseSettings() {
     Gui, Add, ListView, x+5 wp hp %CCLVO% Background%MouseRippleMbtnColor% vMouseRippleMbtnColor hwndhLV9,
     Gui, Add, ListView, x+5 wp hp %CCLVO% Background%MouseRippleRbtnColor% vMouseRippleRbtnColor hwndhLV10,
     Gui, Add, ListView, x+5 wp hp %CCLVO% Background%MouseRippleWbtnColor% vMouseRippleWbtnColor hwndhLV11,
-    If (!IsSoundsFile || SafeModeExec=1 || NoAhkH=1 || !IsMouseFile || !IsRipplesFile) ; keypress-beeperz-functions.ahk / keypress-mouse-ripples-functions.ahk
-    {
-       Gui, Font, Bold
-       Gui, Add, Text, xs+0 y+7 w%txtWid%, Some option(s) are disabled because files are missing or running in a limited mode.
-       Gui, Font, Normal
-    }
 
     Gui, Tab, 2 ; location
     Gui, Add, Checkbox, gVerifyMouseOptions section x+15 y+15 Checked%ShowMouseHalo% vShowMouseHalo, Mouse halo / highlight
@@ -7437,6 +7453,13 @@ ShowMouseSettings() {
 
     Gui, Tab
     Gui, Add, Checkbox, gVerifyMouseOptions y+10 Checked%RealTimeUpdates% vRealTimeUpdates, Update settings in real time
+    If (!IsSoundsFile || SafeModeExec=1 || NoAhkH=1 || !IsMouseFile || !IsRipplesFile) ; keypress-beeperz-functions.ahk / keypress-mouse-ripples-functions.ahk
+    {
+       Gui, Font, Bold
+       Gui, Add, Text, y+7 w%txtWid%, Most options are disabled because files are missing or running in a limited mode.
+       Gui, Font, Normal
+    }
+
     Gui, Add, Button, xm+0 y+15 w70 h30 Default gApplySettings vApplySettingsBTN, A&pply
     Gui, Add, Button, x+8 wp hp gCloseSettings, C&ancel
     Gui, Add, DropDownList, x+8 AltSubmit gSwitchPreferences choose%CurrentPrefWindow% vCurrentPrefWindow , Keyboard|Typing mode|Sounds|Mouse|Appearance|Shortcuts
@@ -7594,6 +7617,8 @@ VerifyMouseOptions(EnableApply:=1) {
        GuiControl, Disable, ShowMouseHalo
        GuiControl, Disable, ShowMouseIdle
     }
+    If (SafeModeExec=1 || NoAhkH=1)
+       GuiControl, Disable, RealTimeUpdates
 }
 
 SendVarsMouseAHKthread(initMode) {
@@ -7791,7 +7816,7 @@ ShowOSDsettings() {
     GUIposition := GUIposition + 1
     columnBpos1 := columnBpos2 := 125
     editFieldWid := 220
-    If (prefsLargeFonts=1)
+    If (PrefsLargeFonts=1)
     {
        Gui, Font, s%LargeUIfontValue%
        editFieldWid := 285
@@ -8579,6 +8604,12 @@ VerifyNonCrucialFiles() {
      If StrLen(A_GlobalStruct)<4   ; testing for AHK_H presence
         Return
 
+     DownloadExternalFiles2 := DownloadExternalFiles
+     INI2var("DownloadExternalFiles", "SavedSettings")
+     If (DownloadExternalFiles=0 || DownloadExternalFiles2=0)
+        Return
+     DownloadExternalFiles := (DownloadExternalFiles=1 && DownloadExternalFiles2=1) ? 1 : 0
+
      binaryUpdater := "updater.bat"
      binaryUpdaterURL := BaseURL binaryUpdater
      If (!FileExist(binaryUpdater) && A_IsCompiled)
@@ -8819,6 +8850,7 @@ SaveSettings() {
   Save2INI("AutoDetectKBD", "SavedSettings")
   Save2INI("ConstantAutoDetect", "SavedSettings")
   Save2INI("DoBackup", "SavedSettings")
+  Save2INI("DownloadExternalFiles", "SavedSettings")
   Save2INI("FirstRun", "SavedSettings")
   Save2INI("IgnoreAdditionalKeys", "SavedSettings")
   Save2INI("IgnorekeysList", "SavedSettings")
