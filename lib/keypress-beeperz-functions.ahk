@@ -369,8 +369,7 @@ modsBeeper() {
 }
 
 firedBeeperTimer() {
-   Thread, Priority, -20
-   Critical, off
+   Critical, on
 
    If ((A_TickCount-lastKeyUpTime < 600) && keyBeeper=1)
    {
@@ -380,13 +379,18 @@ firedBeeperTimer() {
 
    If ((A_TickCount-LastFiredTime > 100) && keyBeeper=1)
    {
-      Sleep, 20
+      Sleep, 10
       Global LastFiredTime := A_TickCount
       SetTimer, , off
       Return
    }
-   SndPlay("sounds\firedkey.wav")
-   Sleep, 40
+   Static lastPlayed
+   If (A_TickCount-lastPlayed > 125) || !lastPlayed
+   {
+      SndPlay("sounds\firedkey.wav")
+      lastPlayed := A_TickCount
+      Sleep, 5
+   }
    Global LastFiredTime := A_TickCount
    SetTimer, , off
 }
@@ -467,19 +471,23 @@ checkIfSkipAbeep() {
 }
 
 firingKeys() {
-   Thread, Priority, -20
-   Critical, off
-
-   SndPlay("sounds\modfiredkey.wav")
-   Sleep, 20
+   Critical, on
+   Static lastPlayed
+   If (A_TickCount-lastPlayed > 250) || !lastPlayed
+   {
+      SndPlay("sounds\modfiredkey.wav")
+      lastPlayed := A_TickCount
+   }
 }
 
 holdingKeys() {
-   Thread, Priority, -20
-   Critical, off
-
-   SndPlay("sounds\holdingKeys.wav")
-   Sleep, 20
+   Critical, on
+   Static lastPlayed
+   If (A_TickCount-lastPlayed > 250) || !lastPlayed
+   {
+      SndPlay("sounds\holdingKeys.wav")
+      lastPlayed := A_TickCount
+   }
 }
 
 PlaySoundTest() {
