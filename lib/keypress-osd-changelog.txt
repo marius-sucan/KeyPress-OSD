@@ -11,9 +11,13 @@ http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip
 
 by Marius Sucan (robodesign.ro)
 
+  v4.27.7 (2018-03-26)
+  - bug fixes regarding keys detection and others
+
   v4.27.6 (2018-03-25)
   - new option in the ini file to deactivate automatic download of external files
   - fixes regarding text auto-replace
+
   v4.27.5 (2018-03-24)
   - minor fixes
   
