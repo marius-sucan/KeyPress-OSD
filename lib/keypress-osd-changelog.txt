@@ -11,6 +11,9 @@ http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip
 
 by Marius Sucan (robodesign.ro)
 
+  v4.27.8 (2018-03-28)
+  - minor bug fixes; more code optimisations
+  
   v4.27.7 (2018-03-26)
   - bug fixes regarding keys detection and others
 
@@ -900,6 +903,7 @@ Features to implement:
  - reparații la mouse ripples; thickness vs size; wheel up/down frequency mess-up
  - adjust caret halo height based on the function provided by Dragoș
  - typing in edit fields, trigger updates; [wrapper]
+ - ignore hide OSD [clippy man]
 
 - Drugwash: Fix ripples. New caret halo routine?
 
@@ -913,6 +917,7 @@ Features to implement:
 - https://autohotkey.com/board/topic/54987-sift3-super-fast-and-accurate-string-distance-algorithm/
 - https://github.com/first20hours/google-10000-english
 - https://www.sketchengine.co.uk/word-lists/
+http://www.itprotoday.com/software-development/double-metaphone-sounds-great
 
 - pune Compiled version in downloads, desktop [win7, win10]
 

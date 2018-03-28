@@ -40,6 +40,9 @@ Global IniFile           := "keypress-osd.ini"
  , beepFromRes := 0       ; 1 if compiled and  it looks for the sound files inside the binary
  , ScriptelSuspendel := 0
  , moduleInitialized
+ , ActiveSillySoundHack
+
+checkTeamViewerTimer()
 
 Return
 
@@ -505,23 +508,34 @@ checkInit() {
 
 ; function by Drugwash:
 ; ===============================
-SndPlay(snd, wait:=0, noSentry:=0) {
+SndPlay(snd:=0, wait:=0, noSentry:=0) {
   If (ScriptelSuspendel="Y" || SilentMode=1)
      Return
 
+  If !snd
+  {
+     If (ActiveSillySoundHack=1)
+        SoundBeep, 0, 1
+     Return DllCall("winmm\PlaySoundW"
+            , "Ptr"  , 0
+            , "Ptr"  , 0
+            , "Uint", 0x46) ; SND_PURGE|SND_MEMORY|SND_NODEFAULT
+  }
+
   Static hM := DllCall("kernel32\GetModuleHandleW", "Str", A_ScriptFullPath, "Ptr")
-  f := (BeepSentry=1 && noSentry=0) ? "0x80012" : "0x12"
-  w := wait ? 0 : 0x2001
+  f := (BeepSentry=1 && noSentry=0) ? "0x80012" : "0x12"     ; SND_SENTRY+ : SND_NOSTOP|SND_NODEFAULT
+  w := wait ? 0 : 0x2001     ; SND_NOWAIT|SND_ASYNC
   If (beepFromRes="Y")
   {
 	  SplitPath, snd, snd
 	  StringUpper, snd, snd
-	  hMod:=hM, flags := f|w|0x40004
+	  hMod:=hM, flags := f|w|0x40004     ; +SND_RESOURCE
 	} Else
 	{
-	  hMod := 0, flags := f|w|0x20000
+	  hMod := 0, flags := f|w|0x20000        ; +SND_FILENAME
 	}
-  SetTimer, sillySoundHack, 1900, 90
+  SetTimer, sillySoundHack, 350, 90
+  SetTimer, checkTeamViewerTimer, 5000, 90
   Return DllCall("winmm\PlaySoundW"
 	  , "Str", snd
 	  , "Ptr", hMod
@@ -530,6 +544,67 @@ SndPlay(snd, wait:=0, noSentry:=0) {
 
 sillySoundHack() {   ; this helps mitigate issues caused by apps like Team Viewer
    Sleep, 1
-   SndPlay("sounds\silence.wav", 0, 1)
+   SndPlay()
    SetTimer,, off
+}
+
+checkTeamViewerTimer() {
+  lol := WinGetAll()
+  If InStr(lol, "teamviewer")
+     ActiveSillySoundHack := 1
+  Else
+     ActiveSillySoundHack := 0
+}
+
+WinGetAll(Which="Title", DetectHidden="Off") {
+; function by Heresy from:
+; https://autohotkey.com/board/topic/30323-wingetall-get-all-windows-titleclasspidprocess-name/
+
+O_DHW := A_DetectHiddenWindows, O_BL := A_BatchLines ;Save original states
+DetectHiddenWindows, % (DetectHidden != "off" && DetectHidden) ? "on" : "off"
+SetBatchLines, -1
+    WinGet, all, list ;get all hwnd
+    If (Which="Title") ;return Window Titles
+    {
+        Loop, %all%
+        {
+            WinGetTitle, WTitle, % "ahk_id " all%A_Index%
+            If WTitle ;Prevent to get blank titles
+                Output .= WTitle "`n"        
+        }
+    }
+    Else If (Which="Process") ;return Process Names
+    {
+        Loop, %all%
+        {
+            WinGet, PName, ProcessName, % "ahk_id " all%A_Index%
+            Output .= PName "`n"
+        }
+    }
+    Else If (Which="Class") ;return Window Classes
+    {
+        Loop, %all%
+        {
+            WinGetClass, WClass, % "ahk_id " all%A_Index%
+            Output .= WClass "`n"
+        }
+    }
+    Else If (Which="hwnd") ;return Window Handles (Unique ID)
+    {
+        Loop, %all%
+            Output .= all%A_Index% "`n"
+    }
+    Else If (Which="PID") ;return Process Identifiers
+    {
+        Loop, %all%
+        {
+            WinGet, PID, PID, % "ahk_id " all%A_Index%
+            Output .= PID "`n"        
+        }
+        Sort, Output, U N ;numeric order and remove duplicates
+    }
+DetectHiddenWindows, %O_DHW% ;back to original state
+SetBatchLines, %O_BL% ;back to original state
+    Sort, Output, U ;remove duplicates
+    Return Output
 }
