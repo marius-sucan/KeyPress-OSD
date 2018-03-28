@@ -96,7 +96,7 @@ h1,h2 {
 <dd>Toggles between two predefined keyboard layouts. You can define these layouts at Main menu > Preferences > Keyboard or by selecting one from "Installed keyboard layouts" menu.</dd>
 
 <dt>Ctrl + Alt + Shift + F8</dt>
-<dd>Toggles "Never display OSD" option. Useful when you type passwords, but you do not want the entire functionality of KeyPress OSD disabled.</dd>
+<dd>Toggles "Never display OSD" also known as the "Private mode" option. Useful when you type passwords, but you do not want the entire functionality of KeyPress OSD disabled. If the Clipboard History Manager is enabled, it will no longer record what you copy to the clipboard. This is to ensure better privacy for you.</dd>
 
 <dt>Ctrl + Alt + Shift + F9</dt>
 <dd>Toggles between two OSD positions. You can define these at Main menu > Preferences > OSD appearances.</dd>
@@ -111,7 +111,7 @@ h1,h2 {
 <dd>Reinitializes/restarts the OSD.</dd>
 
 <dt>WinKey + Insert *(0)</dt>
-<dd>Captures the text from the currently active text field and displays it in the OSD. You can change the way this is done at Main menu > Preferences > Typing mode, Behavior tab.</dd>
+<dd>Captures the entire text from the currently active text field and displays it in the OSD.</dd>
 
 <dt>WinKey + Alt + Insert *(0)</dt>
 <dd>Captures only the line of text where the caret / cursor is located from the currently active text field and displays it in the OSD.</dd>
@@ -122,11 +122,14 @@ h1,h2 {
 <dt>Ctrl + Alt + Insert *(1)</dt>
 <dd>Replaces the text from the currently active field with the one from the OSD.</dd>
 
+<dt>Ctrl + Alt + Capslock</dt>
+<dd>Activates 'Alternate typing mode'. This allows you to type directly into KeyPress and on {Enter}, the text you typed is sent to the host application..</dd>
+
 <dt>Shift + Pause / Break</dt>
 <dd>Suspends the script and all of its functionality. </dd>
 
 <p>(0). These shortcuts are available only if typing mode is not disabled.</p>
-<p>(1). These shortcuts are available only if the option "Ctrl+Shift+Insert to paste the OSD content into active text field" is activated. If typing mode is not enabled, these shortcuts are disabled.</p>
+<p>(1). These shortcuts are available only if the option "Enable global shortcuts to paste the OSD content into active text field" is activated. If typing mode is not enabled, these shortcuts are disabled.</p>
 <p><a href="#menu">Back to top</a>.</p>
 </body>
   <!-- vim:set spell spl=en fo=tcroqwan tw=80 ts=2 sw=2 sts=2 sta et ai cin fenc=utf-8 ff=unix: -->

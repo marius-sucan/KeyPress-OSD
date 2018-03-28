@@ -24,7 +24,7 @@
 ; I learned coding with this project. Therefore, throughout 
 ; the code you'll probably notice the lack of programming skills
 ; and good coding practices. However, I did my best to do it 
-; as intelligble as possible.--
+; as intelligble as possible.
 ;
 ; The script is organized into sections, grouped mainly by
 ; functionality. Some functions borrowed from other people are all 
@@ -142,7 +142,7 @@
 ;@Ahk2Exe-SetMainIcon Lib\keypress.ico
 ;@Ahk2Exe-SetName KeyPress OSD v4
 ;@Ahk2Exe-SetDescription KeyPress OSD v4 [mirror keyboard and mouse usage]
-;@Ahk2Exe-SetVersion 4.27.7
+;@Ahk2Exe-SetVersion 4.27.8
 ;@Ahk2Exe-SetCopyright Marius Şucan (2017-2018)
 ;@Ahk2Exe-SetCompanyName ROBODesign.ro
 ;@Ahk2Exe-SetOrigFilename keypress-osd.ahk
@@ -333,8 +333,8 @@
  , DownloadExternalFiles  := 1
 
 ; Release info
- , Version                := "4.27.7"
- , ReleaseDate            := "2018 / 03 / 26"
+ , Version                := "4.27.8"
+ , ReleaseDate            := "2018 / 03 / 28"
  , hMutex, ScriptInitialized, FirstRun := 1
  , KPregEntry := "HKEY_CURRENT_USER\SOFTWARE\KeyPressOSD\v4"
 
@@ -386,14 +386,14 @@
        hMutex := DllCall("kernel32\CreateMutexW", "Ptr", NULL, "UInt", False, "Str", ThisFile)
        Sleep, 5
     }
-    INI2var("FirstRun", "SavedSettings")
+    INIaction(0, "FirstRun", "SavedSettings")
     If (FirstRun=0)
     {
-        LoadSettings()
+        INIsettings(0)
     } Else
     {
         CheckSettings()
-        SaveSettings()
+        INIsettings(1)
     }
 
 ; Initialization variables. Altering these may lead to undesired results.
@@ -524,7 +524,7 @@ Return
 ; by CreateHotkey() from Section 4.
 ; - The functions here call typing mode related functions from Section 2.
 ;   In particular TypedLetter().
-; - If typing mode is disabled, every key press calls GetKeyStr()
+; - If typing mode is disabled, every function from here calls GetKeyStr()
 ;   to get its name and then display it in the OSD with ShowHotkey().
 ;   The two mentioned functions are in Section 3.
 ;================================================================
@@ -1980,9 +1980,12 @@ OnMudUp() {
 
 ;================================================================
 ; Section 2. Various functions used in typing mode.
+; - To keep track of the caret, process and display text.
+; - Letters, symbols and numbers identified in Loop, 256
+;   from CreateHotkey() are assigned to OnLetterPressed()
+;   found in Section 1.
 ; - TypedLetter() receives the VK of the pressed key.
 ;   and its name is identified with toUnicodeExtended().
-; - Keep track of the caret, process and display text.
 ; - The text caret is Lola, Lola2 is used for the selector.
 ; - What the user types is held in Typed, and
 ;   what the OSD can display in the provided MaxGuiWidth
@@ -3031,8 +3034,8 @@ saveGuiPositions() {
      GuiXa := GuiX
      If (PrefOpen=0)
      {
-        Save2INI("GuiXa", "OSDprefs")
-        Save2INI("GuiYa", "OSDprefs")
+        INIaction(1, "GuiXa", "OSDprefs")
+        INIaction(1, "GuiYa", "OSDprefs")
      }
 
      If (PrefOpen=1)
@@ -3046,8 +3049,8 @@ saveGuiPositions() {
      GuiXb := GuiX
      If (PrefOpen=0)
      {
-        Save2INI("GuiXb", "OSDprefs")
-        Save2INI("GuiYb", "OSDprefs")
+        INIaction(1, "GuiXb", "OSDprefs")
+        INIaction(1, "GuiYb", "OSDprefs")
      }
 
      If (PrefOpen=1)
@@ -3538,14 +3541,14 @@ CreateHotkey() {
            n := GetKeyChar("vk" code)
 
         If (n = " ") || (n = "") || (StrLen(n)>1)
-           continue
+           Continue
 
         If (DeadKeys=1)
         {
           For each, char2skip in StrSplit(megaDeadKeysList, ".")        ; dead keys to ignore
           {
             If (InStr(char2skip, "vk" code) || n=char2skip)
-              continue, 2
+               Continue, 2
           }
         }
  
@@ -3554,7 +3557,7 @@ CreateHotkey() {
           For each, char2skip in StrSplit(IgnorekeysList, ".")        ; dead keys to ignore
           {
             If (n=char2skip && IgnoreAdditionalKeys=1)
-               continue, 2
+               Continue, 2
           }
         }
 
@@ -4689,8 +4692,8 @@ ClipChanged(Type) {
 }
 
 InitClipboardManager() {
-    INI2var("ClipDataMD5s", "ClipboardManager")
-    INI2var("CurrentClippyCount", "ClipboardManager")
+    INIaction(0, "ClipDataMD5s", "ClipboardManager")
+    INIaction(0, "CurrentClippyCount", "ClipboardManager")
     If !FileExist(A_ScriptDir "\ClipsSaved")
     {
         FileCreateDir, ClipsSaved
@@ -4758,8 +4761,8 @@ ClipboardManager(PrivateMode, ClipData) {
        FileAppend, %ClipboardAll%, ClipsSaved\clip%addZero%%currentClippyCount%.clp
     Sleep, 25
     IniWrite, %ClipTXT%, %IniFile%, ClipboardManager, ClipTXT%CurrentClippyCount%
-    Save2INI("CurrentClippyCount", "ClipboardManager")
-    Save2INI("ClipDataMD5s", "ClipboardManager")
+    INIaction(1, "CurrentClippyCount", "ClipboardManager")
+    INIaction(1, "ClipDataMD5s", "ClipboardManager")
 }
 
 DeleteAllClippy() {
@@ -4770,11 +4773,11 @@ DeleteAllClippy() {
         ClipDataMD5s := ""
         IniDelete, %IniFile%, ClipboardManager
         Sleep, 25
-        Save2INI("ClipMonitor", "ClipboardManager")
-        Save2INI("DoNotPasteClippy", "ClipboardManager")
-        Save2INI("EnableClipManager", "ClipboardManager")
-        Save2INI("MaximumTextClips", "ClipboardManager")
-        Save2INI("MaxRTFtextClipLen", "ClipboardManager")
+        INIaction(1, "ClipMonitor", "ClipboardManager")
+        INIaction(1, "DoNotPasteClippy", "ClipboardManager")
+        INIaction(1, "EnableClipManager", "ClipboardManager")
+        INIaction(1, "MaximumTextClips", "ClipboardManager")
+        INIaction(1, "MaxRTFtextClipLen", "ClipboardManager")
         Sleep, 25
         FileDelete, ClipsSaved\clip*.c*
         Sleep, 25
@@ -4965,7 +4968,7 @@ PasteSelectedHistory() {
 
 ToggleTypingHistory() {
     EnableTypingHistory := !EnableTypingHistory
-    Save2INI("EnableTypingHistory", "TypingMode")
+    INIaction(1, "EnableTypingHistory", "TypingMode")
 }
 
 ;================================================================
@@ -5249,7 +5252,7 @@ ToggleNeverDisplay() {
 
    cleanTypeSlate()
    NeverDisplayOSD := !NeverDisplayOSD
-   Save2INI("NeverDisplayOSD", "OSDprefs")
+   INIaction(1, "NeverDisplayOSD", "OSDprefs")
    Menu, Tray, % (NeverDisplayOSD=0 ? "Uncheck" : "Check"), &Do not show the OSD
    ShowLongMsg("Hide OSD = " NeverDisplayOSD)
    SetTimer, HideGUI, % -DisplayTime/2
@@ -5278,7 +5281,7 @@ TogglePosition() {
 
     If (Capture2Text!=1)
     {
-        Save2INI("GUIposition", "OSDprefs")
+        INIaction(1, "GUIposition", "OSDprefs")
         ShowLongMsg("OSD position: " niceNaming )
         Sleep, 450
         ShowLongMsg("OSD position: " niceNaming )
@@ -5292,7 +5295,7 @@ TogglePosition() {
 
 ToggleSilence() {
     SilentMode := !SilentMode
-    Save2INI("SilentMode", "Sounds")
+    INIaction(1, "SilentMode", "Sounds")
     Sleep, 50
     SoundsThread.ahkassign("SilentMode", SilentMode)
     SoundsThread.ahkPostFunction["CheckInit", ""]
@@ -5320,7 +5323,7 @@ AccCaptureTextNow() {
 DetectLangNow() {
     CreateOSDGUI()
     AutoDetectKBD := 1
-    Save2INI("AutoDetectKBD", "SavedSettings")
+    INIaction(1, "AutoDetectKBD", "SavedSettings")
     ShowLongMsg("Detecting keyboard layout...")
     Sleep, 1100
     ReloadScript()
@@ -5346,8 +5349,6 @@ InvokeClippyMenu() {
 ;================================================================
 
 QuickSettingsMenu() {
-    QuickMenuPrefPanels()
-
     Menu, QuickMenu, Add, &KeyPress activated, SuspendScriptNow
     Menu, QuickMenu, Add, &Restart, ReloadScriptNow
     Menu, QuickMenu, Add
@@ -5409,10 +5410,6 @@ QuickSettingsMenu() {
 }
 
 QuickMenuPrefPanels() {
-    Static hasInit
-    If (hasInit=1)
-       Return
-
     Menu, QuickPrefsMenu, Add, &Keyboard, ShowKBDsettings
     Menu, QuickPrefsMenu, Add, &Typing mode, ShowTypeSettings
     Menu, QuickPrefsMenu, Add, &Sounds, ShowSoundsSettings
@@ -5425,7 +5422,6 @@ QuickMenuPrefPanels() {
 
     If (!IsMouseFile || SafeModeExec=1) ; keypress-mouse-functions.ahk
        Menu, QuickPrefsMenu, Delete, &Mouse
-    hasInit := 1
 }
 
 InitializeTray() {
@@ -5534,8 +5530,8 @@ ToggleConstantDetection() {
 
    AutoDetectKBD := 1
    ConstantAutoDetect := !ConstantAutoDetect
-   Save2INI("ConstantAutoDetect", "SavedSettings")
-   Save2INI("AutoDetectKBD", "SavedSettings")
+   INIaction(1, "ConstantAutoDetect", "SavedSettings")
+   INIaction(1, "AutoDetectKBD", "SavedSettings")
    Menu, Tray, % (ConstantAutoDetect=0 ? "Uncheck" : "Check"), &Monitor keyboard layout
    If (ConstantAutoDetect=1)
       SetTimer, ConstantKBDtimer, 950, -25
@@ -5550,11 +5546,11 @@ ToggleRunSafeMode(quickMode:=0) {
     ConstantAutoDetect := 0
     ClipMonitor := 0
     EnableClipManager := 0
-    Save2INI("SafeModeExec", "SavedSettings")
-    Save2INI("AutoDetectKBD", "SavedSettings")
-    Save2INI("ConstantAutoDetect", "SavedSettings")
-    Save2INI("ClipMonitor", "ClipboardManager")
-    Save2INI("EnableClipManager", "ClipboardManager")
+    INIaction(1, "SafeModeExec", "SavedSettings")
+    INIaction(1, "AutoDetectKBD", "SavedSettings")
+    INIaction(1, "ConstantAutoDetect", "SavedSettings")
+    INIaction(1, "ClipMonitor", "ClipboardManager")
+    INIaction(1, "EnableClipManager", "ClipboardManager")
     Sleep, 50
     If (quickMode=1)
     {
@@ -5609,7 +5605,7 @@ ToggleAccCaptureText() {
 
 ToggleLargeFonts() {
     PrefsLargeFonts := !PrefsLargeFonts
-    Save2INI("PrefsLargeFonts", "SavedSettings")
+    INIaction(1, "PrefsLargeFonts", "SavedSettings")
     Menu, PrefsMenu, % (PrefsLargeFonts=0 ? "Uncheck" : "Check"), L&arge UI fonts
     Sleep, 200
 }
@@ -5635,7 +5631,7 @@ ToggleOSDdragMode() {
     OSDbehaviorConditions()
     Sleep, 10
     CreateOSDGUI()
-    Save2INI("MouseOSDbehavior", "OSDprefs")
+    INIaction(1, "MouseOSDbehavior", "OSDprefs")
 }
 
 QuickToggleLargeFonts() {
@@ -5741,11 +5737,11 @@ ToggleCapture2Text() {
     } Else If (featureValidated=1)
     {
         Capture2Text := !Capture2Text
-        INI2var("GUIposition", "OSDprefs")
-        INI2var("JumpHover", "OSDprefs")
-        INI2var("DragOSDmode", "OSDprefs")
-        INI2var("EnableClipManager", "ClipboardManager")
-        INI2var("ClipMonitor", "ClipboardManager")
+        INIaction(0, "GUIposition", "OSDprefs")
+        INIaction(0, "JumpHover", "OSDprefs")
+        INIaction(0, "DragOSDmode", "OSDprefs")
+        INIaction(0, "EnableClipManager", "ClipboardManager")
+        INIaction(0, "ClipMonitor", "ClipboardManager")
         GuiX := (GUIposition=1) ? GuiXa : GuiXb
         GuiY := (GUIposition=1) ? GuiYa : GuiYb
         Gui, OSD: Destroy
@@ -5827,7 +5823,7 @@ KillScript(showMSG:=1) {
    RegWrite, REG_SZ, %KPregEntry%, PrefOpen, %PrefOpen%
    If (FileExist(ThisFile) && showMSG)
    {
-      SaveSettings()
+      INIsettings(1)
       ShowLongMsg("Bye byeee :-)")
       Sleep, 350
    } Else If showMSG
@@ -5984,7 +5980,12 @@ OpenLastWindow() {
     Else If (win2open=6)
        ShowShortCutsSettings()
     Else
-       Menu, QuickPrefsMenu, Show
+    {
+      InstKBDsWinOpen := 0
+      Menu, QuickPrefsMenu, Delete
+      QuickMenuPrefPanels()
+      Menu, QuickPrefsMenu, Show
+    }
 }
 
 ApplySettings() {
@@ -5995,7 +5996,7 @@ ApplySettings() {
     RegWrite, REG_SZ, %KPregEntry%, LastOpen, %CurrentPrefWindow%
     If CurrentTab
        RegWrite, REG_SZ, %KPregEntry%, Window%CurrentPrefWindow%, %CurrentTab%
-    SaveSettings()
+    INIsettings(1)
     Sleep, 100
     ReloadScript()
 }
@@ -6280,7 +6281,6 @@ CloseTypeSetHelp() {
 
 ToggleUITypeElements(activate) {
    action := (activate=1) ? "Enable" : "Disable"
-   GuiControl, %action%, AlternativeJumps
    GuiControl, %action%, AltHook2keysUser
    GuiControl, %action%, CapslockBeeper
    GuiControl, %action%, DisplayTimeTypingUser
@@ -6341,7 +6341,11 @@ VerifyTypeOptions(enableApply:=1) {
     If (DisableTypingMode=1)
        ToggleUITypeElements(0)
     Else If (ShowSingleKey!=0)
+    {
+       GuiControl, Enable, AlternativeJumps
+       GuiControl, Enable, ExpandWords
        ToggleUITypeElements(1)
+    }
 
     If (OnlyTypingMode=0)
        GuiControl, Disable, EnterErasesLine
@@ -6366,6 +6370,12 @@ VerifyTypeOptions(enableApply:=1) {
 
     GuiControl, % (AlternateTypingMode=0 ? "Disable" : "Enable"), PasteOnClick
     GuiControl, % (AlternateTypingMode=0 ? "Disable" : "Enable"), txt3
+    If (AlternateTypingMode=1)
+    {
+      GuiControl, Enable, ExpandWords
+      GuiControl, Enable, AlternativeJumps
+    }
+
     If (EnterErasesLine=0 && OnlyTypingMode=1)
     {
        GuiControl, Disable, SendJumpKeys
@@ -6381,26 +6391,22 @@ VerifyTypeOptions(enableApply:=1) {
        GuiControl, Enable, ShowDeadKeys
     }
 
-   If (ExpandWords=0)
+   action1 := (ExpandWords=0) ? "Disable" : "Enable"
+   If (AlternateTypingMode=0 && (DisableTypingMode=1 || ShowSingleKey=0))
    {
-      GuiControl, Disable, editF4
-      GuiControl, Disable, txt4
-      GuiControl, Disable, txt5
-      GuiControl, Disable, txt6
-      GuiControl, Disable, SaveWordPairsBTN
-      GuiControl, Disable, DefaultWordPairsBTN
-      GuiControl, Disable, OpenWordPairsBTN
-      GuiControl, Disable, ExpandWordsListEdit
-   } Else
-   {
-      GuiControl, Enable, editF4
-      GuiControl, Enable, txt4
-      GuiControl, Enable, txt5
-      GuiControl, Enable, txt6
-      GuiControl, Enable, DefaultWordPairsBTN
-      GuiControl, Enable, OpenWordPairsBTN
-      GuiControl, Enable, ExpandWordsListEdit
+       GuiControl, Disable, AlternativeJumps
+       GuiControl, Disable, ExpandWords
+       action1 := "Disable"
    }
+
+   GuiControl, %action1%, editF4
+   GuiControl, %action1%, txt4
+   GuiControl, %action1%, txt5
+   GuiControl, %action1%, txt6
+   GuiControl, %action1%, SaveWordPairsBTN
+   GuiControl, %action1%, DefaultWordPairsBTN
+   GuiControl, %action1%, OpenWordPairsBTN
+   GuiControl, %action1%, ExpandWordsListEdit
 
    If (enableApply=0)
       GuiControl, Disable, SaveWordPairsBTN
@@ -7149,7 +7155,7 @@ ShowKBDsettings() {
     Gui, Add, Edit, x+5 w75 gVerifyKeybdOptions r1 limit6 -multi number -wantCtrlA -wantReturn -wantTab -wrap vMaxRTFtextClipLen, %MaxRTFtextClipLen%
     Gui, Add, Checkbox, xs+15 y+25 gVerifyKeybdOptions Checked%DoNotPasteClippy% vDoNotPasteClippy, Do not paste, just change the clipboard content
     Gui, Add, Text, xs+0 y+7 w%txtWid% veditF25, To access the stored clipboard history from any application, press WinKey + V (default keyboard shortcut).
-    INI2var("ClipDataMD5s", "ClipboardManager")
+    INIaction(0, "ClipDataMD5s", "ClipboardManager")
     If StrLen(ClipDataMD5s)>5
        Gui, Add, Button, y+10 w170 h30 gInvokeClippyMenu vDeleteAllClippyBTN, List stored entries
 
@@ -7720,7 +7726,8 @@ ShowOSDsettings() {
     Gui, Add, Text, x+15 y+15 Section, Font name and size
     Gui, Add, Text, xs yp+30, Text and background colors
     Gui, Add, Text, xs yp+30 veditF36, Caps lock highlight color
-    Gui, Add, Text, xs yp+30, Alternative typing mode highlight color
+    If (AlternateTypingMode=1)
+       Gui, Add, Text, xs yp+30, Alternative typing mode highlight color
     Gui, Add, Text, xs yp+30, OSD display time / when typing (in sec.)
     Gui, Add, Checkbox, y+9 gVerifyOsdOptions Checked%OSDborder% vOSDborder, System border around OSD
     Gui, Add, Checkbox, y+7 gVerifyOsdOptions Checked%OSDshowLEDs% vOSDshowLEDs, Show LEDs to indicate key states
@@ -7732,7 +7739,8 @@ ShowOSDsettings() {
     Gui, Add, ListView, xp-60 yp+30 w55 h20 %CCLVO% Background%OSDtextColor% vOSDtextColor hwndhLV1,
     Gui, Add, ListView, xp+60 yp w55 h20 %CCLVO% Background%OSDbgrColor% vOSDbgrColor hwndhLV2,
     Gui, Add, ListView, xp-60 yp+30 w55 h20 %CCLVO% Background%CapsColorHighlight% vCapsColorHighlight hwndhLV3,
-    Gui, Add, ListView, xp+0 yp+30 w55 h20 %CCLVO% Background%TypingColorHighlight% vTypingColorHighlight hwndhLV5,
+    If (AlternateTypingMode=1)
+       Gui, Add, ListView, xp+0 yp+30 w55 h20 %CCLVO% Background%TypingColorHighlight% vTypingColorHighlight hwndhLV5,
     Gui, Add, Edit, xp+60 yp+30 w55 r1 limit2 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF10, %DisplayTimeTypingUser%
     Gui, Add, UpDown, vDisplayTimeTypingUser gVerifyOsdOptions Range2-99, %DisplayTimeTypingUser%
     Gui, Add, Edit, xp-60 yp w55 hp r1 limit2 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF6, %DisplayTimeUser%
@@ -7899,8 +7907,8 @@ AboutWindow() {
        IniRead, checkVersion, %IniFile%, SavedSettings, Version, 0
     If (checkVersion!=Version)
     {
-       Save2INI("ReleaseDate", "SavedSettings")
-       Save2INI("Version", "SavedSettings")
+       INIaction(1, "ReleaseDate", "SavedSettings")
+       INIaction(1, "Version", "SavedSettings")
     }
     hPaypalImg := LoadImage(A_IsCompiled ? A_ScriptFullPath : "Lib\paypal.bmp", "B", 100)
     hIconImg := LoadImage(A_IsCompiled ? A_ScriptFullPath : "Lib\keypress.ico", "I", 159, 128)
@@ -8072,8 +8080,8 @@ InstalledKBDsWindow() {
     If (checkVersion!=Version)
     {
       Sleep, 25
-      Save2INI("ReleaseDate", "SavedSettings")
-      Save2INI("Version", "SavedSettings")
+      INIaction(1, "ReleaseDate", "SavedSettings")
+      INIaction(1, "Version", "SavedSettings")
     }
     SettingsGUI()
     countList := 0
@@ -8218,10 +8226,9 @@ miniUpdateChecker() {
    {
       IniRead, checkVersion, %iniTmp%, SavedSettings, Version
       IniRead, newDate, %iniTmp%, SavedSettings, ReleaseDate
-      Sleep, 70
-      IniDelete, %iniTmp%, SavedSettings
-      IniDelete, %iniTmp%, TempSettings
-      Sleep, 70
+      Sleep, 20
+      IniDelete, %iniTmp%, ClipboardManager
+      Sleep, 20
       IniWrite, %checkVersion%, %iniTmp%, SavedSettings, Version
       IniWrite, %newDate%, %iniTmp%, SavedSettings, ReleaseDate 
    }
@@ -8453,12 +8460,12 @@ updateNow() {
 }
 
 checkSndFiles() {
-    sndFiles := "silence,caps,clickM,clickR,clicks,cups,deadkeys,firedkey,functionKeys,holdingKeys,keys,media,modfiredkey,mods,num0pad,num1pad,num2pad,num3pad,num4pad,num5pad,num6pad,num7pad,num8pad,num9pad,numApad,numpads,otherDistinctKeys,typingkeysArrowsD,typingkeysArrowsL,typingkeysArrowsR,typingkeysArrowsU,typingkeysBksp,typingkeysDel,typingkeysEnd,typingkeysEnter,typingkeysHome,typingkeysPgDn,typingkeysPgUp,typingkeysSpace"
+    sndFiles := "caps,clickM,clickR,clicks,cups,deadkeys,firedkey,functionKeys,holdingKeys,keys,media,modfiredkey,mods,num0pad,num1pad,num2pad,num3pad,num4pad,num5pad,num6pad,num7pad,num8pad,num9pad,numApad,numpads,otherDistinctKeys,typingkeysArrowsD,typingkeysArrowsL,typingkeysArrowsR,typingkeysArrowsU,typingkeysBksp,typingkeysDel,typingkeysEnd,typingkeysEnter,typingkeysHome,typingkeysPgDn,typingkeysPgUp,typingkeysSpace"
     Loop, Parse, sndFiles, CSV
         soundFile%A_Index% := "sounds\" A_LoopField ".wav"
 
     MissingAudios := 0
-    Loop, 39
+    Loop, 38
     {
       If !FileExist(soundFile%A_Index%)
       {
@@ -8478,7 +8485,7 @@ VerifyNonCrucialFiles() {
      }
 
      bckpDlExtFiles := DownloadExternalFiles
-     INI2var("DownloadExternalFiles", "SavedSettings")
+     INIaction(0, "DownloadExternalFiles", "SavedSettings")
      DownloadExternalFiles := (DownloadExternalFiles=1 && bckpDlExtFiles=1) ? 1 : 0
      If (DownloadExternalFiles=0 || DownloadExternalFiles2=0)
      {
@@ -8625,7 +8632,7 @@ VerifyNonCrucialFiles() {
         {
            RegWrite, REG_SZ, %KPregEntry%, Initializing, No
            IniWrite, %checkFilesRan%, %IniFile%, TempSettings, checkFilesRan
-           Save2INI("version", "SavedSettings")
+           INIaction(1, "version", "SavedSettings")
            ReloadScript()
         }
     }
@@ -8701,321 +8708,176 @@ Extract2Folder(Zip, Dest="", Filename="", bkp:="") {
     }
 }
 
-Save2INI(var, section) {
+INIaction(act, var, section) {
   varValue := %var%
-  IniWrite, %varValue%, %IniFile%, %section%, %var%
+  If (act=1)
+     IniWrite, %varValue%, %IniFile%, %section%, %var%
+  Else
+     IniRead, %var%, %IniFile%, %section%, %var%, %varValue%
 }
 
-INI2var(var, section) {
-  varValue := %var%
-  IniRead, %var%, %IniFile%, %section%, %var%, %varValue%
-}
- 
-SaveSettings() {
+INIsettings(a) {
   FirstRun := 0
-  Save2INI("AutoDetectKBD", "SavedSettings")
-  Save2INI("ConstantAutoDetect", "SavedSettings")
-  Save2INI("DoBackup", "SavedSettings")
-  Save2INI("DownloadExternalFiles", "SavedSettings")
-  Save2INI("FirstRun", "SavedSettings")
-  Save2INI("IgnoreAdditionalKeys", "SavedSettings")
-  Save2INI("IgnorekeysList", "SavedSettings")
-  Save2INI("PrefsLargeFonts", "SavedSettings")
-  Save2INI("ReleaseDate", "SavedSettings")
-  Save2INI("SilentDetection", "SavedSettings")
-  Save2INI("UseMUInames", "SavedSettings")
-  Save2INI("Version", "SavedSettings")
-  Save2INI("SafeModeExec", "SavedSettings")
+  If (a=1) ; a=1 means save into INI
+  {
+     INIaction(1, "DownloadExternalFiles", "SavedSettings")
+     INIaction(1, "FirstRun", "SavedSettings")
+     INIaction(1, "ReleaseDate", "SavedSettings")
+     INIaction(1, "Version", "SavedSettings")
+  }
+  INIaction(a, "AutoDetectKBD", "SavedSettings")
+  INIaction(a, "ConstantAutoDetect", "SavedSettings")
+  INIaction(a, "DoBackup", "SavedSettings")
+  INIaction(a, "IgnoreAdditionalKeys", "SavedSettings")
+  INIaction(a, "IgnorekeysList", "SavedSettings")
+  INIaction(a, "PrefsLargeFonts", "SavedSettings")
+  INIaction(a, "SilentDetection", "SavedSettings")
+  INIaction(a, "UseMUInames", "SavedSettings")
+  INIaction(a, "SafeModeExec", "SavedSettings")
 
 ; Clipboard settings
-  Save2INI("ClipMonitor", "ClipboardManager")
-  Save2INI("DoNotPasteClippy", "ClipboardManager")
-  Save2INI("EnableClipManager", "ClipboardManager")
-  Save2INI("MaximumTextClips", "ClipboardManager")
-  Save2INI("MaxRTFtextClipLen", "ClipboardManager")
+  INIaction(a, "ClipMonitor", "ClipboardManager")
+  INIaction(a, "DoNotPasteClippy", "ClipboardManager")
+  INIaction(a, "EnableClipManager", "ClipboardManager")
+  INIaction(a, "MaximumTextClips", "ClipboardManager")
+  INIaction(a, "MaxRTFtextClipLen", "ClipboardManager")
 
 ; Typing related settings
-  Save2INI("AlternateTypingMode", "TypingMode")
-  Save2INI("AlternativeJumps", "TypingMode")
-  Save2INI("AltHook2keysUser", "TypingMode")
-  Save2INI("DisableTypingMode", "TypingMode")
-  Save2INI("DisplayTimeTypingUser", "TypingMode")
-  Save2INI("DoNotBindAltGrDeadKeys", "TypingMode")
-  Save2INI("DoNotBindDeadKeys", "TypingMode")
-  Save2INI("EnableAltGr", "TypingMode")
-  Save2INI("EnableTypingHistory", "TypingMode")
-  Save2INI("EnforceSluggishSynch", "TypingMode")
-  Save2INI("EnterErasesLine", "TypingMode")
-  Save2INI("EraseTextWinChange", "TypingMode")
-  Save2INI("ExpandWords", "TypingMode")
-  Save2INI("NoExpandAfterTuser", "TypingMode")
-  Save2INI("MediateNavKeys", "TypingMode")
-  Save2INI("OnlyTypingMode", "TypingMode")
-  Save2INI("PasteOnClick", "TypingMode")
-  Save2INI("PasteOSDcontent", "TypingMode")
-  Save2INI("PgUDasHE", "TypingMode")
-  Save2INI("ReturnToTypingUser", "TypingMode")
-  Save2INI("SendJumpKeys", "TypingMode")
-  Save2INI("ShiftDisableCaps", "TypingMode")
-  Save2INI("ShowDeadKeys", "TypingMode")
-  Save2INI("TypingDelaysScaleUser", "TypingMode")
-  Save2INI("UpDownAsHE", "TypingMode")
-  Save2INI("UpDownAsLR", "TypingMode")
+  INIaction(a, "AlternateTypingMode", "TypingMode")
+  INIaction(a, "AlternativeJumps", "TypingMode")
+  INIaction(a, "AltHook2keysUser", "TypingMode")
+  INIaction(a, "DisableTypingMode", "TypingMode")
+  INIaction(a, "DisplayTimeTypingUser", "TypingMode")
+  INIaction(a, "DoNotBindAltGrDeadKeys", "TypingMode")
+  INIaction(a, "DoNotBindDeadKeys", "TypingMode")
+  INIaction(a, "EnableAltGr", "TypingMode")
+  INIaction(a, "EnableTypingHistory", "TypingMode")
+  INIaction(a, "EnforceSluggishSynch", "TypingMode")
+  INIaction(a, "EnterErasesLine", "TypingMode")
+  INIaction(a, "EraseTextWinChange", "TypingMode")
+  INIaction(a, "ExpandWords", "TypingMode")
+  INIaction(a, "NoExpandAfterTuser", "TypingMode")
+  INIaction(a, "MediateNavKeys", "TypingMode")
+  INIaction(a, "OnlyTypingMode", "TypingMode")
+  INIaction(a, "PasteOnClick", "TypingMode")
+  INIaction(a, "PasteOSDcontent", "TypingMode")
+  INIaction(a, "PgUDasHE", "TypingMode")
+  INIaction(a, "ReturnToTypingUser", "TypingMode")
+  INIaction(a, "SendJumpKeys", "TypingMode")
+  INIaction(a, "ShiftDisableCaps", "TypingMode")
+  INIaction(a, "ShowDeadKeys", "TypingMode")
+  INIaction(a, "TypingDelaysScaleUser", "TypingMode")
+  INIaction(a, "UpDownAsHE", "TypingMode")
+  INIaction(a, "UpDownAsLR", "TypingMode")
 
 ; OSD settings
-  Save2INI("DifferModifiers", "OSDprefs")
-  Save2INI("HideAnnoyingKeys", "OSDprefs")
-  Save2INI("ShowKeyCount", "OSDprefs")
-  Save2INI("ShowKeyCountFired", "OSDprefs")
-  Save2INI("ShowMouseButton", "OSDprefs")
-  Save2INI("ShowPreview", "OSDprefs")
-  Save2INI("ShowPrevKey", "OSDprefs")
-  Save2INI("ShowPrevKeyDelay", "OSDprefs")
-  Save2INI("ShowSingleKey", "OSDprefs")
-  Save2INI("ShowSingleModifierKey", "OSDprefs")
-  Save2INI("CapsColorHighlight", "OSDprefs")
-  Save2INI("DisplayTimeUser", "OSDprefs")
-  Save2INI("DragOSDmode", "OSDprefs")
-  Save2INI("FontName", "OSDprefs")
-  Save2INI("FontSize", "OSDprefs")
-  Save2INI("GUIposition", "OSDprefs")
-  Save2INI("GuiWidth", "OSDprefs")
-  Save2INI("GuiXa", "OSDprefs")
-  Save2INI("GuiXb", "OSDprefs")
-  Save2INI("GuiYa", "OSDprefs")
-  Save2INI("GuiYb", "OSDprefs")
-  Save2INI("JumpHover", "OSDprefs")
-  Save2INI("MaxGuiWidth", "OSDprefs")
-  Save2INI("MouseOSDbehavior", "OSDprefs")
-  Save2INI("NeverDisplayOSD", "OSDprefs")
-  Save2INI("OSDalignment1", "OSDprefs")
-  Save2INI("OSDalignment2", "OSDprefs")
-  Save2INI("OSDautosize", "OSDprefs")
-  Save2INI("OSDsizingFactor", "OSDprefs")
-  Save2INI("OSDbgrColor", "OSDprefs")
-  Save2INI("OSDborder", "OSDprefs")
-  Save2INI("OSDshowLEDs", "OSDprefs")
-  Save2INI("OSDtextColor", "OSDprefs")
-  Save2INI("OutputOSDtoToolTip", "OSDprefs")
-  Save2INI("TypingColorHighlight", "OSDprefs")
+  INIaction(a, "DifferModifiers", "OSDprefs")
+  INIaction(a, "HideAnnoyingKeys", "OSDprefs")
+  INIaction(a, "ShowKeyCount", "OSDprefs")
+  INIaction(a, "ShowKeyCountFired", "OSDprefs")
+  INIaction(a, "ShowMouseButton", "OSDprefs")
+  INIaction(a, "ShowPreview", "OSDprefs")
+  INIaction(a, "ShowPrevKey", "OSDprefs")
+  INIaction(a, "ShowPrevKeyDelay", "OSDprefs")
+  INIaction(a, "ShowSingleKey", "OSDprefs")
+  INIaction(a, "ShowSingleModifierKey", "OSDprefs")
+  INIaction(a, "CapsColorHighlight", "OSDprefs")
+  INIaction(a, "DisplayTimeUser", "OSDprefs")
+  INIaction(a, "DragOSDmode", "OSDprefs")
+  INIaction(a, "FontName", "OSDprefs")
+  INIaction(a, "FontSize", "OSDprefs")
+  INIaction(a, "GUIposition", "OSDprefs")
+  INIaction(a, "GuiWidth", "OSDprefs")
+  INIaction(a, "GuiXa", "OSDprefs")
+  INIaction(a, "GuiXb", "OSDprefs")
+  INIaction(a, "GuiYa", "OSDprefs")
+  INIaction(a, "GuiYb", "OSDprefs")
+  INIaction(a, "JumpHover", "OSDprefs")
+  INIaction(a, "MaxGuiWidth", "OSDprefs")
+  INIaction(a, "MouseOSDbehavior", "OSDprefs")
+  INIaction(a, "NeverDisplayOSD", "OSDprefs")
+  INIaction(a, "OSDalignment1", "OSDprefs")
+  INIaction(a, "OSDalignment2", "OSDprefs")
+  INIaction(a, "OSDautosize", "OSDprefs")
+  INIaction(a, "OSDsizingFactor", "OSDprefs")
+  INIaction(a, "OSDbgrColor", "OSDprefs")
+  INIaction(a, "OSDborder", "OSDprefs")
+  INIaction(a, "OSDshowLEDs", "OSDprefs")
+  INIaction(a, "OSDtextColor", "OSDprefs")
+  INIaction(a, "OutputOSDtoToolTip", "OSDprefs")
+  INIaction(a, "TypingColorHighlight", "OSDprefs")
 
 ; Sounds settings
-  Save2INI("AudioAlerts", "Sounds")
-  Save2INI("BeepFiringKeys", "Sounds")
-  Save2INI("BeepSentry", "Sounds")
-  Save2INI("BeepsVolume", "Sounds")
-  Save2INI("CapslockBeeper", "Sounds")
-  Save2INI("DeadKeyBeeper", "Sounds")
-  Save2INI("DTMFbeepers", "Sounds")
-  Save2INI("KeyBeeper", "Sounds")
-  Save2INI("ModBeeper", "Sounds")
-  Save2INI("MouseBeeper", "Sounds")
-  Save2INI("PrioritizeBeepers", "Sounds")
-  Save2INI("SilentMode", "Sounds")
-  Save2INI("ToggleKeysBeeper", "Sounds")
-  Save2INI("TypingBeepers", "Sounds")
+  INIaction(a, "AudioAlerts", "Sounds")
+  INIaction(a, "BeepFiringKeys", "Sounds")
+  INIaction(a, "BeepSentry", "Sounds")
+  INIaction(a, "BeepsVolume", "Sounds")
+  INIaction(a, "CapslockBeeper", "Sounds")
+  INIaction(a, "DeadKeyBeeper", "Sounds")
+  INIaction(a, "DTMFbeepers", "Sounds")
+  INIaction(a, "KeyBeeper", "Sounds")
+  INIaction(a, "ModBeeper", "Sounds")
+  INIaction(a, "MouseBeeper", "Sounds")
+  INIaction(a, "PrioritizeBeepers", "Sounds")
+  INIaction(a, "SilentMode", "Sounds")
+  INIaction(a, "ToggleKeysBeeper", "Sounds")
+  INIaction(a, "TypingBeepers", "Sounds")
 
 ; Mouse settings
-  Save2INI("MouseVclickScaleUser", "Mouse")
-  Save2INI("ShowMouseHalo", "Mouse")
-  Save2INI("ShowMouseIdle", "Mouse")
-  Save2INI("ShowMouseVclick", "Mouse")
-  Save2INI("ShowMouseRipples", "Mouse")
-  Save2INI("ShowCaretHalo", "Mouse")
-  Save2INI("MouseHaloAlpha", "Mouse")
-  Save2INI("MouseHaloColor", "Mouse")
-  Save2INI("MouseHaloRadius", "Mouse")
-  Save2INI("MouseIdleAfter", "Mouse")
-  Save2INI("MouseIdleAlpha", "Mouse")
-  Save2INI("MouseIdleColor", "Mouse")
-  Save2INI("MouseIdleRadius", "Mouse")
-  Save2INI("MouseIdleFlash", "Mouse")
-  Save2INI("MouseVclickAlpha", "Mouse")
-  Save2INI("MouseVclickColor", "Mouse")
-  Save2INI("MouseRippleMaxSize", "Mouse")
-  Save2INI("MouseRippleThickness", "Mouse")
-  Save2INI("MouseRippleFrequency", "Mouse")
-  Save2INI("MouseRippleOpacity", "Mouse")
-  Save2INI("MouseRippleWbtnColor", "Mouse")
-  Save2INI("MouseRippleLbtnColor", "Mouse")
-  Save2INI("MouseRippleRbtnColor", "Mouse")
-  Save2INI("MouseRippleMbtnColor", "Mouse")
-  Save2INI("CaretHaloAlpha", "Mouse")
-  Save2INI("CaretHaloColor", "Mouse")
-  Save2INI("CaretHaloHeight", "Mouse")
-  Save2INI("CaretHaloWidth", "Mouse")
-  Save2INI("CaretHaloFlash", "Mouse")
-  Save2INI("CaretHaloThick", "Mouse")
-  Save2INI("CaretHaloShape", "Mouse")
+  INIaction(a, "MouseVclickScaleUser", "Mouse")
+  INIaction(a, "ShowMouseHalo", "Mouse")
+  INIaction(a, "ShowMouseIdle", "Mouse")
+  INIaction(a, "ShowMouseVclick", "Mouse")
+  INIaction(a, "ShowMouseRipples", "Mouse")
+  INIaction(a, "ShowCaretHalo", "Mouse")
+  INIaction(a, "MouseHaloAlpha", "Mouse")
+  INIaction(a, "MouseHaloColor", "Mouse")
+  INIaction(a, "MouseHaloRadius", "Mouse")
+  INIaction(a, "MouseIdleAfter", "Mouse")
+  INIaction(a, "MouseIdleAlpha", "Mouse")
+  INIaction(a, "MouseIdleColor", "Mouse")
+  INIaction(a, "MouseIdleRadius", "Mouse")
+  INIaction(a, "MouseIdleFlash", "Mouse")
+  INIaction(a, "MouseVclickAlpha", "Mouse")
+  INIaction(a, "MouseVclickColor", "Mouse")
+  INIaction(a, "MouseRippleMaxSize", "Mouse")
+  INIaction(a, "MouseRippleThickness", "Mouse")
+  INIaction(a, "MouseRippleFrequency", "Mouse")
+  INIaction(a, "MouseRippleOpacity", "Mouse")
+  INIaction(a, "MouseRippleWbtnColor", "Mouse")
+  INIaction(a, "MouseRippleLbtnColor", "Mouse")
+  INIaction(a, "MouseRippleRbtnColor", "Mouse")
+  INIaction(a, "MouseRippleMbtnColor", "Mouse")
+  INIaction(a, "CaretHaloAlpha", "Mouse")
+  INIaction(a, "CaretHaloColor", "Mouse")
+  INIaction(a, "CaretHaloHeight", "Mouse")
+  INIaction(a, "CaretHaloWidth", "Mouse")
+  INIaction(a, "CaretHaloFlash", "Mouse")
+  INIaction(a, "CaretHaloThick", "Mouse")
+  INIaction(a, "CaretHaloShape", "Mouse")
 
 ; Hotkey settings
-  Save2INI("GlobalKBDhotkeys", "Hotkeys")
-  Save2INI("KBDaltTypeMode", "Hotkeys")
-  Save2INI("KBDpasteOSDcnt1", "Hotkeys")
-  Save2INI("KBDpasteOSDcnt2", "Hotkeys")
-  Save2INI("KBDsynchApp1", "Hotkeys")
-  Save2INI("KBDsynchApp2", "Hotkeys")
-  Save2INI("KBDCapText", "Hotkeys")
-  Save2INI("KBDsuspend", "Hotkeys")
-  Save2INI("KBDTglNeverOSD", "Hotkeys")
-  Save2INI("KBDTglSilence", "Hotkeys")
-  Save2INI("KBDTglPosition", "Hotkeys")
-  Save2INI("KBDidLangNow", "Hotkeys")
-  Save2INI("KBDReload", "Hotkeys")
-  Save2INI("KBDclippyMenu", "Hotkeys")
-}
+  INIaction(a, "GlobalKBDhotkeys", "Hotkeys")
+  INIaction(a, "KBDaltTypeMode", "Hotkeys")
+  INIaction(a, "KBDpasteOSDcnt1", "Hotkeys")
+  INIaction(a, "KBDpasteOSDcnt2", "Hotkeys")
+  INIaction(a, "KBDsynchApp1", "Hotkeys")
+  INIaction(a, "KBDsynchApp2", "Hotkeys")
+  INIaction(a, "KBDCapText", "Hotkeys")
+  INIaction(a, "KBDsuspend", "Hotkeys")
+  INIaction(a, "KBDTglNeverOSD", "Hotkeys")
+  INIaction(a, "KBDTglSilence", "Hotkeys")
+  INIaction(a, "KBDTglPosition", "Hotkeys")
+  INIaction(a, "KBDidLangNow", "Hotkeys")
+  INIaction(a, "KBDReload", "Hotkeys")
+  INIaction(a, "KBDclippyMenu", "Hotkeys")
 
-LoadSettings() {
-  FirstRun := 0
-  INI2var("AutoDetectKBD", "SavedSettings")
-  INI2var("ConstantAutoDetect", "SavedSettings")
-  INI2var("DoBackup", "SavedSettings")
-  INI2var("IgnoreAdditionalKeys", "SavedSettings")
-  INI2var("IgnorekeysList", "SavedSettings")
-  INI2var("PrefsLargeFonts", "SavedSettings")
-  INI2var("SilentDetection", "SavedSettings")
-  INI2var("UseMUInames", "SavedSettings")
-  INI2var("SafeModeExec", "SavedSettings")
-
-; Clipboard settings
-  INI2var("ClipMonitor", "ClipboardManager")
-  INI2var("DoNotPasteClippy", "ClipboardManager")
-  INI2var("EnableClipManager", "ClipboardManager")
-  INI2var("MaximumTextClips", "ClipboardManager")
-  INI2var("MaxRTFtextClipLen", "ClipboardManager")
-
-; Typing related settings
-  INI2var("AlternateTypingMode", "TypingMode")
-  INI2var("AlternativeJumps", "TypingMode")
-  INI2var("AltHook2keysUser", "TypingMode")
-  INI2var("DisableTypingMode", "TypingMode")
-  INI2var("DisplayTimeTypingUser", "TypingMode")
-  INI2var("DoNotBindAltGrDeadKeys", "TypingMode")
-  INI2var("DoNotBindDeadKeys", "TypingMode")
-  INI2var("EnableAltGr", "TypingMode")
-  INI2var("EnableTypingHistory", "TypingMode")
-  INI2var("EnforceSluggishSynch", "TypingMode")
-  INI2var("EnterErasesLine", "TypingMode")
-  INI2var("EraseTextWinChange", "TypingMode")
-  INI2var("ExpandWords", "TypingMode")
-  INI2var("MediateNavKeys", "TypingMode")
-  INI2var("NoExpandAfterTuser", "TypingMode")
-  INI2var("OnlyTypingMode", "TypingMode")
-  INI2var("PasteOnClick", "TypingMode")
-  INI2var("PasteOSDcontent", "TypingMode")
-  INI2var("PgUDasHE", "TypingMode")
-  INI2var("ReturnToTypingUser", "TypingMode")
-  INI2var("SendJumpKeys", "TypingMode")
-  INI2var("ShiftDisableCaps", "TypingMode")
-  INI2var("ShowDeadKeys", "TypingMode")
-  INI2var("TypingDelaysScaleUser", "TypingMode")
-  INI2var("UpDownAsHE", "TypingMode")
-  INI2var("UpDownAsLR", "TypingMode")
-
-; OSD settings
-  INI2var("DifferModifiers", "OSDprefs")
-  INI2var("HideAnnoyingKeys", "OSDprefs")
-  INI2var("ShowKeyCount", "OSDprefs")
-  INI2var("ShowKeyCountFired", "OSDprefs")
-  INI2var("ShowMouseButton", "OSDprefs")
-  INI2var("ShowPreview", "OSDprefs")
-  INI2var("ShowPrevKey", "OSDprefs")
-  INI2var("ShowPrevKeyDelay", "OSDprefs")
-  INI2var("ShowSingleKey", "OSDprefs")
-  INI2var("ShowSingleModifierKey", "OSDprefs")
-  INI2var("CapsColorHighlight", "OSDprefs")
-  INI2var("DisplayTimeUser", "OSDprefs")
-  INI2var("DragOSDmode", "OSDprefs")
-  INI2var("FontName", "OSDprefs")
-  INI2var("FontSize", "OSDprefs")
-  INI2var("GUIposition", "OSDprefs")
-  INI2var("GuiWidth", "OSDprefs")
-  INI2var("GuiXa", "OSDprefs")
-  INI2var("GuiXb", "OSDprefs")
-  INI2var("GuiYa", "OSDprefs")
-  INI2var("GuiYb", "OSDprefs")
-  INI2var("JumpHover", "OSDprefs")
-  INI2var("MaxGuiWidth", "OSDprefs")
-  INI2var("MouseOSDbehavior", "OSDprefs")
-  INI2var("NeverDisplayOSD", "OSDprefs")
-  INI2var("OSDalignment1", "OSDprefs")
-  INI2var("OSDalignment2", "OSDprefs")
-  INI2var("OSDautosize", "OSDprefs")
-  INI2var("OSDsizingFactor", "OSDprefs")
-  INI2var("OSDbgrColor", "OSDprefs")
-  INI2var("OSDborder", "OSDprefs")
-  INI2var("OSDshowLEDs", "OSDprefs")
-  INI2var("OSDtextColor", "OSDprefs")
-  INI2var("OutputOSDtoToolTip", "OSDprefs")
-  INI2var("TypingColorHighlight", "OSDprefs")
-
-; Sounds specific settings
-  INI2var("AudioAlerts", "Sounds")
-  INI2var("BeepFiringKeys", "Sounds")
-  INI2var("BeepSentry", "Sounds")
-  INI2var("BeepsVolume", "Sounds")
-  INI2var("CapslockBeeper", "Sounds")
-  INI2var("DeadKeyBeeper", "Sounds")
-  INI2var("DTMFbeepers", "Sounds")
-  INI2var("KeyBeeper", "Sounds")
-  INI2var("ModBeeper", "Sounds")
-  INI2var("MouseBeeper", "Sounds")
-  INI2var("PrioritizeBeepers", "Sounds")
-  INI2var("SilentMode", "Sounds")
-  INI2var("ToggleKeysBeeper", "Sounds")
-  INI2var("TypingBeepers", "Sounds")
-
-; Mouse-specific settings
-  INI2var("MouseVclickScaleUser", "Mouse")
-  INI2var("ShowMouseHalo", "Mouse")
-  INI2var("ShowMouseIdle", "Mouse")
-  INI2var("ShowMouseVclick", "Mouse")
-  INI2var("ShowMouseRipples", "Mouse")
-  INI2var("ShowCaretHalo", "Mouse")
-  INI2var("MouseHaloAlpha", "Mouse")
-  INI2var("MouseHaloColor", "Mouse")
-  INI2var("MouseHaloRadius", "Mouse")
-  INI2var("MouseIdleAfter", "Mouse")
-  INI2var("MouseIdleAlpha", "Mouse")
-  INI2var("MouseIdleColor", "Mouse")
-  INI2var("MouseIdleRadius", "Mouse")
-  INI2var("MouseIdleFlash", "Mouse")
-  INI2var("MouseVclickAlpha", "Mouse")
-  INI2var("MouseVclickColor", "Mouse")
-  INI2var("MouseRippleMaxSize", "Mouse")
-  INI2var("MouseRippleThickness", "Mouse")
-  INI2var("MouseRippleFrequency", "Mouse")
-  INI2var("MouseRippleOpacity", "Mouse")
-  INI2var("MouseRippleWbtnColor", "Mouse")
-  INI2var("MouseRippleLbtnColor", "Mouse")
-  INI2var("MouseRippleRbtnColor", "Mouse")
-  INI2var("MouseRippleMbtnColor", "Mouse")
-  INI2var("CaretHaloAlpha", "Mouse")
-  INI2var("CaretHaloColor", "Mouse")
-  INI2var("CaretHaloHeight", "Mouse")
-  INI2var("CaretHaloWidth", "Mouse")
-  INI2var("CaretHaloFlash", "Mouse")
-  INI2var("CaretHaloThick", "Mouse")
-  INI2var("CaretHaloShape", "Mouse")
-
-; Hotkey settings
-  INI2var("GlobalKBDhotkeys", "Hotkeys")
-  INI2var("KBDaltTypeMode", "Hotkeys")
-  INI2var("KBDpasteOSDcnt1", "Hotkeys")
-  INI2var("KBDpasteOSDcnt2", "Hotkeys")
-  INI2var("KBDsynchApp1", "Hotkeys")
-  INI2var("KBDsynchApp2", "Hotkeys")
-  INI2var("KBDCapText", "Hotkeys")
-  INI2var("KBDsuspend", "Hotkeys")
-  INI2var("KBDTglNeverOSD", "Hotkeys")
-  INI2var("KBDTglSilence", "Hotkeys")
-  INI2var("KBDTglPosition", "Hotkeys")
-  INI2var("KBDidLangNow", "Hotkeys")
-  INI2var("KBDReload", "Hotkeys")
-  INI2var("KBDclippyMenu", "Hotkeys")
-  CheckSettings()
-  GuiX := (GUIposition=1) ? GuiXa : GuiXb
-  GuiY := (GUIposition=1) ? GuiYa : GuiYb
+  If (a=0) ; a=0 means to load from INI
+  {
+     CheckSettings()
+     GuiX := (GUIposition=1) ? GuiXa : GuiXb
+     GuiY := (GUIposition=1) ? GuiYa : GuiYb
+  }
 }
 
 BinaryVar(ByRef givenVar, defy) {
@@ -9735,12 +9597,12 @@ dummy() {
 Return
 
 CheckAcc:
-#Include *i %A_ScriptDir%\Lib\keypress-acc-viewer-functions.ahk
-#Include *i %A_ScriptDir%\Lib\UIA_Interface.ahk
-If (SafeModeExec!=1)
-{
-   Sleep, 1
-   addScript("ahkThread_Free(deleteME)",0)   ; comment/delete this line to execute this script with AHK_L
-}
+  #Include *i %A_ScriptDir%\Lib\keypress-acc-viewer-functions.ahk
+  #Include *i %A_ScriptDir%\Lib\UIA_Interface.ahk
+  If (SafeModeExec!=1)
+  {
+     Sleep, 1
+     addScript("ahkThread_Free(deleteME)",0)   ; comment/delete this line to execute this script with AHK_L
+  }
 Return
 
