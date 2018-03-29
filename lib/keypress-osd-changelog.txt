@@ -11,8 +11,12 @@ http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip
 
 by Marius Sucan (robodesign.ro)
 
+  v4.27.9 (2018-03-29)
+  - bug fixes regarding typing mode, in foreign languages
+  
   v4.27.8 (2018-03-28)
   - minor bug fixes; more code optimisations
+  - updated help
   
   v4.27.7 (2018-03-26)
   - bug fixes regarding keys detection and others

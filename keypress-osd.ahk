@@ -6,7 +6,7 @@
 ; Charset for this file must be UTF 8 with BOM.
 ; it may not function properly otherwise.
 ;
-; Script written for AHK_H / AHK_L v1.1.27 Unicode.
+; Script written for AHK_H / AHK_L v1.1.28 Unicode.
 ;--------------------------------------------------------------------------------------------------------------------------
 ;
 ; Change log file:
@@ -142,7 +142,7 @@
 ;@Ahk2Exe-SetMainIcon Lib\keypress.ico
 ;@Ahk2Exe-SetName KeyPress OSD v4
 ;@Ahk2Exe-SetDescription KeyPress OSD v4 [mirror keyboard and mouse usage]
-;@Ahk2Exe-SetVersion 4.27.8
+;@Ahk2Exe-SetVersion 4.27.9
 ;@Ahk2Exe-SetCopyright Marius Şucan (2017-2018)
 ;@Ahk2Exe-SetCompanyName ROBODesign.ro
 ;@Ahk2Exe-SetOrigFilename keypress-osd.ahk
@@ -161,7 +161,7 @@
  #MaxThreads 255
  #MaxThreadsPerHotkey 255
  #MaxThreadsBuffer On
- #WinActivateForce
+ ; #WinActivateForce
  ; #Warn deebug
  ComObjError(false)
  SetTitleMatchMode, 2
@@ -333,8 +333,8 @@
  , DownloadExternalFiles  := 1
 
 ; Release info
- , Version                := "4.27.8"
- , ReleaseDate            := "2018 / 03 / 28"
+ , Version                := "4.27.9"
+ , ReleaseDate            := "2018 / 03 / 29"
  , hMutex, ScriptInitialized, FirstRun := 1
  , KPregEntry := "HKEY_CURRENT_USER\SOFTWARE\KeyPressOSD\v4"
 
@@ -506,8 +506,6 @@ If (ExpandWords=1 && DisableTypingMode=0)
    InitExpandableWords()
 If (EnableClipManager=1)
    InitClipboardManager()
-ModsLEDsIndicatorsManager(1)
-Sleep, 5
 
 If (EraseTextWinChange=1 && DisableTypingMode=0)
 {
@@ -515,6 +513,9 @@ If (EraseTextWinChange=1 && DisableTypingMode=0)
    MsgNum := DllCall("RegisterWindowMessage", "Str","SHELLHOOK")
    OnMessage(MsgNum, "ShellMessage")
 }
+ModsLEDsIndicatorsManager(1)
+Sleep, 5
+
 ScriptInitialized := 1      ; the end of the autoexec section and INIT
 RegWrite, REG_SZ, %KPregEntry%, Initializing, No
 Return
@@ -524,9 +525,10 @@ Return
 ; by CreateHotkey() from Section 4.
 ; - The functions here call typing mode related functions from Section 2.
 ;   In particular TypedLetter().
-; - If typing mode is disabled, every function from here calls GetKeyStr()
-;   to get its name and then display it in the OSD with ShowHotkey().
-;   The two mentioned functions are in Section 3.
+; - If typing mode is disabled, almost every function from here calls
+;   GetKeyStr() to get its name and then display it in the OSD with
+;   ShowHotkey().
+; - The two mentioned functions are in Section 3.
 ;================================================================
 
 OnMudPressed() {
@@ -645,7 +647,7 @@ OnMousePressed() {
         If (ShowMouseButton=1)
         {
             If (EnableTypingHistory=1)
-               EditField4 := StrLen(typed)>5 ? Typed : EditField4
+               EditField4 := StrLen(Typed)>5 ? Typed : EditField4
             Typed := (OnlyTypingMode=1) ? Typed : "" ; concerning TypedLetter(" ") - it resets the content of the OSD
             ShowHotkey(key)
             SetTimer, HideGUI, % -DisplayTime
@@ -814,19 +816,27 @@ OnUpDownPressed() {
     }
 }
 
-OnHomeEndPressed() {
-; Taiped is required to increase compatibility with Indic
+FilterText(invsChars:=1, ByRef KaretPoz:=0, ByRef KaretPozSel:=0, ByRef TxtLength:=0, textus:=0) {
+; Function required to increase compatibility with Indic
 ; and other languages; it skips over invisible chars and
-; two-part Emojis defined at the top of this file.
+; and converts two-part Emojis defined at the top of this file.
+    invisibleChars := "[\p{Mc}\p{Mn}\p{Cc}\p{Cf}]"
+    If (textus=0)
+       StringReplace, Taiped, Typed, %CSx1%,, All
+    Else
+       StringReplace, Taiped, textus, %CSx1%,, All
+    Taiped := RegExReplace(Taiped, Emojis, "1")
+    If (invsChars=1)
+       Taiped := RegExReplace(Taiped, invisibleChars)
+    StringGetPos, KaretPoz, Taiped, %Lola%
+    StringGetPos, KaretPozSel, Taiped, %Lola2%
+    TxtLength := StrLen(Taiped)
+}
 
-    taiped := Typed
-    taiped := RegExReplace(taiped, "[\p{Mc}\p{Mn}\p{Cc}\p{Cf}]")
-    taiped := RegExReplace(taiped, Emojis, "1")
-    StringGetPos, exKaretPos, taiped, %Lola%
-    StringGetPos, exKaretPosSelly, taiped, %Lola2%
+OnHomeEndPressed() {
     LastMatchedExpandPair := ""
-    Try
-    {
+    FilterText(1, exKaretPos, exKaretPosSelly, InitialTxtLength)
+    Try {
         key := GetKeyStr()
         If (A_TickCount-LastTypedSince < ReturnToTypingDelay) && StrLen(Typed)>0 && (DisableTypingMode=0) && (key ~= "i)^((.?Shift \+ )?(Home|End))") && (ShowSingleKey=1) && (KeyCount<10)
         {
@@ -896,11 +906,7 @@ OnHomeEndPressed() {
 
     If (MediateNavKeys=1 && SecondaryTypingMode=0)
     {
-      taiped := Typed
-      taiped := RegExReplace(taiped, "[\p{Mc}\p{Mn}\p{Cc}\p{Cf}]")
-      taiped := RegExReplace(taiped, Emojis, "1")
-      StringGetPos, exKaretPos2, taiped, %Lola%
-      StringGetPos, exKaretPosSelly2, taiped, %Lola2%
+      FilterText(1, exKaretPos2, exKaretPosSelly2, InitialTxtLength2)
       times2pressKey := (exKaretPos2 > exKaretPos) ? (exKaretPos2 - exKaretPos) : (exKaretPos - exKaretPos2)
       managedMode := (exKaretPos=exKaretPos2) || (times2pressKey<1) ? 0 : 1
       If (exKaretPosSelly<0 && exKaretPosSelly2>=0)
@@ -1134,8 +1140,7 @@ OnSpacePressed() {
 }
 
 OnBspPressed() {
-    Try
-    {
+    Try {
         key := GetKeyStr()
         If (TrueRmDkSymbol && AlternativeHook2keys=1 && SecondaryTypingMode=0 && DisableTypingMode=0) || (OnMSGdeadChar && SecondaryTypingMode=1 && DisableTypingMode=0) || (TrueRmDkSymbol && AlternativeHook2keys=0 && SecondaryTypingMode=0 && DisableTypingMode=0 && ShowDeadKeys=0)
         {
@@ -1157,14 +1162,14 @@ OnBspPressed() {
         If (ExpandWords=1 && StrLen(LastMatchedExpandPair)>1 && (A_TickCount-LastTypedSince < NoExpandAfter))
         {
            searchThis := SubStr(LastMatchedExpandPair, InStr(LastMatchedExpandPair, "// ")+3)
-           searchThis2 := RegExReplace(searchThis, Emojis, "1")
+           FilterText(0, abz, zba, TxtLen, searchThis)
            StringReplace, replaceWith, LastMatchedExpandPair, %searchThis%
            StringReplace, replaceWith, replaceWith, %A_Space%//%A_Space%
            StringReplace, Typed, Typed, %searchThis%%Lola%, % replaceWith A_Space Lola, UseErrorLevel
            If (ErrorLevel>0)
            {
              StringGetPos, CaretPos, Typed, %Lola%
-             times2pressKey := StrLen(searchThis2)-1
+             times2pressKey := TxtLen - 1
              SendInput, {BackSpace %times2pressKey% }
              If (SecondaryTypingMode!=1)
              {
@@ -1604,11 +1609,8 @@ OnCtrlRLeft() {
   }
   PressKeyRecorded := 1
   LastMatchedExpandPair := ""
-  taiped := Typed
-  taiped := RegExReplace(taiped, "[\p{Mc}\p{Mn}\p{Cc}\p{Cf}]")
-  taiped := RegExReplace(taiped, Emojis, "1")
-  StringGetPos, exKaretPos, taiped, %Lola%
-  StringGetPos, exKaretPosSelly, taiped, %Lola2%
+  FilterText(1, exKaretPos, exKaretPosSelly, InitialTxtLength)
+
   If ((A_TickCount-LastTypedSince < ReturnToTypingDelay) && DisableTypingMode=0 && ShowSingleKey=1 && KeyCount<10 && StrLen(Typed)>1)
   {
       If InStr(A_ThisHotkey, "+^Left")
@@ -1661,11 +1663,7 @@ OnCtrlRLeft() {
       ShowHotkey(key)
       SetTimer, HideGUI, % -DisplayTime
   }
-  taiped := Typed
-  taiped := RegExReplace(taiped, "[\p{Mc}\p{Mn}\p{Cc}\p{Cf}]")
-  taiped := RegExReplace(taiped, Emojis, "1")
-  StringGetPos, exKaretPos2, taiped, %Lola%
-  StringGetPos, exKaretPosSelly2, taiped, %Lola2%
+  FilterText(1, exKaretPos2, exKaretPosSelly2, InitialTxtLength2)
   KeyCount := (exKaretPos!=exKaretPos2 && exKaretPosSelly<0 && exKaretPosSelly2<0) || (exKaretPos=exKaretPos2 && exKaretPosSelly!=exKaretPosSelly2) ? 1 : KeyCount
   If (SendJumpKeys=1 && SecondaryTypingMode=0 && DroppedSelection!=1)
   {
@@ -1731,7 +1729,11 @@ OnCtrlDelBack() {
   }
   PressKeyRecorded := 1
   LastMatchedExpandPair := ""
-  InitialTextLength := StrLen(Typed)
+  doThis2 := 0
+  If (key ~= "i)^(.?Ctrl \+ Delete)") || InStr(A_ThisHotkey, "^Del")
+     doThis2 := 1
+  FilterText(doThis2, abz, zba, InitialTxtLen)
+
   If ((A_TickCount-LastTypedSince < ReturnToTypingDelay) && DisableTypingMode=0 && ShowSingleKey=1 && KeyCount<10 && StrLen(Typed)>=2)
   {
       BackTypdUndo := Typed
@@ -1787,8 +1789,12 @@ OnCtrlDelBack() {
       ShowHotkey(key)
       SetTimer, HideGUI, % -DisplayTime
   }
-  TextLengthAfter := StrLen(Typed)
-  times2pressKey := InitialTextLength - TextLengthAfter
+
+  doThis2 := 0
+  If (DelPressed=1)
+     doThis2 := 1
+  FilterText(doThis2, abz, zba, TxtLenAfter)
+  times2pressKey := InitialTxtLen - TxtLenAfter
   If (times2pressKey>1)
      KeyCount := 1
   If (SendJumpKeys=1 && SecondaryTypingMode=0)
@@ -2071,8 +2077,7 @@ toUnicodeExtended(uVirtKey,uScanCode,shiftPressed:=0,AltGrPressed:=0,wFlags:=0,o
      If (DeadKeyBeeper=1 && ShowSingleKey=1)
         SoundsThread.ahkPostFunction["OnDeathKeyPressed", ""]
 
-     RmDkSymbol := CSx3
-     StringReplace, VisibleTextField, VisibleTextField, %Lola%, %RmDkSymbol%
+     StringReplace, VisibleTextField, VisibleTextField, %Lola%, %CSx3%
      ShowHotkey(VisibleTextField)
      If (AlternativeHook2keys=0)
         Sleep, % 250 * TypingDelaysScale
@@ -2242,7 +2247,7 @@ CaretMover(direction,inLoop:=0) {
   StringGetPos, CaretPosSelly, Typed, %Lola2%
   Direction2check := (direction=2) ? CaretPos+3 : CaretPos
   TestChar := SubStr(Typed, Direction2check, 1)
-  If RegExMatch(TestChar, "[\p{Mc}\p{Mn}\p{Cc}\p{Cf}\p{Co}\p{Cs}]") && (inLoop<4) && (CaretPosSelly<0)
+  If RegExMatch(TestChar, "[\p{Mc}\p{Mn}\p{Cc}\p{Cf}\p{Co}\p{Cs}]") && (inLoop<5) && (CaretPosSelly<0)
      MustRepeat := 1
 
   If (st_count(Typed, Lola2)>0)
@@ -2297,14 +2302,14 @@ CaretMoverSel(direction,inLoop:=0) {
      StringGetPos, CaretPos, Typed, %cola%
      Direction2check := (direction=1) ? CaretPos+3 : CaretPos
      TestChar := SubStr(Typed, Direction2check, 1)
-     If RegExMatch(TestChar, "[\p{Mc}\p{Mn}\p{Cc}\p{Cf}\p{Co}\p{Cs}]") && (inLoop<4)
+     If RegExMatch(TestChar, "[\p{Mc}\p{Mn}\p{Cc}\p{Cf}\p{Co}\p{Cs}]") && (inLoop<5)
         MustRepeat := 1
   } Else
   {
      StringGetPos, CaretPos, Typed, %cola2%
      Direction2check := (direction=1) ? CaretPos+3 : CaretPos
      TestChar := SubStr(Typed, Direction2check, 1)
-     If RegExMatch(TestChar, "[\p{Mc}\p{Mn}\p{Cc}\p{Cf}\p{Co}\p{Cs}]") && (inLoop<4)
+     If RegExMatch(TestChar, "[\p{Mc}\p{Mn}\p{Cc}\p{Cf}\p{Co}\p{Cs}]") && (inLoop<5)
         MustRepeat := 1
      CaretPos := (direction=1) ? CaretPos + 1 : CaretPos
   }
@@ -2353,9 +2358,9 @@ CaretJumpMain(direction) {
      {
         CaretuPosa := RegExMatch(Typed, alternativeRegEx, , CaretPos+1) + 1
         If (CaretuPosa>CaretPos)
-           CaretuPos := CaretuPosa < CaretuPos ? CaretuPosa : CaretuPos
+           CaretuPos := (CaretuPosa < CaretuPos) ? CaretuPosa : CaretuPos
      }
-     CaretPos := CaretuPos < CaretPos ? StrLen(Typed)+1 : CaretuPos
+     CaretPos := (CaretuPos < CaretPos) ? StrLen(Typed)+1 : CaretuPos
   }
 
   If (direction=0)
@@ -2371,12 +2376,12 @@ CaretJumpMain(direction) {
        If (AlternativeJumps=1)
        {
           CaretelPosa := RegExMatch(Typed, alternativeRegEx, , CaretuPos)+1
-          CaretelPos := CaretelPosa < CaretelPos ? CaretelPosa : CaretelPos
+          CaretelPos := (CaretelPosa < CaretelPos) ? CaretelPosa : CaretelPos
        }
-       CaretelPos := CaretelPos < CaretuPos ? StrLen(Typed)+1 : CaretelPos
+       CaretelPos := (CaretelPos < CaretuPos) ? StrLen(Typed)+1 : CaretelPos
        If (CaretelPos < CaretPos+1)
        {
-          CaretPos := CaretelPos > CaretPos ? 1 : CaretelPos
+          CaretPos := (CaretelPos > CaretPos) ? 1 : CaretelPos
           AllGood := 1
        }
        If (CaretelPos < CaretuPos+1) || (A_Index>CaretPos+5)
@@ -2419,8 +2424,8 @@ CaretJumper(direction,inLoop:=0) {
   StringGetPos, CaretPoza, Typed, %Lola%
   Direction2check := CaretPoza+2
   TestChar := SubStr(Typed, Direction2check, 1)
-  If RegExMatch(TestChar, "[\p{Mc}\p{Mn}\p{Cc}\p{Cf}\p{Co}\p{Cs}]")
-     CaretMover(direction*2,1)
+  If RegExMatch(TestChar, "[\▫\p{Mc}\p{Mn}\p{Cc}\p{Cf}\p{Co}\p{Cs}]") || InStr(Typed, CSx2)
+     CaretMover(direction*2, 1)
 }
 
 CaretJumpSelector(direction,inLoop:=0) {
@@ -2456,8 +2461,8 @@ CaretJumpSelector(direction,inLoop:=0) {
   StringGetPos, CaretPoza, Typed, %Lola2%
   Direction2check := CaretPoza+2
   TestChar := SubStr(Typed, Direction2check, 1)
-  If RegExMatch(TestChar, "[\p{Mc}\p{Mn}\p{Cc}\p{Cf}\p{Co}\p{Cs}]")
-     CaretMoverSel(direction,1)
+  If RegExMatch(TestChar, "[\▫\p{Mc}\p{Mn}\p{Cc}\p{Cf}\p{Co}\p{Cs}]")  || InStr(Typed, CSx2)
+     CaretMoverSel(direction, 1)
 }
 
 ReplaceSelection(copy2clip:=0,EraseSelection:=1) {
@@ -2597,7 +2602,7 @@ textClipboard2OSD(toPaste) {
     StringReplace, toPaste, toPaste, %Lola2%,, All
     InsertChar2caret(toPaste)
     CaretPos := CaretPos + StrLen(toPaste)
-    maxTextChars := StrLen(typed)+2
+    maxTextChars := StrLen(Typed)+2
     CalcVisibleText()
     ShowHotkey(VisibleTextField)
     Global lastTypedSince := A_TickCount
@@ -2624,13 +2629,13 @@ ExpandFeatureFunction() {
   }
   LastMatchedExpandPair := ""
   UserTypedWord := MatchProxyWord()
-  UserTypedWord := RegExReplace(UserTypedWord, Emojis, "1")
+  FilterText(0, abz, zba, TxtLen, UserTypedWord)
 
   If ExpandWordsList[UserTypedWord] && (A_TickCount-LastTypedSince < NoExpandAfter)
   {
      StringReplace, Typed, Typed, %UserTypedWord%%A_Space%%Lola%, % ExpandWordsList[UserTypedWord] Lola
      StringGetPos, CaretPos, Typed, %Lola%
-     times2pressKey := StrLen(UserTypedWord) + 1
+     times2pressKey := TxtLen + 1
      DoNotRepeatTimer := A_TickCount
      If (SecondaryTypingMode!=1)
      {
@@ -3134,7 +3139,7 @@ ClicksTimer() {
     For i, clicky in ClicksList
     {
         If GetKeyState(clicky)
-           profix .= mod "+"
+           profix .= clicky "+"
     }
 
     If profix
@@ -4299,7 +4304,8 @@ checkWindowKBD() {
     If !DllCall("user32\ActivateKeyboardLayout", "Ptr", hkl, "UInt", 0x100)  ; hkl: 1=next, 0=previous | flags: 0x100=KLF_SETFORPROCESS
     {
       SetFormat, Integer, H
-      l := SubStr(hkl & 0xFFFF, 3), klid := SubStr("00000000" l, -7)
+      l := SubStr(hkl & 0xFFFF, 3)
+      klid := SubStr("00000000" l, -7)
       SetFormat, Integer, D
       DllCall("user32\LoadKeyboardLayoutW", "Str", klid, "UInt", 0x103)    ; AW, flags: 0x100=KLF_SETFORPROCESS 0x1=KLF_ACTIVATE 0x2=KLF_SUBSTITUTE_OK
     }
@@ -5490,14 +5496,14 @@ InitializeTray() {
     Menu, Tray, Add
     Menu, Tray, Add, &KeyPress activated, SuspendScriptNow
     Menu, Tray, Check, &KeyPress activated
-    Menu, Tray, Add, &Restart, ReloadScriptNow
+    Menu, Tray, Add, &Restart, ReloadScriptNow, P50
     Menu, Tray, Add
     Menu, Tray, Add, &Help / Troubleshoot, HelpFAQstarter
     Menu, Tray, Add, &About, AboutWindow
     Menu, Tray, Add
     Menu, Tray, Delete, E&xit
     Menu, Tray, Delete, Initializing...
-    Menu, Tray, Add, E&xit, KillScript
+    Menu, Tray, Add, E&xit, KillScript, P50
     Menu, Tray, Default, &Installed keyboard layouts
     Menu, Tray, Tip, KeyPress OSD v%Version%%RunType%
 
@@ -5705,7 +5711,7 @@ ToggleCapture2Text() {
         If (Capture2Text!=1)
         {
             SoundBeep, 1900
-            MsgBox, 4,, Capture2Text was not detected. Do you want to continue?
+            MsgBox, 4,, Capture2Text was not detected. Do you want to continue? `nThis is an external application. `nPlease see Help for more details.
             IfMsgBox, Yes
                 featureValidated := 1
             Else
@@ -5829,18 +5835,7 @@ KillScript(showMSG:=1) {
    } Else If showMSG
    {
       ShowLongMsg("Adiiooosss :-(((")
-      Sleep, 1550
-      SoundBeep, 600, 200
-      Sleep, 150
-      SoundBeep, 500, 100
-      Sleep, 150
-      SoundBeep, 400, 50
-      Sleep, 150
-      SoundBeep, 300, 25
-      Sleep, 150
-      SoundBeep, 200, 25
-      Sleep, 150
-      SoundBeep, 100, 25
+      Sleep, 950
    }
    Cleanup()
    ExitApp
@@ -7901,6 +7896,13 @@ AboutWindow() {
         WinActivate, KeyPress OSD
         Return
     }
+
+    If (AnyWindowOpen=1)
+    {
+       CloseWindow()
+       Return
+    }
+
     Static checkVersion
     SettingsGUI()
     If !checkVersion
@@ -7945,6 +7947,7 @@ AboutWindow() {
     Gui, Show, AutoSize, About KeyPress OSD v%Version%
     verifySettingsWindowSize()
     ColorPickerHandles := hDonateBTN "," hIcon
+    Sleep, 25
     miniUpdateChecker()
 }
 
@@ -8063,10 +8066,21 @@ InvokeQuickMenu() {
 InstalledKBDsWindow() {
     If (PrefOpen=1)
     {
-        SoundBeep, 300, 900
-        WinActivate, KeyPress OSD
-        Return
+       SoundBeep, 300, 900
+       WinActivate, KeyPress OSD
+       Return
     }
+
+    If (AnyWindowOpen=2)
+    {
+       AboutWindow()
+       Return
+    } Else If (AnyWindowOpen=1)
+    {
+       CloseWindow()
+       Return
+    }
+
     Global ListViewKBDs, btn100, RefreshBTN
     If (AutoDetectKBD=0)
        KbLayoutRaw := checkWindowKBD()
@@ -8082,6 +8096,7 @@ InstalledKBDsWindow() {
       Sleep, 25
       INIaction(1, "ReleaseDate", "SavedSettings")
       INIaction(1, "Version", "SavedSettings")
+      Sleep, 25
     }
     SettingsGUI()
     countList := 0
@@ -8135,6 +8150,9 @@ InstalledKBDsWindow() {
          langFriendlySysName := A_LoopField " (unrecognized) ³"
          note3 := 1
       }
+      If RegExMatch(langFriendlySysName, "i)(input sys|input meth|ime 3.?|ime.?200.?)")
+         hasThisIME := 1
+
       KBDisSupported := KBDisUnsupported=0 ? "Yes"
                       : isVertUp=1         ? "No *"
                       : hasThisIME=1       ? "No ²"
@@ -8195,6 +8213,7 @@ InstalledKBDsWindow() {
     If (KBDsDetected!=countList)
        IniWrite, %countList%, %LangFile%, Options, KBDsDetected
     verifySettingsWindowSize()
+    Sleep, 25
     miniUpdateChecker()
 }
 
