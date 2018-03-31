@@ -261,7 +261,7 @@ ShowRipple(LeftClickRippleColor, _style:="GdipDrawEllipse", MouseRippleFrequency
 Return
 
 OnMouseRButton:
-Sleep, 140
+Sleep, 160
 ShowRipple(RightClickRippleColor, _style:="GdipDrawEllipse", MouseRippleFrequency)
 Return
 
@@ -270,10 +270,12 @@ ShowRipple(MiddleClickRippleColor, _style:="GdipDrawRectangle", MouseRippleFrequ
 Return
 
 OnMouseWheelDown:
+Sleep, 15
 ShowRipple(WheelColor, _style:="GdipDrawPolygon", MouseRippleFrequency, "D")
 Return
 
 OnMouseWheelUp:
+Sleep, 15
 ShowRipple(WheelColor, _style:="GdipDrawPolygon", MouseRippleFrequency, "U")
 Return
 

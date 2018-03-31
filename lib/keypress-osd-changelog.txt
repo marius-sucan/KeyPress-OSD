@@ -6,14 +6,22 @@
 [b]Main AHK file:[/b]
 http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd.ahk
 
-[b]ZIP Package compiled [x64 / x32][/b]
+[b]ZIP Package compiled [x64 / x32], includes AHK_H and sources:[/b]
 http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip
 
 by Marius Sucan (robodesign.ro)
 
+  v4.28.1 (2018-03-31)
+  - improvements regarding edit fields at any settings window
+  - code improvements
+  - improvements and changes regarding beepers
+
+  v4.28.0 (2018-03-30)
+  - improvements regarding beeps on modifiers presses
+
   v4.27.9 (2018-03-29)
-  - bug fixes regarding typing mode, in foreign languages
-  
+  - bug fixes regarding typing mode, affecting foreign languages and caret jumps, dead keys
+
   v4.27.8 (2018-03-28)
   - minor bug fixes; more code optimisations
   - updated help
@@ -886,9 +894,6 @@ TO-DO:
 Features to implement:
 - compile the thing! include all scripts inside?
   - separate UI settings and tray menu? separate files with include
-- mai testează AHK_H v1.1.28 h003
-  - crashes on restart
-  - the compiler fails the x32 edition; crashy on restarts
   - [bug] when x32 compiled, double-click pe layout, KeyPress starts twice
 
 - test compiled version on different systems; crashes?
@@ -896,7 +901,6 @@ Features to implement:
   - win xp [vm], win 7 [vm, pc], win 10 [laptop]
 
 - test TabletPro
-- sort *caps.
 - safer defaults?
 - test slow VM; laptop, pc
 
@@ -906,9 +910,10 @@ Features to implement:
  - warnings. debugger?
  - reparații la mouse ripples; thickness vs size; wheel up/down frequency mess-up
  - adjust caret halo height based on the function provided by Dragoș
- - typing in edit fields, trigger updates; [wrapper]
  - ignore hide OSD [clippy man]
-
+ - learn/unlearn expanded words on Enter
+   - duplicate entries? test
+   
 - Drugwash: Fix ripples. New caret halo routine?
 
 - capture text to-do:
