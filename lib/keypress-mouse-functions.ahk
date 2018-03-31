@@ -197,14 +197,13 @@ OnKeyPressed() {
     {
        mkey := SubStr(A_ThisHotkey, 3)
        If InStr(mkey, "wheel")
-          SetTimer, visualMouseClicksDummy, 10, -10
+          SetTimer, visualMouseClicksDummy, -10, -10
     }
 }
 
 visualMouseClicksDummy() {
     mkey := SubStr(A_ThisHotkey, 3)
     ShowMouseClick(mkey)
-    SetTimer, , off
 }
 
 CreateMouseGUI() {
