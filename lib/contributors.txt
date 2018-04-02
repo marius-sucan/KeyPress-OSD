@@ -1,0 +1,99 @@
+
+Code created by other people, included in KeyPress OSD v4 and/or its additional scripts:
+
+-= LIBRARIES/CLASSES/SCRIPTS =-
+
+by MRight:
+- Mouse Ripples       ; (modified) from https://autohotkey.com/boards/viewtopic.php?t=8963
+
+by Sean and jethrow:
+- Accessible Info Viewer  ; (modified) from  http://www.autohotkey.com/board/topic/77888-accessible-info-viewer-alpha-release-2012-09-20/
+              ; https://dl.dropbox.com/u/47573473/Accessible%20Info%20Viewer/AccViewer%20Source.ahk
+- UI Automation Interface ; from http://www.autohotkey.com/board/topic/94619-ahk-l-screen-reader-a-tool-to-get-text-anywhere/
+
+-= FUNCTIONS =-
+
+by Alguimist:
+- font list generator
+
+by Drugwash:
+- CheckWindowKBD()
+- Cleanup()
+- FindIMEname()
+- FindRes()         ; based on AHK_H ResGet.ahk script and MSDN info
+- FormatMessage()
+- GetDeadKeys()
+- GetFocusedCtrl()      ; in keypress-mouse-functions.ahk
+- GetFocusedThread()    ; inspired by AHK source code by Lexikos
+- GetIMEName()
+- GetLayoutDisplayName()
+- GetLayoutInfo()
+- GetLayoutsInfo()
+- GetLocaleInfo()
+- GetLocaleTextDir()    ; inspired by Michael S. Kaplan http://archives.miloush.net/michkap/archive/2006/03/03/542963.html
+- GetRes()          ; based on AHK_H ResGet.ahk script and MSDN info
+- GetVolume()
+- HaloRegion1/2/3/4/5()   ; in keypress-mouse-functions.ahk
+- HasIME()
+- Hex2Str()
+- InitAHKhThreads()     ; (modified)
+- KLID2LCID()
+- LoadImage()
+- MouseMove()
+- SetColors()
+- SetVolume()
+- SHLoadIndirectString()
+- SndPlay()       ; in keypress-beeperz-functions.ahk
+- TrackMouseDragging()
+
+by errorseven:
+- TrimArray()       ; from https://stackoverflow.com/questions/46432447/how-do-i-remove-duplicates-from-an-autohotkey-array
+
+by Helgef:
+- ToUnicodeExtended()   ; (modified) from https://autohotkey.com/boards/viewtopic.php?f=5&t=41065&p=187582#p187582
+
+by jballi:
+- Fnt_CreateFont()      ; from Font Library v3.0 https://autohotkey.com/boards/viewtopic.php?t=4379
+- Fnt_DeleteFont()      ; as above
+- Fnt_EnumFontFamExProc() ; as above
+- Fnt_GetFontName()     ; as above
+- Fnt_GetFontSize()     ; as above
+- Fnt_GetListOfFonts()    ; as above
+- Fnt_SetFont()       ; as above (modified)
+
+by Jess Harpur:
+- Extract2Folder()      ; (modified) from https://autohotkey.com/board/topic/60706-native-zip-and-unzip-xpvista7-ahk-l/page-2
+              ; based on code by shajul; backup option by Drugwash
+
+by Lexikos:
+- GetKeyChar()        ; (modified) from https://autohotkey.com/board/topic/110808-getkeyname-for-other-languages/#entry682236
+
+by Maestrith:
+- Dlg_Color()       ; (modified) from Font and Color Dialogs https://autohotkey.com/board/topic/94083-ahk-11-font-and-color-dialogs/
+
+by Sean:
+- GetTextExtentPoint()    ; (modified) from https://autohotkey.com/board/topic/16414-hexview-31-for-stdlib/#entry107363
+
+by SKAN:
+- VarMD5()          ; from https://autohotkey.com/board/topic/59576-filecrc32-filesha1-filemd5-and-md5/
+              ; www.autohotkey.com/forum/viewtopic.php?p=275910#275910
+
+by Stealzy:
+- ChangeKBD()       ; from [CLASS] Lyt https://autohotkey.com/boards/viewtopic.php?t=28258
+- ChangeKBDGlobal() ; as above
+- GetInputHKL()     ; as above (modified)
+
+by Tidbit:
+- ST_Count()        ; from String Things https://autohotkey.com/board/topic/90972-string-things-common-text-and-array-functions/
+- ST_Delete()       ; as above
+- ST_Insert()       ; as above (modified)
+
+by VxE:
+- GuiGetSize()      ; (modified) from https://autohotkey.com/board/topic/44150-how-to-properly-getset-gui-size/
+
+by Heresy from:
+- WinGetAll()       ; from https://autohotkey.com/board/topic/30323-wingetall-get-all-windows-titleclasspidprocess-name/
+
+by unknown:
+- HexRGB()          ; (modified)
+

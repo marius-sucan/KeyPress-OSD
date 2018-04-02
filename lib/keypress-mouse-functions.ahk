@@ -39,10 +39,12 @@ Global IniFile           := "keypress-osd.ini"
  , MouseIdleFlash        := 1     ; some may find it disturbing
  , MouseVclickAlpha      := 150   ; from 0 to 255
  , MouseVclickColor      := "555555"
- , CaretHaloAlpha        := 175   ; from 0 to 255
+ , MouseChangeFeedback   := 0
+ , HideMhalosMcurHidden  := 1
+ , CaretHaloAlpha        := 128   ; from 0 to 255
  , CaretHaloColor        := "BBAA99"  ; HEX format also accepted
- , CaretHaloHeight       := 70
- , CaretHaloWidth        := 15
+ , CaretHaloHeight       := 30
+ , CaretHaloWidth        := 25
  , CaretHaloThick        := 0     ; halo thickness; 0 makes a solid halo
  , CaretHaloShape        := 2     ; 1=circle, 2=square, 3=round square, 4=triangle, 5=crosshair
  , CaretHaloMode         := 1     ; 1=fixed size (obey Radius), 2=variable size based on caret height
@@ -105,6 +107,16 @@ ShowMouseIdleLocation() {
     {
        MouseClickCounter := !MouseClickCounter
        AlphaVariator := MouseIdleFlash ? MouseIdleAlpha*MouseClickCounter : MouseIdleAlpha
+       mouseCursorVisible := checkMcursorState(hpCurs)
+       If (mouseCursorVisible=0 && HideMhalosMcurHidden=1)
+       {
+          idleOn := 0
+          isIdleGui := 0
+          Gui, MouseIdlah: Destroy
+          MouseHalo(1)
+          Return
+       }
+
        If !IdleOn || LastIAlpha != MouseIdleAlpha || LastIRad != MouseIdleRadius || LastIColor != MouseIdleColor
        {
           MouseGetPos, mX, mY
@@ -141,19 +153,31 @@ ShowMouseIdleLocation() {
        Gui, MouseH: Hide
     } Else
     {
-        If (ShowMouseHalo=1 && ScriptelSuspendel!="Y")
-           Gui, MouseH: Show, NoActivate
-        Gui, MouseIdlah: Hide
-        idleOn := 0
+       Gui, MouseIdlah: Hide
+       idleOn := 0
     }
 
     If (ShowMouseIdle=1 && ScriptelSuspendel="Y")
        Gui, MouseIdlah: Hide
 }
 
-MouseHalo() {
+checkMcursorState(ByRef hpCurs) {
+    VarSetCapacity(CI, sz:=16+A_PtrSize, 0), NumPut(sz, CI, 0, "UInt")
+    DllCall("user32\GetCursorInfo", "Ptr", &CI) ; get cursor info
+    h := NumGet(CI, 4, "UInt"), hpCurs := NumGet(CI, 8, "Ptr")
+    Return h
+}
+
+MouseHalo(killNow:=0) {
     Static
-    If (A_TimeIdle > 2000)
+    If (killNow=1)
+    {
+       Gui, MouseH: Destroy
+       IsHaloGui := 0
+       Return
+    }
+
+    If (A_TimeIdle > 3500)
        Return
   
     If (ShowMouseHalo=1 && ScriptelSuspendel!="Y")
@@ -163,18 +187,36 @@ MouseHalo() {
        BoxH := BoxW
        mX := mX - BoxW/2
        mY := mY - BoxW/2
+       If (HideMhalosMcurHidden=1 || MouseChangeFeedback=1)
+       {
+          mouseCursorVisible := checkMcursorState(hpCurs)
+          If (hpCurs!=oldhpCurs && MouseChangeFeedback=1)
+          {
+             WinSet, Transparent, % MouseHaloAlpha/2, %WinMouseHalo%
+             SoundPlay, sounds\mouseGlide.wav
+             Sleep, 5
+             WinSet, Transparent, %MouseHaloAlpha%, %WinMouseHalo%
+          }
+          oldhpCurs := hpCurs
+          If (mouseCursorVisible=0 && HideMhalosMcurHidden=1)
+          {
+             MouseHalo(1)
+             Return
+          }
+       }
+
        If (!IsHaloGui || LastAlpha != MouseHaloAlpha || LastColor != MouseHaloColor || LastRad != MouseHaloRadius)
        {
-           Gui, MouseH: Destroy
-           Gui, MouseH: +AlwaysOnTop -Caption +ToolWindow +E0x20 +hwndhHalo
-           Gui, MouseH: Margin, 0, 0
-           Gui, MouseH: Color, %MouseHaloColor%
-           Gui, MouseH: Show, NoActivate Hide x%mX% y%mY% w%BoxW% h%BoxH%, %WinMouseHalo%
-           WinSet, Region, 0-0 W%BoxW% H%BoxH% E, ahk_id %hHalo%
-           WinSet, Transparent, %MouseHaloAlpha%, %WinMouseHalo%
-           WinSet, AlwaysOnTop, On, %WinMouseHalo%
-           IsHaloGui := 1, LastAlpha := MouseHaloAlpha , LastColor := MouseHaloColor
-           , LastRad := MouseHaloRadius
+          Gui, MouseH: Destroy
+          Gui, MouseH: +AlwaysOnTop -Caption +ToolWindow +E0x20 +hwndhHalo
+          Gui, MouseH: Margin, 0, 0
+          Gui, MouseH: Color, %MouseHaloColor%
+          Gui, MouseH: Show, NoActivate Hide x%mX% y%mY% w%BoxW% h%BoxH%, %WinMouseHalo%
+          WinSet, Region, 0-0 W%BoxW% H%BoxH% E, ahk_id %hHalo%
+          WinSet, Transparent, %MouseHaloAlpha%, %WinMouseHalo%
+          WinSet, AlwaysOnTop, On, %WinMouseHalo%
+          IsHaloGui := 1, LastAlpha := MouseHaloAlpha , LastColor := MouseHaloColor
+          , LastRad := MouseHaloRadius
        }
        Gui, MouseH: Show, NoActivate x%mX% y%mY% w%BoxW% h%BoxH%, %WinMouseHalo%
        WinSet, AlwaysOnTop, On, %WinMouseHalo%
@@ -307,7 +349,9 @@ HideMouseClickGUI() {
     }
 }
 
-GuiGetSize( ByRef W, ByRef H, vindov) {          ; function by VxE from https://autohotkey.com/board/topic/44150-how-to-properly-getset-gui-size/
+GuiGetSize( ByRef W, ByRef H, vindov) {
+; [modified] function by VxE from:
+; https://autohotkey.com/board/topic/44150-how-to-properly-getset-gui-size/
   If (vindov=1)
      Gui, OSD: +LastFoundExist
   If (vindov=2)
@@ -335,20 +379,11 @@ CaretHalo(restartNow:=0) {
     doNotShow := 0
     If (ShowCaretHalo=1 && ScriptelSuspendel!="Y") ; && (A_TimeIdle > 200)
     {
-       tid := DllCall("user32\GetWindowThreadProcessId", "Ptr", hActive := WinExist("A"), "Ptr", NULL)
-       VarSetCapacity(GTI, sz := 24+6*A_PtrSize, 0)         ; GUITHREADINFO struct
-       NumPut(sz, GTI, 0, "UInt")  ; cbSize
-       If DllCall("user32\GetGUIThreadInfo", "UInt", tid, "Ptr", &GTI)
-          If !hWCaret := NumGet(GTI, 8+5*A_PtrSize, "Ptr")  ; hwndCaret
-;             If !hWCaret := NumGet(GTI, 8+A_PtrSize, "Ptr") ; hwndFocus
-;                If !hWCaret := NumGet(GTI, 8, "Ptr")        ; hwndActive
-                   hWCaret := hActive
-
-;       CaretW := NumGet(GTI, 16+6*A_PtrSize, "Int")-NumGet(GTI, 8+6*A_PtrSize, "Int")
-       CaretHeight := NumGet(GTI, 20+6*A_PtrSize, "Int")-NumGet(GTI, 12+6*A_PtrSize, "Int")
-       CaretHeight := CaretHeight>10 ? CaretHeight : 10
+       CaretHeight := GetFocusedCtrl(hwCaret)
+       CaretHaloHeight2 := CaretHaloHeight + Round(CaretHeight/2)
+       CaretHeight := CaretHeight>10 ? CaretHeight : 15 ; must increase it based on DPI !!!
        CaretHaloW := (CaretHaloWidth>10) ? CaretHaloWidth : 10
-       CaretHaloH := (CaretHaloMode=1) ? CaretHaloHeight : CaretHeight+2*CaretHaloThick+10
+       CaretHaloH := (CaretHaloMode=1) ? CaretHaloHeight2 : CaretHeight+2*CaretHaloThick+10
        mX := !A_CaretX ? 2 : A_CaretX - Round(CaretHaloW/2 + 1)
        mY := !A_CaretY ? 2 : Round(A_CaretY + CaretHeight/2 - CaretHaloH/2 + 1)
        mX := !mX ? 2 : mX
@@ -374,6 +409,7 @@ CaretHalo(restartNow:=0) {
        If (doNotShow!=1)
        {
           Gui, CaretH: Show, NoActivate x%mX% y%mY% w%CaretHaloW% h%CaretHaloH%, %WinCaretHalo%
+           HaloRegion%CaretHaloShape%(hHalo, 0, 0, CaretHaloW, CaretHaloH, CaretHaloThick)
           WinSet, Transparent, %CaretHaloAlpha%, %WinCaretHalo%
           WinSet, AlwaysOnTop, On, %WinCaretHalo%
           If ((A_TickCount-lastFlash>CaretBlinkTime*2) && CaretHaloFlash)
@@ -388,6 +424,30 @@ CaretHalo(restartNow:=0) {
     If ((ShowCaretHalo=1 && ScriptelSuspendel="Y") || doNotShow=1)
        Gui, CaretH: Hide
 }
+;================================================================
+GetFocusedCtrl(ByRef hCtrl)
+{
+hcActive := WinExist("A")
+tID := DllCall("user32\GetWindowThreadProcessId", "Ptr", hActive, "Ptr", 0)
+ctID := DllCall("kernel32\GetCurrentThreadId")
+DllCall("user32\AttachThreadInput", "UInt", tID, "UInt", ctID, "UInt", 1)
+hcFocus := DllCall("user32\GetFocus", "Ptr")
+DllCall("user32\AttachThreadInput", "UInt", tID, "UInt", ctID, "UInt", 0)
+VarSetCapacity(GTI, sz := 24+6*A_PtrSize, 0) ; GUITHREADINFO struct
+NumPut(sz, GTI, 0, "UInt") ; cbSize
+If r:= DllCall("user32\GetGUIThreadInfo", "UInt", tID, "Ptr", &GTI)
+	{
+	hCaret := NumGet(GTI, 8+5*A_PtrSize, "Ptr")
+	hFocus := NumGet(GTI, 8+A_PtrSize, "Ptr")
+	hActive := NumGet(GTI, 8, "Ptr")
+	hCtrl := hCaret ? hCaret : hFocus ? hFocus : hcFocus ? hcFocus : hActive ? hActive : hcActive
+	CaretH := NumGet(GTI, 20+6*A_PtrSize, "Int")-NumGet(GTI, 12+6*A_PtrSize, "Int")
+;	CaretW := NumGet(GTI, 16+6*A_PtrSize, "Int")-NumGet(GTI, 8+6*A_PtrSize, "Int")
+	}
+Else hCtrl := hcFocus ? hcFocus : hcActive
+Return CaretH ? CaretH : 0
+}
+;================================================================
 
 ToggleMouseTimerz(force:=0) {
     If (ScriptelSuspendel="Y" || force)

@@ -20,9 +20,9 @@ DetectHiddenWindows, On
 
 Global IniFile           := "keypress-osd.ini"
  , ShowMouseRipples      := 0
- , MouseRippleMaxSize    := 180
+ , MouseRippleMaxSize    := 140
  , MouseRippleThickness  := 10
- , MouseRippleFrequency  := 20
+ , MouseRippleFrequency  := 15
  , MouseRippleLbtnColor  := "ff2211"
  , MouseRippleMbtnColor  := "33cc33"
  , MouseRippleRbtnColor  := "4499ff"
@@ -77,34 +77,22 @@ MRInit() {
     Global
     If !ModuleInitialized
        MouseRippleSetup()
-    MouseRippleMaxSize := MouseRippleMaxSize < 135 ? 136 : MouseRippleMaxSize
-    RippleWinSize := MouseRippleMaxSize
-    MouseRippleThickness := (MouseRippleMaxSize<140 && MouseRippleThickness>10) ? 5
-                          : (MouseRippleMaxSize<156 && MouseRippleThickness>20) ? 15
-                          : (MouseRippleMaxSize<200 && MouseRippleThickness>20) ? 15
-                          : (MouseRippleMaxSize<250 && MouseRippleThickness>25) ? 24
-                          : (MouseRippleMaxSize<300 && MouseRippleThickness>35) ? 32
-                          : (MouseRippleMaxSize<350 && MouseRippleThickness>36) ? 35 : MouseRippleThickness
+    MouseRippleMaxSize := MouseRippleMaxSize < 100 ? 101 : MouseRippleMaxSize
+
+    RippleWinSize := MouseRippleMaxSize + 2*MouseRippleThickness + 1
     MainMouseRippleThickness := MouseRippleThickness
-    If (MouseRippleThickness>20)
-    {
-        RippleStep := MouseRippleMaxSize < 156 ? 4 : 6
-        RippleMinSize := MouseRippleThickness*3
-        RippleMaxSize := RippleWinSize - 90
-    } Else
-    {
-        RippleStep := MouseRippleMaxSize < 156 ? 4 : 6
-        RippleMinSize := MouseRippleMaxSize < 156 ? 20 : 45
-        RippleMaxSize := RippleWinSize - 50
-    }
+    RippleMinSize := 2*MouseRippleThickness + 2
+    RippleMaxSize := RippleWinSize - 2*MouseRippleThickness - 2
+    RippleStep := MouseRippleMaxSize < 160 ? 4 : 6
     RippleAlphaMax := MouseRippleOpacity
     RippleAlphaStep := RippleAlphaMax // ((RippleMaxSize - RippleMinSize) / RippleStep)
+
     RippleVisible := False
     LeftClickRippleColor := "0x" MouseRippleLbtnColor
     WheelColor := "0x" MouseRippleWbtnColor
     RightClickRippleColor := "0x" MouseRippleRbtnColor
     MiddleClickRippleColor := "0x" MouseRippleMbtnColor
-;    MouseIdleRippleColor := LeftClickRippleColor
+
     DCT := DllCall("user32\GetDoubleClickTime")
 
     hDeskDC := DllCall("user32\GetDC", "Ptr", 0)
@@ -115,7 +103,13 @@ MRInit() {
     NumPut(1, buf, 12, "UShort")
     NumPut(32, buf, 14, "UShort")
     NumPut(0, buf, 16)
-    hRippleBmp := DllCall("gdi32\CreateDIBSection", "Ptr", hDeskDC, "Ptr", &buf, "UInt", 0, "PtrP", ppvBits, "Ptr", 0, "UInt", 0)
+    hRippleBmp := DllCall("gdi32\CreateDIBSection"
+                     , "Ptr" , hDeskDC
+                     , "Ptr" , &buf
+                     , "UInt", 0
+                     , "PtrP", ppvBits
+                     , "Ptr" , 0
+                     , "UInt", 0)
     DllCall("user32\ReleaseDC", "Ptr", 0, "Ptr", hDeskDC)
     hRippleDC := DllCall("gdi32\CreateCompatibleDC", "Ptr", 0)
     hOldRippleBmp := DllCall("gdi32\SelectObject", "Ptr", hRippleDC, "Ptr", hRippleBmp)
@@ -162,8 +156,9 @@ ShowRipple(_color, _style, _interval:=10, _dir:="") {
 
     If (RippleVisible)
        Return
-    RippleStart := InStr(_style, "Poly") ? RippleMinSize+50 : RippleMinSize
-    If ((A_TickCount-lastClk<DCT) && lastEvent=_color && WheelColor!=_color)
+    w := InStr(_style, "Poly") ? 1 : 0  ; wheel
+    RippleStart := w ? RippleMinSize+50 : RippleMinSize
+    If ((A_TickCount-lastClk<DCT) && lastEvent=_color && !w)
     {
        tf := 1.5
        MouseRippleThickness := MainMouseRippleThickness*tf
@@ -195,43 +190,59 @@ RippleTimer() {
     Global
     Static PolyBuf, c := Cos(4*ATan(1)/6), offset
     DllCall("gdiplus\GdipGraphicsClear", "Ptr", pRippleGraphics, "Int", 0)
-    If ((RippleDiameter += RippleStep) < RippleMaxSize) {
-        offset := MouseRippleThickness/2
-        DllCall("gdiplus\GdipCreatePen1", "UInt", ((RippleAlpha -= RippleAlphaStep) << 24) | RippleColor, "Float", MouseRippleThickness, "Int", 2, "PtrP", pRipplePen)
+    If ((RippleDiameter += RippleStep) < RippleMaxSize)
+    {
+       offset := MouseRippleThickness*tf/2
+       DllCall("gdiplus\GdipCreatePen1"
+          , "UInt"  , ((RippleAlpha -= RippleAlphaStep) << 24) | RippleColor
+          , "Float" , MouseRippleThickness
+          , "Int"   , 2
+          , "PtrP"  , pRipplePen)
         If (RippleStyle != "GdipDrawPolygon")
-           DllCall("gdiplus\"RippleStyle, "Ptr", pRippleGraphics, "Ptr", pRipplePen, "Float", offset, "Float", offset, "Float", RippleDiameter - 1, "Float", RippleDiameter - 1)
-        Else
         {
-          ; cos(pi/6):=(l/2)/(RippleDiameter/2) => l := 2*(cos(Pi/6)*(RippleDiameter/2))
-          VarSetCapacity(PolyBuf, 32, 0)
-          L := 2*c*(RippleDiameter/2), H := c*L
-          vx1:=(RippleDiameter-L)/2+offset  ; left X
-          vx2:=RippleDiameter/2+offset     ; middle X
-          vx3:=RippleDiameter/2+L/2+offset ; right X
-          vy1:=H+25
-          vy2:=offset
-          vy3:=RippleDiameter-H
-          vy4:=RippleDiameter-offset
-          hx1:=offset
-          hx2:=H+25
-          hx3:=RippleDiameter-H
-          hx4:=RippleDiameter-offset
-          hy1:=RippleDiameter/2+offset
-          hy2:=offset
-          hy3:=RippleDiameter-offset
-          x1 := (PointDir="U" || PointDir="D") ? vx1 : PointDir="L" ? hx1 : hx3
-          x2 := (PointDir="U" || PointDir="D") ? vx2 : PointDir="L" ? hx2 : hx4
-          x3 := (PointDir="U" || PointDir="D") ? vx3 : PointDir="L" ? hx2 : hx3
-          x4 := (PointDir="U" || PointDir="D") ? vx1 : PointDir="L" ? hx1 : hx3
-          y1 := PointDir="U" ? vy1 : PointDir="D" ? vy3 : PointDir="L" ? hy1 : hy2
-          y2 := PointDir="U" ? vy2 : PointDir="D" ? vy4 : PointDir="L" ? hy2 : hy1
-          y3 := PointDir="U" ? vy1 : PointDir="D" ? vy3 : PointDir="L" ? hy3 : hy3
-          y4 := PointDir="U" ? vy1 : PointDir="D" ? vy3 : PointDir="L" ? hy1 : hy2
-          NumPut(x1, PolyBuf, 0, "Float"), NumPut(y1, PolyBuf, 4, "Float")
-          NumPut(x2, PolyBuf, 8, "Float"), NumPut(y2, PolyBuf, 12, "Float")
-          NumPut(x3, PolyBuf, 16, "Float"), NumPut(y3, PolyBuf, 20, "Float")
-          NumPut(x4, PolyBuf, 24, "Float"), NumPut(y4, PolyBuf, 28, "Float")
-          DllCall("gdiplus\GdipDrawPolygon", "Ptr", pRippleGraphics, "Ptr", pRipplePen, "Ptr", &PolyBuf, "UInt", 4)
+           DllCall("gdiplus\"RippleStyle
+              , "Ptr"   , pRippleGraphics
+              , "Ptr"   , pRipplePen
+              , "Float" , offset
+              , "Float" , offset
+              , "Float" , RippleDiameter - 1
+              , "Float" , RippleDiameter - 1)
+        } Else
+        {
+            ; cos(pi/6):=(l/2)/(RippleDiameter/2) => l := 2*(cos(Pi/6)*(RippleDiameter/2))
+            VarSetCapacity(PolyBuf, 32, 0)
+            L := 2*c*(RippleDiameter/2), H := c*L
+            vx1:=(RippleDiameter-L)/2+offset  ; left X
+            vx2:=RippleDiameter/2+offset     ; middle X
+            vx3:=RippleDiameter/2+L/2+offset ; right X
+            vy1:=H+25
+            vy2:=offset
+            vy3:=RippleDiameter-H
+            vy4:=RippleDiameter-offset
+            hx1:=offset
+            hx2:=H+25
+            hx3:=RippleDiameter-H
+            hx4:=RippleDiameter-offset
+            hy1:=RippleDiameter/2+offset
+            hy2:=offset
+            hy3:=RippleDiameter-offset
+            x1 := (PointDir="U" || PointDir="D") ? vx1 : PointDir="L" ? hx1 : hx3
+            x2 := (PointDir="U" || PointDir="D") ? vx2 : PointDir="L" ? hx2 : hx4
+            x3 := (PointDir="U" || PointDir="D") ? vx3 : PointDir="L" ? hx2 : hx3
+            x4 := (PointDir="U" || PointDir="D") ? vx1 : PointDir="L" ? hx1 : hx3
+            y1 := PointDir="U" ? vy1 : PointDir="D" ? vy3 : PointDir="L" ? hy1 : hy2
+            y2 := PointDir="U" ? vy2 : PointDir="D" ? vy4 : PointDir="L" ? hy2 : hy1
+            y3 := PointDir="U" ? vy1 : PointDir="D" ? vy3 : PointDir="L" ? hy3 : hy3
+            y4 := PointDir="U" ? vy1 : PointDir="D" ? vy3 : PointDir="L" ? hy1 : hy2
+            NumPut(x1, PolyBuf, 0, "Float"), NumPut(y1, PolyBuf, 4, "Float")
+            NumPut(x2, PolyBuf, 8, "Float"), NumPut(y2, PolyBuf, 12, "Float")
+            NumPut(x3, PolyBuf, 16, "Float"), NumPut(y3, PolyBuf, 20, "Float")
+            NumPut(x4, PolyBuf, 24, "Float"), NumPut(y4, PolyBuf, 28, "Float")
+            DllCall("gdiplus\GdipDrawPolygon"
+               , "Ptr" , pRippleGraphics
+               , "Ptr" , pRipplePen
+               , "Ptr" , &PolyBuf
+               , "UInt", 4)
         }
         DllCall("gdiplus\GdipDeletePen", "Ptr", pRipplePen)
     } Else
@@ -241,19 +252,33 @@ RippleTimer() {
         Gui Ripple: Destroy
     }
 
+    L := RippleDiameter+MouseRippleThickness*tf
     VarSetCapacity(buf, 8)
-    NumPut(_pointerX - (RippleDiameter+MouseRippleThickness*tf) // 2, buf, 0)
-    NumPut(_pointerY - (RippleDiameter+MouseRippleThickness*tf) // 2, buf, 4)
-    DllCall("user32\UpdateLayeredWindow", "Ptr", hRippleWin, "Ptr", 0, "Ptr", &buf, "Int64P", (RippleDiameter + MouseRippleThickness*tf) | (RippleDiameter + MouseRippleThickness*tf) << 32, "Ptr", hRippleDC, "Int64P", 0, "UInt", 0, "UIntP", 0x1FF0000, "UInt", 2)
+    NumPut(_pointerX - L // 2, buf, 0)
+    NumPut(_pointerY - L // 2, buf, 4)
+    DllCall("user32\UpdateLayeredWindow"
+       , "Ptr"   , hRippleWin
+       , "Ptr"   , 0
+       , "Ptr"   , &buf
+       , "Int64P"  , L|L<<32
+       , "Ptr"   , hRippleDC
+       , "Int64P"  , 0
+       , "UInt"  , 0
+       , "UIntP" , 0x1FF0000
+       , "UInt"  , 2)
 }
 
 ToggleMouseRipples(force:=0) {
     Global
     If (ScriptelSuspendel="Y" || force)
+    {
        Loop, Parse, MButtons, |
-          Hotkey, % "~*" A_LoopField, OnMouse%A_LoopField%, Off UseErrorLevel
-    Else Loop, Parse, MButtons, |
-            Hotkey, % "~*" A_LoopField, OnMouse%A_LoopField%, On UseErrorLevel
+           Hotkey, % "~*" A_LoopField, OnMouse%A_LoopField%, Off UseErrorLevel
+    } Else
+    {
+       Loop, Parse, MButtons, |
+           Hotkey, % "~*" A_LoopField, OnMouse%A_LoopField%, On UseErrorLevel
+    }
 }
 
 OnMouseLButton:

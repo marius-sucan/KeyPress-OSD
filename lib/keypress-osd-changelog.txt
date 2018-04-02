@@ -11,6 +11,12 @@ http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip
 
 by Marius Sucan (robodesign.ro)
 
+  v4.28.3 (2018-03-02)
+  - [new] option to have the mouse halos hide whenever the mouse cursor hides
+  - [new] option to offer audio-visual feedback on mourse cursor changes
+  - [improvement] text caret halo is now adjusting to the real caret height
+  - various bug fixes and code improvements related to different parts of the script thanks to Drugwash
+
   v4.28.1 (2018-03-31)
   - improvements regarding edit fields at any settings window
   - code improvements
@@ -908,13 +914,12 @@ Features to implement:
 
 - elimină iniWrite for clipboard manager? then make ID per install
  - warnings. debugger?
- - reparații la mouse ripples; thickness vs size; wheel up/down frequency mess-up
- - adjust caret halo height based on the function provided by Dragoș
+ - reparații la mouse ripples; wheel up/down frequency mess-up
  - ignore hide OSD [clippy man]
+
  - learn/unlearn expanded words on Enter
-   - duplicate entries? test
    
-- Drugwash: Fix ripples. New caret halo routine?
+- Drugwash: checkWindowKBD() - TO FIX
 
 - capture text to-do:
   - wm-getobject, send message [chrome]

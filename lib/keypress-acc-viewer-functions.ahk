@@ -60,7 +60,7 @@ UpdateAccInfo(Acc, ChildId, Obj_Path="") {
   NewInputMsg := AccViewName " " AccViewValue " " CtrlTextVar " " otherDetails
   StringReplace, NewInputMsg, NewInputMsg, %A_TAB%, %A_SPACE%, All
   StringReplace, NewInputMsg, NewInputMsg, %A_SPACE%%A_SPACE%, %A_SPACE%, All
-  If (NewInputMsg!=InputMsg) || (AccTextCaptureActive=0)
+  If (NewInputMsg!=InputMsg || AccTextCaptureActive=0)
   {
      ShowLongMsg(NewInputMsg)
      InputMsg := NewInputMsg
@@ -165,8 +165,8 @@ GetAccLocation(AccObj, Child=0, byref x="", byref y="", byref w="", byref h="") 
 ; Acc Library
 ;================================================================
   Acc_Init(unload:=0) {
-    Static  h
-    If Not  h
+    Static h := 0
+    If !h
       h:=DllCall("kernel32\LoadLibraryW","Str","oleacc","Ptr")
    If (h && unload)
      Dllcall("kernel32\FreeLibrary", "Ptr", h)
