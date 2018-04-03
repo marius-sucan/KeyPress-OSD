@@ -11,9 +11,14 @@ http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip
 
 by Marius Sucan (robodesign.ro)
 
+  v4.28.4 (2018-03-03)
+  - [new] it can dynamically learn / unlearn expanded words on Enter by writing: +//+ word2match // words to replace with
+    - to remove an entry use: -//- word2match // [anything].
+  - bug fixes
+
   v4.28.3 (2018-03-02)
   - [new] option to have the mouse halos hide whenever the mouse cursor hides
-  - [new] option to offer audio-visual feedback on mourse cursor changes
+  - [new] option to offer audio-visual feedback on mouse cursor changes
   - [improvement] text caret halo is now adjusting to the real caret height
   - various bug fixes and code improvements related to different parts of the script thanks to Drugwash
 
@@ -916,7 +921,6 @@ Features to implement:
  - warnings. debugger?
  - reparații la mouse ripples; wheel up/down frequency mess-up
  - ignore hide OSD [clippy man]
-
  - learn/unlearn expanded words on Enter
    
 - Drugwash: checkWindowKBD() - TO FIX

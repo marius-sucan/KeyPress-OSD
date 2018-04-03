@@ -69,7 +69,8 @@ OnExit("MouseClose")
 Return
 
 MouseInit() {
-    If (ScriptelSuspendel="Y" || (ShowMouseVclick=0 && ShowMouseIdle=0 && ShowMouseHalo=0 && ShowCaretHalo=0))
+    If (ScriptelSuspendel="Y" || (ShowMouseVclick=0 && ShowMouseIdle=0
+    && ShowMouseHalo=0 && ShowCaretHalo=0))
        Return
     CaretHaloThick := (CaretHaloThick > Round(CaretHaloHeight/2-1)) ? Round(CaretHaloHeight/2-1) : Round(CaretHaloThick)
     CaretHaloThick := (CaretHaloThick > 60) ? 60 : Round(CaretHaloThick)
@@ -107,7 +108,7 @@ ShowMouseIdleLocation() {
     {
        MouseClickCounter := !MouseClickCounter
        AlphaVariator := MouseIdleFlash ? MouseIdleAlpha*MouseClickCounter : MouseIdleAlpha
-       mouseCursorVisible := checkMcursorState(hpCurs)
+       mouseCursorVisible := checkMcursorState(hpCursor)
        If (mouseCursorVisible=0 && HideMhalosMcurHidden=1)
        {
           idleOn := 0
@@ -117,7 +118,8 @@ ShowMouseIdleLocation() {
           Return
        }
 
-       If !IdleOn || LastIAlpha != MouseIdleAlpha || LastIRad != MouseIdleRadius || LastIColor != MouseIdleColor
+       If !IdleOn || (LastIAlpha != MouseIdleAlpha)
+       || (LastIRad != MouseIdleRadius) || (LastIColor != MouseIdleColor)
        {
           MouseGetPos, mX, mY
           BoxW := MouseIdleRadius
@@ -150,7 +152,6 @@ ShowMouseIdleLocation() {
        Gui, MouseIdlah: Show, NoActivate x%mX% y%mY% w%BoxW% h%BoxH%, %WinMouseIdle%
        WinSet, Transparent, %AlphaVariator%, %WinMouseIdle%
        WinSet, AlwaysOnTop, On, %WinMouseIdle%
-       Gui, MouseH: Hide
     } Else
     {
        Gui, MouseIdlah: Hide
@@ -161,23 +162,28 @@ ShowMouseIdleLocation() {
        Gui, MouseIdlah: Hide
 }
 
-checkMcursorState(ByRef hpCurs) {
-    VarSetCapacity(CI, sz:=16+A_PtrSize, 0), NumPut(sz, CI, 0, "UInt")
-    DllCall("user32\GetCursorInfo", "Ptr", &CI) ; get cursor info
-    h := NumGet(CI, 4, "UInt"), hpCurs := NumGet(CI, 8, "Ptr")
+checkMcursorState(ByRef hpCursor) {
+    VarSetCapacity(CI, sz:=16+A_PtrSize, 0), z := NumPut(sz, CI, 0, "UInt")
+    r := DllCall("user32\GetCursorInfo", "Ptr", &CI) ; get cursor info
+    h := NumGet(CI, 4, "UInt"), hpCursor := NumGet(CI, 8, "Ptr")
+    If (StrLen(hpCursor)>8 || hpCursor<100 || !InStr(hpCursor, "655"))
+       h := 0
+;    ToolTip, %h% - %hpCursor% - %r% - %z%
     Return h
 }
 
 MouseHalo(killNow:=0) {
     Static
-    If (killNow=1)
+    If (ShowMouseHalo=0 || killNow=1
+    || (HideMhalosMcurHidden=1 && A_TimeIdlePhysical>125000)
+    || (A_TimeIdle > MouseIdleAfter*1000))
     {
        Gui, MouseH: Destroy
        IsHaloGui := 0
        Return
     }
 
-    If (A_TimeIdle > 3500)
+    If (A_TimeIdle > 16000)
        Return
   
     If (ShowMouseHalo=1 && ScriptelSuspendel!="Y")
@@ -189,15 +195,15 @@ MouseHalo(killNow:=0) {
        mY := mY - BoxW/2
        If (HideMhalosMcurHidden=1 || MouseChangeFeedback=1)
        {
-          mouseCursorVisible := checkMcursorState(hpCurs)
-          If (hpCurs!=oldhpCurs && MouseChangeFeedback=1)
+          mouseCursorVisible := checkMcursorState(hpCursor)
+          If (hpCursor!=oldhpCursor && MouseChangeFeedback=1)
           {
              WinSet, Transparent, % MouseHaloAlpha/2, %WinMouseHalo%
              SoundPlay, sounds\mouseGlide.wav
              Sleep, 5
              WinSet, Transparent, %MouseHaloAlpha%, %WinMouseHalo%
           }
-          oldhpCurs := hpCurs
+          oldhpCursor := hpCursor
           If (mouseCursorVisible=0 && HideMhalosMcurHidden=1)
           {
              MouseHalo(1)
@@ -205,7 +211,8 @@ MouseHalo(killNow:=0) {
           }
        }
 
-       If (!IsHaloGui || LastAlpha != MouseHaloAlpha || LastColor != MouseHaloColor || LastRad != MouseHaloRadius)
+       If (!IsHaloGui || (LastAlpha != MouseHaloAlpha)
+       || (LastColor != MouseHaloColor) || (LastRad != MouseHaloRadius))
        {
           Gui, MouseH: Destroy
           Gui, MouseH: +AlwaysOnTop -Caption +ToolWindow +E0x20 +hwndhHalo

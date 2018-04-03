@@ -26,12 +26,12 @@ Global IniFile            := "keypress-osd.ini"
  , ScriptelSuspendel := 0
  , isKeystrokesFile := 1
  , AlternativeHook2keys := (AltHook2keysUser=0) ? 0 : 1
+ , TargetScriptTitle := "KeyPressOSDwin"
 
 MainLoop()
 Return
 
 MainLoop() {
-   Global TargetScriptTitle := "KeyPressOSDwin"
    Loop 
    { 
       ; Get one key at a time 
@@ -44,7 +44,8 @@ MainLoop() {
          hasEnded := 1
          Break
       }
-      Send_WM_COPYDATA(InputChar, TargetScriptTitle)
+      If RegExMatch(InputChar, "[\p{L}\p{M}\p{N}\p{P}\p{S}]")
+         Send_WM_COPYDATA(InputChar, TargetScriptTitle)
    }
    If (hasEnded!=1)
       MainLoop()
