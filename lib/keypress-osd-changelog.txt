@@ -11,9 +11,15 @@ http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip
 
 by Marius Sucan (robodesign.ro)
 
+  v4.28.5 (2018-03-04)
+  - dead keys related fixes
+  - made the dead keys specific code for hotkey bindings more simple and straiht-forward
+  - improvements related to the dynamic add/remove entries for auto-replace
+
   v4.28.4 (2018-03-03)
-  - [new] it can dynamically learn / unlearn expanded words on Enter by writing: +//+ word2match // words to replace with
-    - to remove an entry use: -//- word2match // [anything].
+  - [new] ability to dynamially learn / unlearn expandable/auto-replace words on Enter by writing: +//+ word2match // words to replace with;
+    - to remove an entry use: -//- word2match // [anything];
+  - code readjustments; thanks to Drugwash, very long lines are now split into multiple lines;
   - bug fixes
 
   v4.28.3 (2018-03-02)
@@ -921,7 +927,6 @@ Features to implement:
  - warnings. debugger?
  - reparații la mouse ripples; wheel up/down frequency mess-up
  - ignore hide OSD [clippy man]
- - learn/unlearn expanded words on Enter
    
 - Drugwash: checkWindowKBD() - TO FIX
 
