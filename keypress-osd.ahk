@@ -147,7 +147,7 @@
 ;@Ahk2Exe-SetMainIcon Lib\keypress.ico
 ;@Ahk2Exe-SetName KeyPress OSD v4
 ;@Ahk2Exe-SetDescription KeyPress OSD v4 [mirror keyboard and mouse usage]
-;@Ahk2Exe-SetVersion 4.28.3
+;@Ahk2Exe-SetVersion 4.28.5
 ;@Ahk2Exe-SetCopyright Marius Şucan (2017-2018)
 ;@Ahk2Exe-SetCompanyName ROBODesign.ro
 ;@Ahk2Exe-SetOrigFilename keypress-osd.ahk
@@ -340,8 +340,8 @@
  , DownloadExternalFiles  := 1
 
 ; Release info
- , Version                := "4.28.4"
- , ReleaseDate            := "2018 / 04 / 03"
+ , Version                := "4.28.5"
+ , ReleaseDate            := "2018 / 04 / 04"
  , hMutex, ScriptInitialized, FirstRun := 1
  , KPregEntry := "HKEY_CURRENT_USER\SOFTWARE\KeyPressOSD\v4"
 
@@ -461,6 +461,7 @@ Global Debug := 0    ; for testing purposes
  , DKnotShifted_list := ""
  , DKshift_list := ""
  , DKaltGR_list := ""
+ , AllDKsList := ""
  , Modifiers_temp := 0
  , DoNotRepeatTimer := 0
  , Window2Activate := " "
@@ -531,6 +532,7 @@ If (EraseTextWinChange=1 && DisableTypingMode=0)
    MsgNum := DllCall("RegisterWindowMessage", "Str","SHELLHOOK")
    OnMessage(MsgNum, "ShellMessage")
 }
+
 ModsLEDsIndicatorsManager()
 Sleep, 5
 
@@ -1385,8 +1387,12 @@ OnKeyPressed() {
 
             If (EnterErasesLine=1)
             {
-               If (key ~= "i)(enter)") && StrLen(Typed)>14
-                  addRemoveExpandableWords(Typed)
+               If (key ~= "i)(enter)") && StrLen(Typed)>11
+               {
+                  StringReplace, line, Typed, %Lola%,,All
+                  StringReplace, line, line, %Lola2%,,All
+                  addRemoveExpandableWords(line)
+               }
                Typed := (SkipRest=1) ? Typed : ""
             }
         } Else If (DisableTypingMode=0 && EnableTypingHistory=1)
@@ -1435,9 +1441,9 @@ OnLetterPressed(onLatterUp:=0) {
 
         If (Prefixed || DisableTypingMode=1)
         {
-            TypingValidation := (SecondaryTypingMode=0 && DisableTypingMode=0) ? 1 : 0
-            If ((key ~= AltGrMatcher) && TypingValidation=1 && EnableAltGr=1)
-            || ((key ~= ShiftMatcher) && TypingValidation=1)
+            TypeValidate := (SecondaryTypingMode=0 && DisableTypingMode=0) ? 1 : 0
+            If ((key ~= AltGrMatcher) && TypeValidate=1 && EnableAltGr=1)
+            || ((key ~= ShiftMatcher) && TypeValidate=1)
             {
                (EnableAltGr=1) && (key ~= AltGrMatcher) ? Typed := TypedLetter(A_ThisHotkey)
                (key ~= ShiftMatcher) ? Typed := TypedLetter(A_ThisHotkey)
@@ -2797,28 +2803,37 @@ CreateWordPairsFile(WordPairsFile) {
       Return ExpandPairs
 }
 
-addRemoveExpandableWords(line) {
+addRemoveExpandableWords(line,replace:=0,inLoop:=0) {
+   If inLoop>2
+      Return
+
    If RegExMatch(line, "i)^(\+\/\/\+\s)") && (st_count(line, " // ")=1)
    {
       StringReplace, line, line, +//+%A_Space%,,All
-      StringReplace, line, line, %Lola%
-      StringReplace, line, line, %Lola2%
       lineArr := StrSplit(line, " // ")
       newKey := lineArr[1]
       value := lineArr[2]
       testKey := ExpandWordsList[newKey]
-      If (StrLen(testKey)<1 && StrLen(newKey)>1 && StrLen(value)>1
-      && !InStr(newKey, A_Space))
+      AllGood := (StrLen(newKey)>1 && StrLen(value)>1 && !InStr(newKey, A_Space)) ? 1 : 0
+      If (StrLen(testKey)<1 && AllGood=1)
       {
          FileAppend, % "`n" line, %WordPairsFile%, UTF-16
          ExpandWordsList[newKey] := value
          ExpandWordsListEdit .= newKey " // " value "`n"
+         If inLoop>0
+            ShowLongMsg("Updated auto-replace entry...")
+         Else
+            ShowLongMsg("New auto-replace entry added...")
+         Sleep, 950
+      } Else If (StrLen(testKey)>1 && AllGood=1)
+      {
+         inLoop++
+         line := "-//- " line
+         addRemoveExpandableWords(line, 1, inLoop)
       }
    } Else If RegExMatch(line, "i)^(\-\/\/\-\s)") && (st_count(line, " // ")=1)
    {
       StringReplace, line, line, -//-%A_Space%,,All
-      StringReplace, line, line, %Lola%
-      StringReplace, line, line, %Lola2%
       mainLineArr := StrSplit(line, " // ")
       Key2rem := mainLineArr[1]
       For each, lime in StrSplit(ExpandWordsListEdit, "`n", "`r")
@@ -2828,7 +2843,10 @@ addRemoveExpandableWords(line) {
           limeArr := StrSplit(lime, " // ")
           key := limeArr[1]
           If (Key2rem=key)
+          {
+             entryRemoved := 1
              Continue
+          }
           ExpandWordsListEdit2 .= lime "`n"
       }
       ExpandWordsListEdit := ExpandWordsListEdit2
@@ -2837,6 +2855,16 @@ addRemoveExpandableWords(line) {
       FileDelete, %WordPairsFile%
       Sleep, 25
       FileAppend, %ExpandWordsListEdit%, %WordPairsFile%, UTF-16
+      If (entryRemoved=1 && replace!=1)
+      {
+         ShowLongMsg("Removed auto-replace entry...")
+         Sleep, 950
+      } Else If (entryRemoved=1 && replace=1)
+      {
+         inLoop++
+         line := "+//+ " line
+         addRemoveExpandableWords(line, 0, inLoop)
+      }
    }
 }
 
@@ -3411,7 +3439,9 @@ GetKeyStr() {
     } Else If ((SubStr(key, 1, 2)="vk")
            && SecondaryTypingMode=0
            && (StrLen(Typed)<2 || prefix)) {
-        key := GetKeyCharWrapper(key)
+        If (InStr(allDKsList, key) && StrLen(Typed)<1)
+           infoDK := " [dead key]"
+        key := GetKeyCharWrapper(key) infoDK
     } Else If (StrLen(key)<1) && !prefix {
         key := backupKey ? backupKey : "(unknown key)"
     } Else If FriendlyKeyNames.hasKey(key) {
@@ -3535,11 +3565,15 @@ GetKeyStr() {
 }
 
 GetKeyCharWrapper(code) {
-    k := GetKeyChar(code)
-    If (k=0 || k)
-       Return k
+    If (InStr(AllDKsList, code) && StrLen(Typed)>1)
+       Return k := CSx1
+    z := GetKeyChar(code)
+    If (z=0 || z)
+       k := z
     Else
        k := GetKeyName(code)
+    If StrLen(Typed)>1
+       StringLeft, k, k, 1
     Return k
 }
 
@@ -3668,9 +3702,8 @@ CreateHotkey() {
     }
 
     Sleep, 20
-    Static mods_noShift := ["!", "!#", "!#^", "!#^+", "!+", "!+^", "^!", "#", "#!", "#!+", "#!^", "#+^", "#^", "+#", "+^", "^"]
-    Static mods_list := ["!", "!#", "!#^", "!#^+", "!+", "#", "#!", "#!+", "#!^", "#+^", "#^", "+#", "+^", "^"]
-    megaDeadKeysList := DKaltGR_list "." DKshift_list "." DKnotShifted_list
+    Static AllMods_list := ["!", "!#", "!#^", "!#^+", "!+", "#!+", "#!^", "#", "#+", "#+^", "#^", "+", "+<^>!", "+^!", "+^", "<^>!", "^!", "^"]
+    AllDKsList := DKaltGR_list "." DKshift_list "." DKnotShifted_list
 
 ; bind keys relevant to the typing mode
     If (DisableTypingMode=0)
@@ -3713,6 +3746,7 @@ CreateHotkey() {
     }
 
 ; identify and bind to the list of possible letters/chars
+
     Loop, 256
     {
         k := A_Index
@@ -3727,10 +3761,19 @@ CreateHotkey() {
 
         If (DeadKeys=1)
         {
-           For each, char2skip in StrSplit(megaDeadKeysList, ".")        ; dead keys to ignore
+           For each, char2skip in StrSplit(AllDKsList, ".")        ; dead keys to ignore
            {
                If (InStr(char2skip, "vk" code) || n=char2skip)
+               {
+                  For i, mod in AllMods_list
+                  {
+                     Hotkey, % "~vk" code, OnLetterPressed, useErrorLevel
+                     Hotkey, % "~vk" code " Up", OnLetterUp, useErrorLevel
+                     Hotkey, % "~" mod "vk" code, OnLetterPressed, useErrorLevel
+                     Hotkey, % "~" mod "vk" code " Up", OnLetterUp, useErrorLevel
+                  }
                   Continue, 2
+               }
            }
         }
  
@@ -3744,6 +3787,7 @@ CreateHotkey() {
         }
 
         Hotkey, % "~*vk" code, OnLetterPressed, useErrorLevel
+        Hotkey, % "~*vk" code " Up", OnLetterUp, useErrorLevel
         If (DisableTypingMode=0)
         {
             Hotkey, % "~+vk" code, OnLetterPressed, useErrorLevel
@@ -3752,117 +3796,27 @@ CreateHotkey() {
             Hotkey, % "~+^!vk" code, OnLetterPressed, useErrorLevel
             Hotkey, % "~+<^>!vk" code, OnLetterPressed, useErrorLevel
         }
-        Hotkey, % "~*vk" code " Up", OnLetterUp, useErrorLevel
         If (ErrorLevel!=0 && AudioAlerts=1)
            SoundBeep, 1900, 50
     }
 
 ; bind to dead keys to show the proper symbol when such a key is pressed
-
-    If (DeadKeys=1 && (DoNotBindAltGrDeadKeys=0 || DoNotBindDeadKeys=0))
-    {
-        Loop, Parse, DKaltGR_list, .
-        {
-            For i, mod in mods_list
-            {
-                If (EnableAltGr=1)
-                {
-                   Hotkey, % "~^!" A_LoopField, OnAltGrDeadKeyPressed, useErrorLevel
-                   Hotkey, % "~+^!" A_LoopField, OnAltGrDeadKeyPressed, useErrorLevel
-                   Hotkey, % "~<^>!" A_LoopField, OnAltGrDeadKeyPressed, useErrorLevel
-                }
-
-                If (EnableAltGr=0)
-                {
-                   Hotkey, % "~^!" A_LoopField, OnLetterPressed, useErrorLevel
-                   Hotkey, % "~^!" A_LoopField " Up", OnLetterUp, useErrorLevel
-                   Hotkey, % "~+^!" A_LoopField , OnLetterPressed, useErrorLevel
-                   Hotkey, % "~+^!" A_LoopField " Up", OnLetterUp, useErrorLevel
-                   Hotkey, % "~<^>!" A_LoopField , OnLetterPressed, useErrorLevel
-                   Hotkey, % "~<^>!" A_LoopField " Up", OnLetterUp, useErrorLevel
-                }
-
-                Hotkey, % "~" mod A_LoopField, OnLetterPressed, useErrorLevel
-                Hotkey, % "~" mod A_LoopField " Up", OnLetterUp, useErrorLevel
-
-                If !InStr(DKshift_list, A_LoopField)
-                {
-                   Hotkey, % "~+" A_LoopField, OnLetterPressed, useErrorLevel
-                   Hotkey, % "~+" A_LoopField " Up", OnLetterUp, useErrorLevel
-                }
-
-                If !InStr(DKnotShifted_list, A_LoopField)
-                {
-                   Hotkey, % "~" A_LoopField, OnLetterPressed, useErrorLevel
-                   Hotkey, % "~" A_LoopField " Up", OnLetterUp, useErrorLevel
-                }
-            }
-        }
-    }
-
     If (DeadKeys=1 && DoNotBindDeadKeys=0)
     {
-        Loop, Parse, DKshift_list, .
-        {
-            For i, mod in mods_list
-            {
-                Hotkey, % "~+" A_LoopField, OnDeadKeyPressed, useErrorLevel
-                Hotkey, % "~" mod A_LoopField, OnLetterPressed, useErrorLevel
-                Hotkey, % "~" mod A_LoopField " Up", OnLetterUp, useErrorLevel
+       For each, char2bind in StrSplit(DKshift_list, ".")
+           Hotkey, % "~+" char2bind, OnDeadKeyPressed, useErrorLevel
 
-                If !InStr(DKnotShifted_list, A_LoopField)
-                {
-                   Hotkey, % "~" A_LoopField, OnLetterPressed, useErrorLevel
-                   Hotkey, % "~" A_LoopField " Up", OnLetterUp, useErrorLevel
-                }
+       For each, char2bind in StrSplit(DKnotShifted_list, ".")
+           Hotkey, % "~" char2bind, OnDeadKeyPressed, useErrorLevel
 
-            }
-        }
-
-        Loop, Parse, DKnotShifted_list, .
-        {
-            For i, mod in mods_list
-            {
-                Hotkey, % "~" A_LoopField, OnDeadKeyPressed, useErrorLevel
-                Hotkey, % "~" mod A_LoopField, OnLetterPressed, useErrorLevel
-                Hotkey, % "~" mod A_LoopField " Up", OnLetterUp, useErrorLevel
-
-                If !InStr(DKShift_list, A_LoopField)
-                {
-                   Hotkey, % "~+$" A_LoopField, OnLetterPressed, useErrorLevel
-                   Hotkey, % "~+" A_LoopField " Up", OnLetterUp, useErrorLevel
-                }
-            }
-        }
-
-        ShiftRelatedDKlist := DKshift_list "." DKnotShifted_list
-        Loop, Parse, ShiftRelatedDKlist, .
-        {
-            For i, mod in mods_noShift
-            {
-               If (!InStr(DKaltGR_list, A_LoopField) && EnableAltGr=1)
-               {
-                  Hotkey, % "~" mod A_LoopField, OnLetterPressed, useErrorLevel
-                  Hotkey, % "~" mod A_LoopField " Up", OnLetterUp, useErrorLevel
-               }
-
-               If (EnableAltGr=0)
-               {
-                  Hotkey, % "~" mod A_LoopField, OnLetterPressed, useErrorLevel
-                  Hotkey, % "~" mod A_LoopField " Up", OnLetterUp, useErrorLevel
-               }
-            }
-        }
-    }  ; dead keys parser
-
-    If (OnlyTypingMode=0)
-    {
-       Loop, 24 ; F1-F24
+       If (EnableAltGr=1 && DoNotBindAltGrDeadKeys=0)
        {
-           Hotkey, % "~*F" A_Index, OnKeyPressed, useErrorLevel
-           Hotkey, % "~*F" A_Index " Up", OnKeyUp, useErrorLevel
-           If (ErrorLevel!=0 && AudioAlerts=1)
-              SoundBeep, 1900, 50
+          For each, char2bind in StrSplit(DKaltGR_list, ".")
+          {
+              Hotkey, % "~^!" char2bind, OnAltGrDeadKeyPressed, useErrorLevel
+              Hotkey, % "~+^!" char2bind, OnAltGrDeadKeyPressed, useErrorLevel
+              Hotkey, % "~<^>!" char2bind, OnAltGrDeadKeyPressed, useErrorLevel
+          }
        }
     }
 
@@ -3926,6 +3880,15 @@ CreateHotkey() {
        Hotkey, % "~*" mod " Up", OnMudUp, useErrorLevel
        If (ErrorLevel!=0 && AudioAlerts=1)
           SoundBeep, 1900, 50
+    }
+
+    If (OnlyTypingMode=0)
+    {
+       Loop, 24 ; F1-F24
+       {
+           Hotkey, % "~*F" A_Index, OnKeyPressed, useErrorLevel
+           Hotkey, % "~*F" A_Index " Up", OnKeyUp, useErrorLevel
+       }
     }
 }
 
@@ -4394,8 +4357,8 @@ GetLayoutsInfo() {
                cl := ""
                Loop, Parse, mod, CSV
                {
-                 If DK := GetDeadKeys(HKL, A_Index)
-                   cl .= "DK" A_LoopField "=" DK "`n"
+                  If (DK := GetDeadKeys(HKL, A_Index))
+                     cl .= "DK" A_LoopField "=" DK "`n"
                }
                dbg .= (cl ? "hasDKs=1`n" cl :"hasDKs=0`n")
                dbg .= "`n"
@@ -6223,7 +6186,7 @@ CloseSettings() {
       Sleep, 25
       SuspendScript()
       If (InstKBDsWinOpen=1)
-        InstalledKBDsWindow()
+         InstalledKBDsWindow()
       InstKBDsWinOpen := 0
       Return
    }
@@ -6757,7 +6720,7 @@ GenerateHotkeyStrS(enableApply:=1) {
 
   If (disableButtons=1)
   {
-     ToolTip, Duplicate keyboard shorcuts...
+     ToolTip, Detected duplicate keyboard shorcuts...
      SoundBeep, 300, 900
      GuiControl, Disable, ApplySettingsBTN
      GuiControl, Disable, CurrentPrefWindow
@@ -8164,7 +8127,9 @@ AboutWindow() {
     }
     Gui, Add, Link, y+4, Developed by <a href="http://marius.sucan.ro">Marius Şucan</a> on AHK_H v1.1.28.
     Gui, Add, Text, x15 y+9, Freeware. Open source. For Windows XP, 7, 8, and 10.
+    Gui, Font, Bold
     Gui, Add, Text, y+10 w%txtWid%, My gratitude to Drugwash for directly contributing with considerable improvements and code to this project.
+    Gui, Font, Normal
     Gui, Add, Text, y+10 w%txtWid%, Many thanks to the great people from #ahk (irc.freenode.net), in particular to Phaleth, Tidbit and Saiapatsu. Special mentions to: Burque505 / Winter (for continued feedback) and Neuromancer.
     Gui, Add, Text, y+10 w%txtWid% Section, This application contains code from various entities. You can find more details in the source code.
     Gui, Font, Bold
@@ -8454,6 +8419,7 @@ DeleteLangFile() {
   Sleep, 10
   initLangFile()
   Sleep, 50
+  AnyWindowOpen := 0
   InstalledKBDsWindow()
   Sleep, 10
 }
@@ -9915,4 +9881,3 @@ CheckAcc:
      addScript("ahkThread_Free(deleteME)",0)   ; comment/delete this line to execute this script with AHK_L
   }
 Return
-
