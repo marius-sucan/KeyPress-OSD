@@ -147,7 +147,7 @@
 ;@Ahk2Exe-SetMainIcon Lib\keypress.ico
 ;@Ahk2Exe-SetName KeyPress OSD v4
 ;@Ahk2Exe-SetDescription KeyPress OSD v4 [mirror keyboard and mouse usage]
-;@Ahk2Exe-SetVersion 4.28.5
+;@Ahk2Exe-SetVersion 4.28.6
 ;@Ahk2Exe-SetCopyright Marius Şucan (2017-2018)
 ;@Ahk2Exe-SetCompanyName ROBODesign.ro
 ;@Ahk2Exe-SetOrigFilename keypress-osd.ahk
@@ -340,8 +340,8 @@
  , DownloadExternalFiles  := 1
 
 ; Release info
- , Version                := "4.28.5"
- , ReleaseDate            := "2018 / 04 / 04"
+ , Version                := "4.28.6"
+ , ReleaseDate            := "2018 / 04 / 05"
  , hMutex, ScriptInitialized, FirstRun := 1
  , KPregEntry := "HKEY_CURRENT_USER\SOFTWARE\KeyPressOSD\v4"
 
@@ -1387,7 +1387,8 @@ OnKeyPressed() {
 
             If (EnterErasesLine=1)
             {
-               If (key ~= "i)(enter)") && StrLen(Typed)>11
+               If ((key ~= "i)(enter)") && StrLen(Typed)>11
+               && ExpandWords=1 && (DeadKeys=0 || AltHook2keysUser=1))
                {
                   StringReplace, line, Typed, %Lola%,,All
                   StringReplace, line, line, %Lola2%,,All
@@ -3704,45 +3705,47 @@ CreateHotkey() {
     Sleep, 20
     Static AllMods_list := ["!", "!#", "!#^", "!#^+", "!+", "#!+", "#!^", "#", "#+", "#+^", "#^", "+", "+<^>!", "+^!", "+^", "<^>!", "^!", "^"]
     AllDKsList := DKaltGR_list "." DKshift_list "." DKnotShifted_list
+    If (EnableAltGr=0)
+       AllDKsList := DKshift_list "." DKnotShifted_list
 
 ; bind keys relevant to the typing mode
     If (DisableTypingMode=0)
     {
-        BindTypeHotKeys()
-        If (MediateNavKeys=1 && DisableTypingMode=0)
-        {
-            Hotkey, Home, OnHomeEndPressed, useErrorLevel
-            Hotkey, +Home, OnHomeEndPressed, useErrorLevel
-            Hotkey, End, OnHomeEndPressed, useErrorLevel
-            Hotkey, +End, OnHomeEndPressed, useErrorLevel
-        }
+       BindTypeHotKeys()
+       If (MediateNavKeys=1 && DisableTypingMode=0)
+       {
+          Hotkey, Home, OnHomeEndPressed, useErrorLevel
+          Hotkey, +Home, OnHomeEndPressed, useErrorLevel
+          Hotkey, End, OnHomeEndPressed, useErrorLevel
+          Hotkey, +End, OnHomeEndPressed, useErrorLevel
+       }
 
-        If (SendJumpKeys=0 && IsLangRTL=0)
-        {
-           Hotkey, ~^BackSpace, OnCtrlDelBack, useErrorLevel
-           Hotkey, ~^Del, OnCtrlDelBack, useErrorLevel
-           Hotkey, ~^Left, OnCtrlRLeft, useErrorLevel
-           Hotkey, ~^Right, OnCtrlRLeft, useErrorLevel
-           Hotkey, ~+^Left, OnCtrlRLeft, useErrorLevel
-           Hotkey, ~+^Right, OnCtrlRLeft, useErrorLevel
-        } Else
-        {
-           Hotkey, ^BackSpace, OnCtrlDelBack, useErrorLevel
-           Hotkey, ^Del, OnCtrlDelBack, useErrorLevel
-           Hotkey, ^Left, OnCtrlRLeft, useErrorLevel
-           Hotkey, ^Right, OnCtrlRLeft, useErrorLevel
-           Hotkey, +^Left, OnCtrlRLeft, useErrorLevel
-           Hotkey, +^Right, OnCtrlRLeft, useErrorLevel
-        }
+       If (SendJumpKeys=0 && IsLangRTL=0)
+       {
+          Hotkey, ~^BackSpace, OnCtrlDelBack, useErrorLevel
+          Hotkey, ~^Del, OnCtrlDelBack, useErrorLevel
+          Hotkey, ~^Left, OnCtrlRLeft, useErrorLevel
+          Hotkey, ~^Right, OnCtrlRLeft, useErrorLevel
+          Hotkey, ~+^Left, OnCtrlRLeft, useErrorLevel
+          Hotkey, ~+^Right, OnCtrlRLeft, useErrorLevel
+       } Else
+       {
+          Hotkey, ^BackSpace, OnCtrlDelBack, useErrorLevel
+          Hotkey, ^Del, OnCtrlDelBack, useErrorLevel
+          Hotkey, ^Left, OnCtrlRLeft, useErrorLevel
+          Hotkey, ^Right, OnCtrlRLeft, useErrorLevel
+          Hotkey, +^Left, OnCtrlRLeft, useErrorLevel
+          Hotkey, +^Right, OnCtrlRLeft, useErrorLevel
+       }
 
-        If (EnforceSluggishSynch=1)
-        {
-           Hotkey, Del, OnDelPressed, useErrorLevel
-           Hotkey, Left, OnRLeftPressed, useErrorLevel
-           Hotkey, Right, OnRLeftPressed, useErrorLevel
-           Hotkey, +Left, OnRLeftPressed, useErrorLevel
-           Hotkey, +Right, OnRLeftPressed, useErrorLevel
-        }
+       If (EnforceSluggishSynch=1)
+       {
+          Hotkey, Del, OnDelPressed, useErrorLevel
+          Hotkey, Left, OnRLeftPressed, useErrorLevel
+          Hotkey, Right, OnRLeftPressed, useErrorLevel
+          Hotkey, +Left, OnRLeftPressed, useErrorLevel
+          Hotkey, +Right, OnRLeftPressed, useErrorLevel
+       }
     }
 
 ; identify and bind to the list of possible letters/chars
@@ -3763,17 +3766,22 @@ CreateHotkey() {
         {
            For each, char2skip in StrSplit(AllDKsList, ".")        ; dead keys to ignore
            {
-               If (InStr(char2skip, "vk" code) || n=char2skip)
+               If (InStr(char2skip, "vk" code) && DoNotBindDeadKeys=0)
+               || (InStr(char2skip, "vk" code) && DoNotBindDeadKeys=1
+               && DoNotBindAltGrDeadKeys=0 && InStr(DKaltGR_list, "vk" code))
                {
                   For i, mod in AllMods_list
                   {
-                     Hotkey, % "~vk" code, OnLetterPressed, useErrorLevel
-                     Hotkey, % "~vk" code " Up", OnLetterUp, useErrorLevel
-                     Hotkey, % "~" mod "vk" code, OnLetterPressed, useErrorLevel
-                     Hotkey, % "~" mod "vk" code " Up", OnLetterUp, useErrorLevel
+                      Hotkey, % "~vk" code, OnLetterPressed, useErrorLevel
+                      Hotkey, % "~vk" code " Up", OnLetterUp, useErrorLevel
+                      Hotkey, % "~" mod "vk" code, OnLetterPressed, useErrorLevel
+                      If ((mod ~= "i)^(\#|^|\!|\+\^\!|\+\^)$") && code>29 && code<40)
+                         Hotkey, % "~" mod "vk" code " Up", OnLetterUp, useErrorLevel
                   }
                   Continue, 2
                }
+               If InStr(char2skip, "vk" code)
+                  Continue, 2
            }
         }
  
@@ -3790,11 +3798,11 @@ CreateHotkey() {
         Hotkey, % "~*vk" code " Up", OnLetterUp, useErrorLevel
         If (DisableTypingMode=0)
         {
-            Hotkey, % "~+vk" code, OnLetterPressed, useErrorLevel
-            Hotkey, % "~^!vk" code, OnLetterPressed, useErrorLevel
-            Hotkey, % "~<^>!vk" code, OnLetterPressed, useErrorLevel
-            Hotkey, % "~+^!vk" code, OnLetterPressed, useErrorLevel
-            Hotkey, % "~+<^>!vk" code, OnLetterPressed, useErrorLevel
+           Hotkey, % "~+vk" code, OnLetterPressed, useErrorLevel
+           Hotkey, % "~^!vk" code, OnLetterPressed, useErrorLevel
+           Hotkey, % "~<^>!vk" code, OnLetterPressed, useErrorLevel
+           Hotkey, % "~+^!vk" code, OnLetterPressed, useErrorLevel
+           Hotkey, % "~+<^>!vk" code, OnLetterPressed, useErrorLevel
         }
         If (ErrorLevel!=0 && AudioAlerts=1)
            SoundBeep, 1900, 50
@@ -3808,15 +3816,16 @@ CreateHotkey() {
 
        For each, char2bind in StrSplit(DKnotShifted_list, ".")
            Hotkey, % "~" char2bind, OnDeadKeyPressed, useErrorLevel
+    }
 
-       If (EnableAltGr=1 && DoNotBindAltGrDeadKeys=0)
+    If (EnableAltGr=1 && DeadKeys=1
+    && (DoNotBindDeadKeys=0 || DoNotBindAltGrDeadKeys=0))
+    {
+       For each, char2bind in StrSplit(DKaltGR_list, ".")
        {
-          For each, char2bind in StrSplit(DKaltGR_list, ".")
-          {
-              Hotkey, % "~^!" char2bind, OnAltGrDeadKeyPressed, useErrorLevel
-              Hotkey, % "~+^!" char2bind, OnAltGrDeadKeyPressed, useErrorLevel
-              Hotkey, % "~<^>!" char2bind, OnAltGrDeadKeyPressed, useErrorLevel
-          }
+           Hotkey, % "~^!" char2bind, OnAltGrDeadKeyPressed, useErrorLevel
+           Hotkey, % "~+^!" char2bind, OnAltGrDeadKeyPressed, useErrorLevel
+           Hotkey, % "~<^>!" char2bind, OnAltGrDeadKeyPressed, useErrorLevel
        }
     }
 
@@ -5196,7 +5205,8 @@ CreateGlobalShortcuts() {
        KBDTglPosition := RegisterGlobalShortcuts(KBDTglPosition,"TogglePosition", "!+^F9")
        If (IsSoundsFile && MissingAudios=0 && SafeModeExec=0 && NoAhkH!=1)
           KBDTglSilence := RegisterGlobalShortcuts(KBDTglSilence,"ToggleSilence", "!+^F10")
-       KBDidLangNow := RegisterGlobalShortcuts(KBDidLangNow,"DetectLangNow", "!+^F11")
+       If (AutoDetectKBD=0 || ConstantAutoDetect=0)
+          KBDidLangNow := RegisterGlobalShortcuts(KBDidLangNow,"DetectLangNow", "!+^F11")
        KBDReload := RegisterGlobalShortcuts(KBDReload,"ReloadScriptNow", "!+^F12")
        If (IsAcc1File=1 && IsAcc2File=1 && A_OSVersion!="WIN_XP")
           KBDCapText := RegisterGlobalShortcuts(KBDCapText,"AccCaptureTextNow", "Disabled")
@@ -5340,6 +5350,8 @@ sendOSDcontent(ForceIT:=0, mode:=0) {
   {
      StringReplace, Typed, Typed, %Lola%
      StringReplace, Typed, Typed, %Lola2%
+     StringReplace, Typed, Typed, %CSx1%
+     StringReplace, Typed, Typed, %CSx3%
      Sleep, 25
      If (mode=1)
      {
@@ -6348,6 +6360,13 @@ ShowTypeSettings() {
     Gui, Add, Text, xs+0 y+10 vtxt6, (*) Each string must be at least two characters long.
 
     Gui, Tab
+    If (NeverDisplayOSD=1)
+    {
+       Gui, Font, Bold
+       Gui, Add, Text, y+6 w%txtWid%, WARNING: The option to hide the OSD is activated. Consequently, the main typing mode and other related options are deactivated.
+       Gui, Font, Normal
+    }
+
     Gui, Add, Button, xm+0 y+10 w70 h30 Default gApplySettings vApplySettingsBTN, A&pply
     Gui, Add, Button, x+8 wp hp gCloseSettings, C&ancel
     Gui, Add, Button, x+8 wp hp gOpenTypeSetHelp, &Help
@@ -6851,6 +6870,9 @@ VerifyShortcutOptions(enableApply:=1) {
        SwitchStateKBDbtn("KBDsynchApp2", 0)
     }
 
+    If (ConstantAutoDetect=1)
+       SwitchStateKBDbtn("KBDidLangNow", 0)
+
     If (MissingAudios=1 || SafeModeExec=1 || NoAhkH=1)
        SwitchStateKBDbtn("KBDTglSilence", 0)
 
@@ -7282,6 +7304,9 @@ ShowKBDsettings() {
     If (KBDsDetected>1)
        Gui, Add, Button, y+10 w%btnWid% h30 gSwitch2KBDsList, List detected layouts
 
+    If (NeverDisplayOSD=1)
+       Gui, Add, Text, y+10 w%txtWid%, WARNING: The option to hide the OSD is activated. Most options here will not have any visible effect.
+
     Gui, Tab, 2 ; behavior
     Gui, Add, Checkbox, x+15 y+15 gVerifyKeybdOptions Checked%ShowSingleKey% vShowSingleKey, Show single keys
     Gui, Add, Checkbox, y+10 gVerifyKeybdOptions Checked%HideAnnoyingKeys% vHideAnnoyingKeys, Hide Left Click and PrintScreen
@@ -7299,9 +7324,12 @@ ShowKBDsettings() {
     If (OnlyTypingMode=1)
     {
        Gui, Font, Bold
-       Gui, Add, Text, xs y+7 w%txtWid%, Some options are disabled because Only Typing mode is activated.
+       Gui, Add, Text, xs+0 y+10 w%txtWid%, Some options are disabled because Only Typing mode is activated.
        Gui, Font, Normal
     }
+
+    If (NeverDisplayOSD=1)
+       Gui, Add, Text, xs+0 y+10 w%txtWid%, WARNING: The option to hide the OSD is activated. Most options here will not have any visible effect.
 
     Gui, Tab, 3 ; clipboard
     Gui, Add, Checkbox, x+15 y+15 gVerifyKeybdOptions Checked%ClipMonitor% vClipMonitor, Show clipboard changes in the OSD
