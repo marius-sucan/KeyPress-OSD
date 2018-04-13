@@ -29,8 +29,9 @@ Global IniFile           := "keypress-osd.ini"
  , BeepSentry            := 0
  , prioritizeBeepers     := 0     ; this will probably make the OSD stall
  , SilentMode            := 0
-
+; others
  , lastKeyUpTime := 0
+ , mousekeys := 1
  , lastModPressTimr := 0
  , lastModPressTime := 0
  , LastFiredTime := 0
@@ -48,7 +49,9 @@ checkTeamViewerTimer()
 Return
 
 CreateHotkey() {
-    If (ToggleKeysBeeper=0 && CapslockBeeper=0 && KeyBeeper=0 && ModBeeper=0 && MouseBeeper=0 && beepFiringKeys=0 && TypingBeepers=0 && DTMFbeepers=0) || (SilentMode=1)
+    If (ToggleKeysBeeper=0 && CapslockBeeper=0 && KeyBeeper=0
+    && ModBeeper=0 && MouseBeeper=0 && beepFiringKeys=0 && TypingBeepers=0
+    && DTMFbeepers=0) || (SilentMode=1)
        Return
 
     moduleInitialized := 1
@@ -66,11 +69,15 @@ CreateHotkey() {
            Hotkey, % "~*F" A_Index " Up", OnKeyUp, useErrorLevel
         }
 
-        NumpadKeysList := "NumpadDel|NumpadIns|NumpadEnd|NumpadDown|NumpadPgdn|NumpadLeft|NumpadClear|NumpadRight|NumpadHome|NumpadUp|NumpadPgup|NumpadEnter"
-        Loop, Parse, NumpadKeysList, |
+        If (mousekeys=0)
         {
-           Hotkey, % "~*" A_LoopField, OnKeyPressed, useErrorLevel
-           Hotkey, % "~*" A_LoopField " Up", OnKeyUp, useErrorLevel
+           NumpadKeysList := "NumpadDel|NumpadIns|NumpadEnd|NumpadDown|NumpadPgdn|NumpadLeft"
+                           . "|NumpadRight|NumpadHome|NumpadUp|NumpadPgup|NumpadClear"
+           Loop, Parse, NumpadKeysList, |
+           {
+              Hotkey, % "~*" A_LoopField, OnKeyPressed, useErrorLevel
+              Hotkey, % "~*" A_LoopField " Up", OnKeyUp, useErrorLevel
+           }
         }
 
         Loop, 10 ; Numpad0 - Numpad9 ; numlock on
@@ -86,8 +93,8 @@ CreateHotkey() {
            Hotkey, % "~*" A_LoopField " Up", OnKeyUp, useErrorLevel
         }
 
-        Otherkeys := "XButton1|XButton2|Browser_Forward|Browser_Back|Browser_Refresh|Browser_Stop|Browser_Search|Browser_Favorites|Browser_Home|Launch_Mail|Launch_Media|Launch_App1|Launch_App2|Help|Sleep|PrintScreen|CtrlBreak|Break|AppsKey|Tab|Enter|Esc"
-                   . "|Left|Right|Down|Up|End|Home|PgUp|PgDn|Space|Del|BackSpace|Insert|CapsLock|ScrollLock|NumLock|Pause|Volume_Mute|Volume_Down|Volume_Up|Media_Next|Media_Prev|Media_Stop|Media_Play_Pause|sc146|sc123"
+        Otherkeys := "XButton1|XButton2|Browser_Forward|Browser_Back|Browser_Refresh|Browser_Stop|Browser_Search|Browser_Favorites|Browser_Home|Launch_Mail|Launch_Media|Launch_App1|Launch_App2|Help|Sleep|PrintScreen|CtrlBreak|Break|NumpadEnter"
+                   . "|Left|Right|Down|Up|End|Home|PgUp|PgDn|Space|Del|BackSpace|Insert|CapsLock|ScrollLock|NumLock|Pause|Volume_Mute|Volume_Down|Volume_Up|Media_Next|Media_Prev|Media_Stop|Media_Play_Pause|sc146|sc123|AppsKey|Tab|Enter|Esc"
         Loop, Parse, Otherkeys, |
         {
             Hotkey, % "~*" A_LoopField, OnKeyPressed, useErrorLevel
@@ -105,10 +112,14 @@ CreateHotkey() {
     If (TypingBeepers=1 && keyBeeper=1)
     {
 
-        NumpadKeysList := "NumpadDel|NumpadIns|NumpadEnd|NumpadDown|NumpadPgdn|NumpadLeft|NumpadClear|NumpadRight|NumpadHome|NumpadUp|NumpadPgup|NumpadEnter"
+        NumpadKeysList := "NumpadDel|NumpadIns|NumpadEnd|NumpadDown|NumpadPgdn|NumpadLeft|NumpadClear"
+                        . "|NumpadRight|NumpadHome|NumpadUp|NumpadPgup|NumpadEnter"
         NumpadSymbols := "NumpadDot|NumpadDiv|NumpadMult|NumpadAdd|NumpadSub"
-        Loop, Parse, NumpadKeysList, |
-              Hotkey, % "~*" A_LoopField " Up", OnNumpadsGeneralUp, useErrorLevel
+        If (mousekeys=0)
+        {
+           Loop, Parse, NumpadKeysList, |
+               Hotkey, % "~*" A_LoopField " Up", OnNumpadsGeneralUp, useErrorLevel
+        }
 
         Loop, Parse, NumpadSymbols, |
               Hotkey, % "~*" A_LoopField " Up", OnNumpadsGeneralUp, useErrorLevel
@@ -211,7 +222,8 @@ modsBeeperTimerUp() {
    Thread, Priority, -10
    Critical, on
    modsBeeperz()
-   If (skipAbeep!=1 && (A_TickCount-lastKeyUpTime>100) && modsSkip=0) || (skipAbeep!=1 && (A_TickCount-lastKeyUpTime>1500))
+   If (skipAbeep!=1 && (A_TickCount-lastKeyUpTime>100) && modsSkip=0)
+   || (skipAbeep!=1 && (A_TickCount-lastKeyUpTime>1500))
    {
       skipOther := 1
       SndPlay("sounds\mods.wav", prioritizeBeepers)
@@ -433,21 +445,24 @@ OnDeathKeyPressed() {
   deadKeysBeeper()
 }
 
-OnMousePressed() {
+OnMousePressed(key:=0) {
     Critical, Off
     Thread, Priority, -50
     If (silentMode=1)
        Return
 
-    If (MouseBeeper=1 && (A_ThisHotkey ~= "i)(LButton|MButton|RButton)"))
+    If !key
+       key := A_ThisHotkey
+
+    If (MouseBeeper=1 && (key ~= "i)( Click|Button)"))
     {
-       If (TypingBeepers=1 && InStr(A_ThisHotkey, "RButton"))
+       If (TypingBeepers=1 && (key ~= "i)(Right C|RButton)"))
           SndPlay("sounds\clickR.wav")
-       Else If (TypingBeepers=1 && InStr(A_ThisHotkey, "MButton"))
+       Else If (TypingBeepers=1 && (key ~= "i)(Middle C|MButton)"))
           SndPlay("sounds\clickM.wav")
        Else
           SndPlay("sounds\clicks.wav")
-    } Else If (MouseBeeper=1 && (A_ThisHotkey ~= "i)(WheelDown|WheelUp|WheelLeft|WheelRight)"))
+    } Else If (MouseBeeper=1 && (key ~= "i)(Wheel)"))
     {
        SndPlay("sounds\firedkey.wav")
        Sleep, 40

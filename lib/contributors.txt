@@ -1,5 +1,4 @@
-
-Code created by other people, included in KeyPress OSD v4 and/or its additional scripts:
+Code created by other people, not by Marius Șucan, included in KeyPress OSD v4 and/or its additional scripts:
 
 -= LIBRARIES/CLASSES/SCRIPTS =-
 
@@ -97,3 +96,8 @@ by Heresy from:
 by unknown:
 - HexRGB()          ; (modified)
 
+by Paegus (paegus@gmail.com) from MouseWrapper v1.2
+- ScreenInfos()     ; (modified)
+- ScreenWrap()      ; (modified)
+
+For Mouse Keys features, inspired by deguix's Mouse Numpad script 

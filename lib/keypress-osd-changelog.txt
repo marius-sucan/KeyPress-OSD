@@ -11,6 +11,15 @@ http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip
 
 by Marius Sucan (robodesign.ro)
 
+  v4.30.0 (2018-03-13)
+  - [new] Mouse Keys. Control the mouse cursor with the numpad keys.
+    - ability to move in 16 directions
+    - toggle Capslock to move at an alternate speed
+    - support for wheel movements
+    - wrap / warp mouse cursor movements at screen edges
+  - [new] option to allow other apps to use the same keyboard shortcuts as KeyPress OSD. [feature requested on GitHub]
+  - minor bug fixes
+
   v4.28.6 (2018-03-07)
   - bug fixes
 
@@ -943,9 +952,8 @@ Features to implement:
 - add shortcut to add/remove auto-replace entries
 - mouse ripples can cause silent crashes
 - KeyStrokeAider causes crashes after a long period of running
-- integrate mouse trails, mouse keys, Vis2
+- integrate Vis2
 
-- mouse focus [dim the rest]
 - auto-correct [with 1,2,3] - long words; visualize first
 - https://autohotkey.com/board/topic/54987-sift3-super-fast-and-accurate-string-distance-algorithm/
 - https://github.com/first20hours/google-10000-english

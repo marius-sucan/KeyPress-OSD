@@ -35,6 +35,9 @@ Global IniFile           := "keypress-osd.ini"
  , MainMouseRippleThickness
  , Period, PointDir, tf
  , isRipplesFile := 1
+ , style1        := "GdipDrawEllipse"
+ , style2        := "GdipDrawRectangle"
+ , style3        := "GdipDrawPolygon"
 
 OnExit("MouseRippleClose")
 Return
@@ -80,7 +83,7 @@ MRInit() {
     MouseRippleMaxSize := MouseRippleMaxSize < 100 ? 101 : MouseRippleMaxSize
 
     RippleWinSize := MouseRippleMaxSize + 2*MouseRippleThickness + 1
-    MainMouseRippleThickness := MouseRippleThickness
+    MainMouseRippleThickness := (MouseRippleMaxSize < 200 && MouseRippleThickness > 35) ? MouseRippleThickness/1.7 : MouseRippleThickness
     RippleMinSize := 2*MouseRippleThickness + 2
     RippleMaxSize := RippleWinSize - 2*MouseRippleThickness - 2
     RippleStep := MouseRippleMaxSize < 160 ? 4 : 6
@@ -95,7 +98,7 @@ MRInit() {
 
     DCT := DllCall("user32\GetDoubleClickTime")
 
-    hDeskDC := DllCall("user32\GetDC", "Ptr", 0)
+    hDeskDC := DllCall("user32\GetDC", "Ptr", 0, "Ptr")
     VarSetCapacity(buf, 40, 0)
     NumPut(40, buf, 0)
     NumPut(RippleWinSize, buf, 4)
@@ -109,10 +112,11 @@ MRInit() {
                      , "UInt", 0
                      , "PtrP", ppvBits
                      , "Ptr" , 0
-                     , "UInt", 0)
+                     , "UInt", 0
+                     , "Ptr")
     DllCall("user32\ReleaseDC", "Ptr", 0, "Ptr", hDeskDC)
-    hRippleDC := DllCall("gdi32\CreateCompatibleDC", "Ptr", 0)
-    hOldRippleBmp := DllCall("gdi32\SelectObject", "Ptr", hRippleDC, "Ptr", hRippleBmp)
+    hRippleDC := DllCall("gdi32\CreateCompatibleDC", "Ptr", 0, "Ptr")
+    hOldRippleBmp := DllCall("gdi32\SelectObject", "Ptr", hRippleDC, "Ptr", hRippleBmp, "Ptr")
     DllCall("gdiplus\GdipCreateFromHDC", "Ptr", hRippleDC, "PtrP", pRippleGraphics)
     DllCall("gdiplus\GdipSetSmoothingMode", "Ptr", pRippleGraphics, "Int", 4)
     Loop, Parse, MButtons, |
@@ -164,6 +168,7 @@ ShowRipple(_color, _style, _interval:=10, _dir:="") {
        MouseRippleThickness := MainMouseRippleThickness*tf
        RippleColor := _color & 0xBFBFBF
        _style := lastStyle
+       lastEvent := ""
        Period := _interval*1.3
     } Else
     {
@@ -212,15 +217,15 @@ RippleTimer() {
             ; cos(pi/6):=(l/2)/(RippleDiameter/2) => l := 2*(cos(Pi/6)*(RippleDiameter/2))
             VarSetCapacity(PolyBuf, 32, 0)
             L := 2*c*(RippleDiameter/2), H := c*L
-            vx1:=(RippleDiameter-L)/2+offset  ; left X
+            vx1:=(RippleDiameter-L)/2+offset ; left X
             vx2:=RippleDiameter/2+offset     ; middle X
             vx3:=RippleDiameter/2+L/2+offset ; right X
-            vy1:=H+25
+            vy1:=H
             vy2:=offset
             vy3:=RippleDiameter-H
             vy4:=RippleDiameter-offset
             hx1:=offset
-            hx2:=H+25
+            hx2:=H
             hx3:=RippleDiameter-H
             hx4:=RippleDiameter-offset
             hy1:=RippleDiameter/2+offset
@@ -257,15 +262,15 @@ RippleTimer() {
     NumPut(_pointerX - L // 2, buf, 0)
     NumPut(_pointerY - L // 2, buf, 4)
     DllCall("user32\UpdateLayeredWindow"
-       , "Ptr"   , hRippleWin
-       , "Ptr"   , 0
-       , "Ptr"   , &buf
-       , "Int64P"  , L|L<<32
-       , "Ptr"   , hRippleDC
-       , "Int64P"  , 0
-       , "UInt"  , 0
-       , "UIntP" , 0x1FF0000
-       , "UInt"  , 2)
+       , "Ptr"    , hRippleWin
+       , "Ptr"    , 0
+       , "Ptr"    , &buf
+       , "Int64P" , L|L<<32
+       , "Ptr"    , hRippleDC
+       , "Int64P" , 0
+       , "UInt"   , 0
+       , "UIntP"  , 0x1FF0000
+       , "UInt"   , 2)
 }
 
 ToggleMouseRipples(force:=0) {
@@ -282,32 +287,32 @@ ToggleMouseRipples(force:=0) {
 }
 
 OnMouseLButton:
-ShowRipple(LeftClickRippleColor, _style:="GdipDrawEllipse", MouseRippleFrequency)
+ShowRipple(LeftClickRippleColor, style1, MouseRippleFrequency)
 Return
 
 OnMouseRButton:
 Sleep, 160
-ShowRipple(RightClickRippleColor, _style:="GdipDrawEllipse", MouseRippleFrequency)
+ShowRipple(RightClickRippleColor, style1, MouseRippleFrequency)
 Return
 
 OnMouseMButton:
-ShowRipple(MiddleClickRippleColor, _style:="GdipDrawRectangle", MouseRippleFrequency)
+ShowRipple(MiddleClickRippleColor, style2, MouseRippleFrequency)
 Return
 
 OnMouseWheelDown:
 Sleep, 15
-ShowRipple(WheelColor, _style:="GdipDrawPolygon", MouseRippleFrequency, "D")
+ShowRipple(WheelColor, style3, MouseRippleFrequency, "D")
 Return
 
 OnMouseWheelUp:
 Sleep, 15
-ShowRipple(WheelColor, _style:="GdipDrawPolygon", MouseRippleFrequency, "U")
+ShowRipple(WheelColor, style3, MouseRippleFrequency, "U")
 Return
 
 OnMouseWheelLeft:
-ShowRipple(WheelColor, _style:="GdipDrawPolygon", MouseRippleFrequency, "L")
+ShowRipple(WheelColor, style3, MouseRippleFrequency, "L")
 Return
 
 OnMouseWheelRight:
-ShowRipple(WheelColor, _style:="GdipDrawPolygon", MouseRippleFrequency, "R")
+ShowRipple(WheelColor, style3, MouseRippleFrequency, "R")
 Return
