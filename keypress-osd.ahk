@@ -143,11 +143,12 @@
 ;@Ahk2Exe-AddResource LIB Lib\keypress-mouse-ripples-functions.ahk
 ;@Ahk2Exe-AddResource LIB Lib\keypress-beeperz-functions.ahk
 ;@Ahk2Exe-AddResource LIB Lib\keypress-keystrokes-helper.ahk
+;@Ahk2Exe-AddResource LIB Lib\keypress-numpadmouse.ahk
 ;@Ahk2Exe-AddResource Lib\paypal.bmp, 100
 ;@Ahk2Exe-SetMainIcon Lib\keypress.ico
 ;@Ahk2Exe-SetName KeyPress OSD v4
 ;@Ahk2Exe-SetDescription KeyPress OSD v4 [mirror keyboard and mouse usage]
-;@Ahk2Exe-SetVersion 4.28.6
+;@Ahk2Exe-SetVersion 4.30.0
 ;@Ahk2Exe-SetCopyright Marius Şucan (2017-2018)
 ;@Ahk2Exe-SetCompanyName ROBODesign.ro
 ;@Ahk2Exe-SetOrigFilename keypress-osd.ahk
@@ -288,9 +289,9 @@
  , ShowMouseVclick        := 0     ; shows visual indicators for different mouse clicks
  , ShowMouseRipples       := 0
  , ShowCaretHalo          := 0
- , MouseHaloAlpha         := 130   ; from 0 to 255
+ , MouseHaloAlpha         := 90   ; from 0 to 255
  , MouseHaloColor         := "EEDD00"  ; HEX format also accepted
- , MouseHaloRadius        := 85
+ , MouseHaloRadius        := 75
  , MouseIdleAfter         := 10    ; in seconds
  , MouseIdleAlpha         := 70    ; from 0 to 255
  , MouseIdleColor         := "333333"
@@ -317,8 +318,21 @@
  , CaretHaloThick         := 0
  , CaretHaloFlash         := 1
 
+; Mouse keys 
+ , MouseKeys             := 0
+ , MouseNumpadSpeed1     := 5
+ , MouseNumpadAccel1     := 20
+ , MouseNumpadTopSpeed1  := 65
+ , MouseWheelSpeed       := 7
+ , MouseCapsSpeed        := 2
+ , MouseKeysWrap         := 0
+ , MouseKeysHalo         := 1
+ , MouseKeysHaloColor    := "22EE11"
+ , MouseKeysHaloRadius   := 45
+
 ; Script's own global shortcuts (hotkeys)
  , GlobalKBDhotkeys       := 1     ; Enable system-wide shortcuts (hotkeys)
+ , GlobalKBDsNoIntercept  := 0     ; Allow host apps to receive the same hotkeys
  , KBDaltTypeMode         := "!^CapsLock"
  , KBDpasteOSDcnt1        := "^+Insert"
  , KBDpasteOSDcnt2        := "^!Insert"
@@ -340,8 +354,8 @@
  , DownloadExternalFiles  := 1
 
 ; Release info
- , Version                := "4.28.6"
- , ReleaseDate            := "2018 / 04 / 05"
+ , Version                := "4.30.0"
+ , ReleaseDate            := "2018 / 04 / 13"
  , hMutex, ScriptInitialized, FirstRun := 1
  , KPregEntry := "HKEY_CURRENT_USER\SOFTWARE\KeyPressOSD\v4"
 
@@ -462,6 +476,7 @@ Global Debug := 0    ; for testing purposes
  , DKshift_list := ""
  , DKaltGR_list := ""
  , AllDKsList := ""
+ , MousePosition := ""
  , Modifiers_temp := 0
  , DoNotRepeatTimer := 0
  , Window2Activate := " "
@@ -490,8 +505,8 @@ Global Debug := 0    ; for testing purposes
  , Emojis := "(☀|🤣|👌|☹|☺|♥|⛄|❤|️|🌙|🌛|🌜|🌷|🌸|🎄|👄|👋|👍|👏|👙|👳|👶|👼|👽|💁|💃|💋
     |💏|💓|💕|💖|💗|💞|💤|💯|😀|😁|😂|😃|😄|😆|😇|😈|😉|😊|😋|😌|😍|😎|😐|😓|😔|😕|😗
     |😘|😙|😚|😛|😜|😝|😞|😡|😢|😥|😩|😫|😭|😮|😲|😳|😴|😶|🙁|🙂|🙃|🙈|🙊|🙏|🤔|🤢)"
- , MouseFuncThread, MouseRipplesThread, SoundsThread, KeyStrokesThread
- , IsMouseFile, IsRipplesFile, IsSoundsFile, IsKeystrokesFile, IsAcc1File, IsAcc2File, NoAhkH
+ , MouseFuncThread, MouseNumpadThread, MouseRipplesThread, SoundsThread, KeyStrokesThread
+ , IsMouseFile, IsMouseNumpadFile, IsRipplesFile, IsSoundsFile, IsKeystrokesFile, IsAcc1File, IsAcc2File, NoAhkH
  , ClipDataMD5s, CurrentClippyCount := 0
  , BaseURL := "http://marius.sucan.ro/media/files/blog/ahk-scripts/"
  , hWinMM := DllCall("kernel32\LoadLibraryW", "Str", "winmm.dll", "Ptr")
@@ -645,6 +660,59 @@ OnMudPressed() {
       }
       SetTimer, ReturnToTyped, % -DisplayTime/4
    }
+}
+
+OnMouseKeysPressed(key) {
+    Thread, Priority, -20
+    Critical, off
+    Global lastClickTimer := A_TickCount
+    If (ShowMouseButton=1 && OnlyTypingMode=0 && NeverDisplayOSD=0 && PrefOpen=0)
+    {
+       KeyCount := 0.3
+       If !InStr(key, "lock")
+          SetTimer, ClicksTimer, 400, 50
+       If !(InStr(key, "left click") && StrLen(key)<12 && HideAnnoyingKeys=1)
+          ShowHotkey(key)
+       If StrLen(Typed)>2
+          SetTimer, ReturnToTyped, % -DisplayTime/4
+       Else
+          SetTimer, HideGUI, % -DisplayTime
+    }
+    If (ShowMouseRipples=1)
+    {
+       If InStr(key, "left click")
+          MouseRipplesThread.ahkLabel("OnMouseLButton")
+       If InStr(key, "right click")
+          MouseRipplesThread.ahkLabel("OnMouseRButton")
+       If InStr(key, "middle click")
+          MouseRipplesThread.ahkLabel("OnMouseMButton")
+       If InStr(key, "wheel up")
+          MouseRipplesThread.ahkLabel("OnMouseWheelUp")
+       If InStr(key, "wheel down")
+          MouseRipplesThread.ahkLabel("OnMouseWheelDown")
+       If InStr(key, "wheel left")
+          MouseRipplesThread.ahkLabel("OnMouseWheelLeft")
+       If InStr(key, "wheel right")
+          MouseRipplesThread.ahkLabel("OnMouseWheelRight")
+    }
+
+    If (MouseBeeper=1)
+       SoundsThread.ahkPostFunction("OnMousePressed", key)
+
+    If (ShowMouseVclick=1)
+    {
+       If InStr(key, "left click")
+          MouseFuncThread.ahkPostFunction("ShowMouseClick", "LButton")
+       If InStr(key, "right click")
+          MouseFuncThread.ahkPostFunction("ShowMouseClick", "RButton")
+       If InStr(key, "middle click")
+          MouseFuncThread.ahkPostFunction("ShowMouseClick", "MButton")
+       If InStr(key, "wheel up")
+          MouseFuncThread.ahkPostFunction("ShowMouseClick", "WheelUp")
+       If InStr(key, "wheel down")
+          MouseFuncThread.ahkPostFunction("ShowMouseClick", "WheelDown")
+    }
+    LastMatchedExpandPair := ""
 }
 
 OnMousePressed() {
@@ -1492,6 +1560,10 @@ OnNumpadsPressed() {
     If (A_TickCount-LastTypedSince > ReturnToTypingDelay*1.75) && StrLen(Typed)>4
        InsertChar2caret(" ")
 
+    NumLockState := GetKeyState("NumLock", "T")
+    If (NumLockState=0 && MouseKeys=1)
+       Return
+
     Try {
         key := GetKeyStr()
         If ((Prefixed && !(key ~= "i)^(.?Shift \+ )")) || DisableTypingMode=1)
@@ -1910,7 +1982,11 @@ OnCtrlV() {
      allGood := 0
 
   If (allGood=1 && DisableTypingMode=0 && ShowSingleKey=1 && StrLen(toPaste)>0)
+  {
      textClipboard2OSD(toPaste)
+     CalcVisibleText()
+     ShowHotkey(VisibleTextField)
+  }
 
   If (allGood!=1 || (SecondaryTypingMode=0 && DisableTypingMode=1)
   || ShowSingleKey=0 || StrLen(toPaste)<1)
@@ -2998,6 +3074,17 @@ OSDoutputToolTip() {
 
 ShowHotkey(HotkeyStr) {
 ;  Sleep, 70 ; megatest
+
+    If (MousePosition && (A_TickCount-Tickcount_start2 < 1000) && MouseOSDbehavior=1)
+       Return
+
+    MouseGetPos, mX, mY,
+    NewMousePosition := mX "," mY
+    If (NewMousePosition=MousePosition && (A_TickCount-Tickcount_start2 < 6000)  && MouseOSDbehavior=1)
+       Return
+    Else
+       MousePosition := ""
+
     If (OutputOSDtoToolTip=1 && PrefOpen=0)
     {
        OSDcontentOutput := HotkeyStr
@@ -3162,8 +3249,11 @@ MouseMove(wP, lP, msg, hwnd) {
     && (A_TickCount - LastTypedSince > 1000)
     && (A_TickCount - DoNotRepeatTimer > 1000)
     && !InStr(dragOSDhandles, hwnd) && PrefOpen=0)
+    {
+       MouseGetPos, mX, mY,
+       MousePosition := mX "," mY
        HideGUI()
-    Else If (DragOSDmode=1 || PrefOpen=1 || InStr(dragOSDhandles, hwnd))
+    } Else If (DragOSDmode=1 || PrefOpen=1 || InStr(dragOSDhandles, hwnd))
     {
         If InStr(dragOSDhandles, hwnd)
            SetTimer, HideGUI, Off
@@ -3272,12 +3362,12 @@ saveGuiPositions() {
 LEDsIndicatorsManager() {
     If (OSDshowLEDs=0)
        Return
-    GetKeyState, CapsState, CapsLock, T
-    GetKeyState, NumState, NumLock, T
-    GetKeyState, ScrolState, ScrollLock, T
-    GuiControl, OSD:, CapsLED, % (CapsState = "D") ? 100 : 0
-    GuiControl, OSD:, NumLED, % (NumState = "D") ? 100 : 0
-    GuiControl, OSD:, ScrolLED, % (ScrolState = "D") ? 100 : 0
+    CapsState := GetKeyState("CapsLock", "T")
+    NumState := GetKeyState("NumLock", "T")
+    ScrolState := GetKeyState("ScrollLock", "T")
+    GuiControl, OSD:, CapsLED, % (CapsState=1) ? 100 : 0
+    GuiControl, OSD:, NumLED, % (NumState=1) ? 100 : 0
+    GuiControl, OSD:, ScrolLED, % (ScrolState=1) ? 100 : 0
 }
 
 ModsLEDsIndicatorsManager() {
@@ -3291,7 +3381,6 @@ ModsLEDsIndicatorsManager() {
 }
 
 GetCrayCrayState(key) {
-    GetKeyState, keyState, %key%, T
     shtate := GetKeyState(key, "T")
     If (SecondaryTypingMode=1)
        shtate := !shtate
@@ -3371,11 +3460,11 @@ CompactModifiers(ztr) {
              , "LAlt":"Alt", "LWin":"WinKey", "RWin":"WinKey", "RAlt":"AltGr"}
     If (DifferModifiers=0)
     {
-        StringReplace, ztr, ztr, LCtrl+RAlt, AltGr, All
-        StringReplace, ztr, ztr, AltGr+RAlt, AltGr, All
-        StringReplace, ztr, ztr, AltGr+LCtrl, AltGr, All
-        For k, v in CompactPattern
-            StringReplace, ztr, ztr, %k%, %v%, All
+       StringReplace, ztr, ztr, LCtrl+RAlt, AltGr, All
+       StringReplace, ztr, ztr, AltGr+RAlt, AltGr, All
+       StringReplace, ztr, ztr, AltGr+LCtrl, AltGr, All
+       For k, v in CompactPattern
+           StringReplace, ztr, ztr, %k%, %v%, All
     }
     Return ztr
 }
@@ -3828,15 +3917,17 @@ CreateHotkey() {
            Hotkey, % "~<^>!" char2bind, OnAltGrDeadKeyPressed, useErrorLevel
        }
     }
-
-    NumpadKeysList := "NumpadDel|NumpadIns|NumpadEnd|NumpadDown|NumpadPgdn|NumpadLeft"
-                    . "|NumpadClear|NumpadRight|NumpadHome|NumpadUp|NumpadPgup|NumpadEnter"
-    Loop, Parse, NumpadKeysList, |
+    If (MouseKeys=0)
     {
-       Hotkey, % "~*" A_LoopField, OnKeyPressed, useErrorLevel
-       Hotkey, % "~*" A_LoopField " Up", OnKeyUp, useErrorLevel
-       If (ErrorLevel!=0 && AudioAlerts=1)
-          SoundBeep, 1900, 50
+       NumpadKeysList := "NumpadDel|NumpadIns|NumpadEnd|NumpadDown|NumpadPgdn|NumpadLeft"
+                       . "|NumpadClear|NumpadRight|NumpadHome|NumpadUp|NumpadPgup"
+       Loop, Parse, NumpadKeysList, |
+       {
+          Hotkey, % "~*" A_LoopField, OnKeyPressed, useErrorLevel
+          Hotkey, % "~*" A_LoopField " Up", OnKeyUp, useErrorLevel
+          If (ErrorLevel!=0 && AudioAlerts=1)
+             SoundBeep, 1900, 50
+       }
     }
 
     Loop, 10 ; Numpad0 - Numpad9 ; numlock on
@@ -3859,7 +3950,7 @@ CreateHotkey() {
                  |Browser_Refresh|Browser_Stop|Browser_Search|Browser_Favorites|Browser_Home|CtrlBreak
                  |Insert|CapsLock|ScrollLock|NumLock|Pause|Volume_Mute|Volume_Down|Volume_Up|Media_Next
                  |Media_Stop|Media_Play_Pause|Launch_Mail|Launch_Media|Launch_App1|Launch_App2|Help
-                 |Sleep|PrintScreen|AppsKey|Tab|Enter|Media_Prev|Esc|Break"
+                 |Sleep|PrintScreen|AppsKey|Tab|Enter|Media_Prev|Esc|Break|NumpadEnter"
 
     If (DisableTypingMode=1)           
        Otherkeys .= "|Left|Right|Up|Down|BackSpace|Del|Home|End|PgUp|PgDn|space"
@@ -5083,7 +5174,11 @@ PasteCurrentClippy() {
   }
 
   If (DisableTypingMode=0)
+  {
      textClipboard2OSD(Clipboard)
+     CalcVisibleText()
+     ShowHotkey(VisibleTextField)
+  }
 }
 
 PasteSelectedClippy() {
@@ -5128,6 +5223,8 @@ PasteSelectedClippy() {
             TextClipboard2OSD(ClipData)
          Else
             TextClipboard2OSD(Clipboard)
+         CalcVisibleText()
+         ShowHotkey(VisibleTextField)
       }
   }
 }
@@ -5145,7 +5242,11 @@ PasteSelectedHistory() {
         SendInput, {text}%content%
      Sleep, 350
      If (DisableTypingMode=0)
+     {
         textClipboard2OSD(content)
+        CalcVisibleText()
+        ShowHotkey(VisibleTextField)
+     }
   } Else (Clipboard := content)
 }
 
@@ -5168,6 +5269,12 @@ RegisterGlobalShortcuts(HotKate,destination,apriori) {
    {
       HotKate := "(Disabled)"
       Return HotKate
+   }
+
+   If (GlobalKBDsNoIntercept=1)
+   {
+      HotKate := "~" HotKate
+      apriori := "~" apriori
    }
 
    Hotkey, %HotKate%, %destination%, UseErrorLevel
@@ -5425,7 +5532,10 @@ SuspendScript(partially:=0) {
       SoundsThread.ahkassign("ScriptelSuspendel", ScriptelSuspendel)
       MouseRipplesThread.ahkassign("ScriptelSuspendel", ScriptelSuspendel)
       Sleep, 5
-      MouseRipplesThread.ahkFunction["ToggleMouseRipples", ScriptelSuspendel]
+      If (ShowMouseRipples=1)
+         MouseRipplesThread.ahkFunction["ToggleMouseRipples", ScriptelSuspendel]
+      If (MouseKeys=1)
+         MouseNumpadThread.ahkFunction["SuspendScript", A_IsSuspended]
    }
    Sleep, 50
    Suspend
@@ -5483,6 +5593,7 @@ ToggleSilence() {
     INIaction(1, "SilentMode", "Sounds")
     Sleep, 50
     SoundsThread.ahkassign("SilentMode", SilentMode)
+    MouseFuncThread.ahkassign("SilentMode", SilentMode)
     SoundsThread.ahkPostFunction["CheckInit", ""]
     Menu, PrefsMenu, % (SilentMode=0 ? "Uncheck" : "Check"), S&ilent mode
     ShowLongMsg("Silent mode = " SilentMode)
@@ -6269,7 +6380,8 @@ ShowTypeSettings() {
     deadKstatus := (AutoDetectKBD=1) ? deadKstatus : ""
     Global CurrentPrefWindow := 2
     Global DoNotRepeatTimer := A_TickCount
-    Global txt1, txt2, txt3, txt4, txt5, txt6, editF1, editF2, editF3, editF4, SaveWordPairsBTN, DefaultWordPairsBTN, OpenWordPairsBTN
+    Global txt1, txt2, txt3, txt4, txt5, txt6, editF1, editF2, editF3
+         , editF4, SaveWordPairsBTN, DefaultWordPairsBTN, OpenWordPairsBTN
     txtWid := 350
     If (PrefsLargeFonts=1)
     {
@@ -6687,6 +6799,7 @@ ShowShortCutsSettings() {
     Gui, Add, Button, xs+0 y+15 w70 h30 Default gApplySettings vApplySettingsBTN, A&pply
     Gui, Add, Button, x+8 wp hp gCloseSettings vCancelBTN, C&ancel
     Gui, Add, DropDownList, x+8 AltSubmit gSwitchPreferences choose%CurrentPrefWindow% vCurrentPrefWindow , Keyboard|Typing mode|Sounds|Mouse|Appearance|Shortcuts
+    Gui, Add, Checkbox, x+8 gVerifyShortcutOptions Checked%GlobalKBDsNoIntercept% vGlobalKBDsNoIntercept, Allow other apps to use the same shortcuts
     Gui, Show, AutoSize, Global shortcuts: KeyPress OSD
     verifySettingsWindowSize()
     VerifyShortcutOptions(0)
@@ -7269,7 +7382,8 @@ ShowKBDsettings() {
     Global RealTimeUpdates := 0
     Global DoNotRepeatTimer := A_TickCount
     Global CurrentPrefWindow := 1
-    Global EditF22, EditF23, EditF24, EditF25, EditF26, EditF27, EditF28, EditF29, EditF30, EditF31, EditF32, EditF33, EditF34, DeleteAllClippyBTN
+    Global EditF22, EditF23, EditF24, EditF25, EditF26, EditF27, EditF28, EditF29
+         , EditF30, EditF31, EditF32, EditF33, EditF34, DeleteAllClippyBTN
     txtWid := 250
     btnWid := 130
     sliderWidth := 85
@@ -7477,11 +7591,14 @@ VerifyKeybdOptions(EnableApply:=1) {
        SetTimer, updateRealTimeSettings, -400, -50
 }
 
-
 editsMouseWin() {
   If (A_TickCount-DoNotRepeatTimer<1000)
      Return
   VerifyMouseOptions()
+}
+
+OpenMouseKeysIMG() {
+  Run, Lib\Help\mouse-keys-info.png
 }
 
 ShowMouseSettings() {
@@ -7492,8 +7609,9 @@ ShowMouseSettings() {
     Global RealTimeUpdates := 0
     Global CurrentPrefWindow := 4
     Global DoNotRepeatTimer := A_TickCount
-    Global editF1, editF2, editF3, editF4, editF5, editF6, editF7, editF8, editF9, editF10, editF11, editF12, editF13, editF14, editF15, editF16, editF17
-
+    Global editF1, editF2, editF3, editF4, editF5, editF6, editF7, editF8, editF9, editF10, editF11
+         , editF12, editF13, editF14, editF15, editF16, editF17, editF18, txt1, txt2, txt3, txt4
+         , txt5, txt6, txt7, txt8, txt9, txt10, txt11, ShowHelpBTN
     sliderWidth := 85
     txtWid := 275
     If (PrefsLargeFonts=1)
@@ -7503,7 +7621,7 @@ ShowMouseSettings() {
        Gui, Font, s%LargeUIfontValue%
     }
     RegRead, LastTab, %KPregEntry%, Window%CurrentPrefWindow%
-    Gui, Add, Tab3, AltSubmit Choose%LastTab% vCurrentTab, Mouse clicks|Mouse location
+    Gui, Add, Tab3, AltSubmit Choose%LastTab% vCurrentTab, Mouse clicks|Mouse location|Mouse keys
 
     Gui, Tab, 1 ; clicks
     Gui, Add, Checkbox, gVerifyMouseOptions x+15 y+15 w250 Checked%MouseBeeper% vMouseBeeper, Beep on mouse clicks
@@ -7512,15 +7630,15 @@ ShowMouseSettings() {
     Gui, Add, Text, y+15 Section, Show on mouse clicks: 
     Gui, Add, Checkbox, x+5 gVerifyMouseOptions Checked%ShowMouseVclick% vShowMouseVclick, Blocks
     Gui, Add, Checkbox, x+5 gVerifyMouseOptions Checked%ShowMouseRipples% vShowMouseRipples, Ripples
-    Gui, Add, Text, xs+16 y+10 veditF17, Scale. Color, Opacity.
+    Gui, Add, Text, xs+16 y+15 veditF17, Scale. Color, Opacity.
     Gui, Add, Edit, y+5 w55 geditsMouseWin r1 limit2 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF1, %MouseVclickScaleUser%
     Gui, Add, UpDown, vMouseVclickScaleUser gVerifyMouseOptions Range5-70, %MouseVclickScaleUser%
     Gui, Add, ListView, x+5 w50 hp %CCLVO% Background%MouseVclickColor% vMouseVclickColor hwndhLV6,
     Gui, Add, Slider, x+5 w%sliderWidth% hp ToolTip NoTicks Line3 gVerifyMouseOptions vMouseVclickAlpha Range20-240, %MouseVclickAlpha%
     Gui, Add, Text, x+5 veditF2, % Round(MouseVclickAlpha / 255 * 100) " %"
-    Gui, Add, Text, xs+16 y+30 veditF11, Size. Thickness. Speed (higher is slower).
+    Gui, Add, Text, xs+16 y+35 veditF11, Size. Thickness. Speed (higher is slower).
     Gui, Add, Edit, y+10 w55 geditsMouseWin r1 limit3 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF8, %MouseRippleMaxSize%
-    Gui, Add, UpDown, vMouseRippleMaxSize gVerifyMouseOptions Range100-400, %MouseRippleMaxSize%
+    Gui, Add, UpDown, vMouseRippleMaxSize gVerifyMouseOptions Range125-400, %MouseRippleMaxSize%
     Gui, Add, Edit, x+10 w55 geditsMouseWin r1 limit2 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF9, %MouseRippleThickness%
     Gui, Add, UpDown, vMouseRippleThickness gVerifyMouseOptions Range5-50, %MouseRippleThickness%
     Gui, Add, Edit, x+10 w55 geditsMouseWin r1 limit2 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF10, %MouseRippleFrequency%
@@ -7556,6 +7674,42 @@ ShowMouseSettings() {
     Gui, Add, Slider, x+5 w%sliderWidth% ToolTip NoTicks Line3 gVerifyMouseOptions vMouseIdleAlpha Range20-240, %MouseIdleAlpha%
     Gui, Add, Text, x+5 veditF7, % Round(MouseIdleAlpha / 255 * 100) " % opacity"
 
+    Gui, Tab, 3 ; mouse keys
+    Gui, Add, Checkbox, x+15 y+15 Section gVerifyMouseOptions Checked%MouseKeys% vMouseKeys, Activate Mouse Keys when NumLock is OFF
+    Gui, Add, Text, xs+16 y+5 w%sliderWidth% Section vTxt1, Speed: %MouseNumpadSpeed1%
+    Gui, Add, Slider, x+5 wp ToolTip NoTicks gVerifyMouseOptions vMouseNumpadSpeed1 Range1-70, %MouseNumpadSpeed1%
+    Gui, Add, Text, xs y+5 wp vTxt2, Acceleration: %MouseNumpadAccel1%
+    Gui, Add, Slider, x+5 wp ToolTip NoTicks gVerifyMouseOptions vMouseNumpadAccel1 Range2-100, %MouseNumpadAccel1%
+    Gui, Add, Text, xs y+5 wp vTxt3, Top speed: %MouseNumpadTopSpeed1%
+    Gui, Add, Slider, x+5 wp ToolTip NoTicks gVerifyMouseOptions vMouseNumpadTopSpeed1 Range4-250, %MouseNumpadTopSpeed1%
+    
+    Gui, Add, Text, xs y+12 vTxt4, Mouse speed when CapsLock is ON:
+    Gui, Add, Text, xs+16 y+5 vTxt5, Slower
+    Gui, Add, Slider, x+5 w%sliderWidth% ToolTip NoTicks gVerifyMouseOptions vMouseCapsSpeed Range1-35, %MouseCapsSpeed%
+    Gui, Add, Text, x+5 vTxt6, Faster
+    Gui, Add, Text, xs y+12 vTxt7, Mouse wheel speed:
+    Gui, Add, Text, xs+16 y+5 vTxt8, Faster
+    Gui, Add, Slider, x+5 w%sliderWidth% ToolTip NoTicks gVerifyMouseOptions vMouseWheelSpeed Range2-50, %MouseWheelSpeed%
+    Gui, Add, Text, x+5 vTxt9, Slower
+
+    Gui, Add, Checkbox, xs y+12 gVerifyMouseOptions Checked%MouseKeysWrap% vMouseKeysWrap, Warp / wrap movements at screen edges
+    Gui, Add, Checkbox, xs y+12 gVerifyMouseOptions Checked%MouseKeysHalo% vMouseKeysHalo, Mouse halo when Mouse Keys is active
+    Gui, Add, ListView, xs+16 y+9 w60 h25 %CCLVO% Background%MouseKeysHaloColor% vMouseKeysHaloColor hwndhLV12,
+    Gui, Add, Edit, x+5 w60 geditsMouseWin r1 limit3 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF18, %MouseKeysHaloRadius%
+    Gui, Add, UpDown, vMouseKeysHaloRadius gVerifyMouseOptions Range15-950, %MouseKeysHaloRadius%
+    Gui, Add, Text, x+5 hp +0x200 vtxt10, diameter
+
+    If (!IsMouseNumpadFile || SafeModeExec=1 || NoAhkH=1)
+    {
+       Gui, Font, Bold
+       Gui, Add, Text, xs y+8 w%txtWid%, These options are disabled because files are missing or running in a limited mode.
+       Gui, Font, Normal
+    } Else If FileExist("Lib\mouse-keys-info.png")
+    {
+       Gui, Add, Text, xs y+12 +0x200 vtxt11, For usage instructions: 
+       Gui, Add, Button, x+5 w90 hp+5 vShowHelpBTN gOpenMouseKeysIMG, Show hel&p
+    }
+
     Gui, Tab
     Gui, Add, Checkbox, gVerifyMouseOptions y+10 Checked%RealTimeUpdates% vRealTimeUpdates, Update settings in real time
     If (!IsSoundsFile || SafeModeExec=1 || NoAhkH=1
@@ -7573,7 +7727,7 @@ ShowMouseSettings() {
     Gui, Show, AutoSize, Mouse settings: KeyPress OSD
     verifySettingsWindowSize()
     VerifyMouseOptions(0)
-    ColorPickerHandles := hLV4 "," hLV6 "," hLV7 "," hLV8 "," hLV9 "," hLV10 "," hLV11
+    ColorPickerHandles := hLV4 "," hLV6 "," hLV7 "," hLV8 "," hLV9 "," hLV10 "," hLV11 "," hLV12
 }
 
 VerifyMouseOptions(EnableApply:=1) {
@@ -7595,9 +7749,18 @@ VerifyMouseOptions(EnableApply:=1) {
     GuiControlGet, MouseRippleMaxSize
     GuiControlGet, MouseChangeFeedback
     GuiControlGet, HideMhalosMcurHidden
+    GuiControlGet, MouseKeys
+    GuiControlGet, MouseKeysHalo
+    GuiControlGet, MouseKeysWrap
 
     If (!IsRipplesFile || SafeModeExec=1 || NoAhkH=1)
        ShowMouseRipples := 0
+
+    If (!IsMouseNumpadFile || SafeModeExec=1 || NoAhkH=1)
+    {
+       MouseKeys := 0
+       GuiControl, Disable, MouseKeys
+    }
 
     If (!IsMouseFile || SafeModeExec=1 || NoAhkH=1)
     {
@@ -7670,6 +7833,41 @@ VerifyMouseOptions(EnableApply:=1) {
     If !IsSoundsFile ; keypress-beeperz-functions.ahk
        GuiControl, Disable, MouseBeeper
 
+    action4 := (MouseKeys=0) ? "Disable" : "Enable"
+    GuiControl, %action4%, editF18
+    GuiControl, %action4%, MouseCapsSpeed
+    GuiControl, %action4%, MouseKeysHalo
+    GuiControl, %action4%, MouseKeysHaloColor
+    GuiControl, %action4%, MouseKeysHaloRadius
+    GuiControl, %action4%, MouseNumpadAccel1
+    GuiControl, %action4%, MouseNumpadSpeed1
+    GuiControl, %action4%, MouseNumpadTopSpeed1
+    GuiControl, %action4%, MouseWheelSpeed
+    GuiControl, %action4%, MouseKeysWrap
+    GuiControl, %action4%, Txt1
+    GuiControl, %action4%, Txt2
+    GuiControl, %action4%, Txt3
+    GuiControl, %action4%, Txt4
+    GuiControl, %action4%, Txt5
+    GuiControl, %action4%, Txt6
+    GuiControl, %action4%, Txt7
+    GuiControl, %action4%, Txt8
+    GuiControl, %action4%, Txt9
+    GuiControl, %action4%, Txt10
+    GuiControl, %action4%, Txt11
+    GuiControl, %action4%, ShowHelpBTN
+    If (MouseKeys=1)
+    {
+       action5 := (MouseKeysHalo=0) ? "Disable" : "Enable"
+       GuiControl, %action5%, MouseKeysHaloColor
+       GuiControl, %action5%, MouseKeysHaloRadius
+       GuiControl, %action5%, editf18
+       GuiControl, %action5%, txt10
+       GuiControl, , Txt2, % "Acceleration: " MouseNumpadAccel1
+       GuiControl, , Txt1, % "Speed: " MouseNumpadSpeed1
+       GuiControl, , Txt3, % "Top speed: " MouseNumpadTopSpeed1
+    }
+
     If (RealTimeUpdates=1)
        SetTimer, updateRealTimeSettings, -400, -50
     If (ShowMouseVclick=1)
@@ -7683,6 +7881,7 @@ VerifyMouseOptions(EnableApply:=1) {
 
     If (!IsRipplesFile || SafeModeExec=1 || NoAhkH=1)
        GuiControl, Disable, ShowMouseRipples
+
     If (!IsMouseFile || SafeModeExec=1 || NoAhkH=1)
     {
        GuiControl, Disable, ShowMouseVclick
@@ -7694,6 +7893,7 @@ VerifyMouseOptions(EnableApply:=1) {
 }
 
 SendVarsMouseAHKthread(initMode) {
+   sendMouseVar("ShowMouseHalo")
    sendMouseVar("MouseHaloAlpha")
    sendMouseVar("MouseHaloColor")
    sendMouseVar("MouseHaloRadius")
@@ -7707,7 +7907,6 @@ SendVarsMouseAHKthread(initMode) {
    sendMouseVar("MouseVclickAlpha")
    sendMouseVar("MouseVclickColor")
    sendMouseVar("MouseVclickScale")
-   sendMouseVar("ShowMouseHalo")
    sendMouseVar("ShowMouseIdle")
    sendMouseVar("ShowMouseVclick")
    sendMouseVar("ShowCaretHalo")
@@ -7718,6 +7917,7 @@ SendVarsMouseAHKthread(initMode) {
    sendMouseVar("CaretHaloShape")
    sendMouseVar("CaretHaloFlash")
    sendMouseVar("CaretHaloThick")
+   sendMouseVar("SilentMode")
    If (initMode=1)
       MouseFuncThread.ahkPostFunction["MouseInit"] 
 }
@@ -7730,6 +7930,11 @@ sendSndVar(var) {
 sendRiplVar(var) {
    varValue := %var%
    MouseRipplesThread.ahkassign(var, varValue)
+}
+
+sendMkeysVar(var) {
+   varValue := %var%
+   MouseNumpadThread.ahkassign(var, varValue)
 }
 
 sendMouseVar(var) {
@@ -7749,7 +7954,24 @@ SendVarsSoundsAHKthread() {
    SendSndVar("SilentMode")
    SendSndVar("ToggleKeysBeeper")
    SendSndVar("TypingBeepers")
+   SendSndVar("MouseKeys")
    SoundsThread.ahkPostFunction["CreateHotkey"] 
+}
+
+ToggleMouseKeysHalo(mode) {
+   If (mode=1)
+   {
+      MouseFuncThread.ahkassign("ShowMouseHalo", ShowMouseHalo)
+      MouseFuncThread.ahkassign("MouseHaloColor", MouseHaloColor)
+      MouseFuncThread.ahkassign("MouseHaloRadius", MouseHaloRadius)
+  } Else
+  {
+      MouseFuncThread.ahkassign("ShowMouseHalo", MouseKeysHalo)
+      MouseFuncThread.ahkassign("MouseHaloColor", MouseKeysHaloColor)
+      MouseFuncThread.ahkassign("MouseHaloRadius", MouseKeysHaloRadius)
+  }
+  Sleep, 25
+  MouseFuncThread.ahkPostFunction["MouseInit"]
 }
 
 SendVarsRipplesAHKthread(initMode) {
@@ -7766,6 +7988,19 @@ SendVarsRipplesAHKthread(initMode) {
       MouseRipplesThread.ahkPostFunction["MouseRippleSetup"]
 }
 
+SendVarsMouseKeysAHKthread(initMode) {
+   sendMkeysVar("MouseKeys")
+   sendMkeysVar("MouseNumpadSpeed1")
+   sendMkeysVar("MouseNumpadAccel1")
+   sendMkeysVar("MouseNumpadTopSpeed1")
+   sendMkeysVar("MouseWheelSpeed")
+   sendMkeysVar("MouseCapsSpeed")
+   sendMkeysVar("MouseKeysHalo")
+   sendMkeysVar("MouseKeysWrap")
+   If (MouseKeys=1 && initMode=1)
+      MouseNumpadThread.ahkPostFunction["MouseKeysInit"]
+}
+
 updateRealTimeSettings() {
   Gui, Submit, NoHide
   CheckSettings()
@@ -7779,6 +8014,11 @@ updateRealTimeSettings() {
      Sleep, 5
      SendVarsRipplesAHKthread(0)
      MouseRipplesThread.ahkPostFunction["MouseRippleUpdate"]
+     Sleep, 5
+     SendVarsMouseKeysAHKthread(0)
+     MouseNumpadThread.ahkPostFunction["ToggleCapsLock"]
+     Sleep, 5
+     MouseNumpadThread.ahkPostFunction["SuspendScript", MouseKeys]
   } Else If (CurrentPrefWindow=1)
   {
      SendVarsMouseAHKthread(0)
@@ -7892,7 +8132,8 @@ ShowOSDsettings() {
        SetTimer, HideGUI, Off  ; just update the text (avoids the flicker)
     Global CurrentPrefWindow := 5
     Global DoNotRepeatTimer := A_TickCount
-    Global positionB, editF1, editF2, editF3, editF4, editF5, editF6, editF7, editF8, editF9, editF10, editF35, editF36, editF37, Btn1, Btn2
+    Global positionB, editF1, editF2, editF3, editF4, editF5, editF6, Btn1
+         , editF7, editF8, editF9, editF10, editF35, editF36, editF37, Btn2
     GUIposition := GUIposition + 1
     columnBpos1 := columnBpos2 := 125
     editFieldWid := 220
@@ -8769,13 +9010,6 @@ VerifyNonCrucialFiles() {
 
      binaryUpdater := "updater.bat"
      binaryUpdaterURL := BaseURL binaryUpdater
-     If (!FileExist(binaryUpdater) && A_IsCompiled)
-     {
-        FileInstall, updater.bat, updater.bat
-        StringLeft, Contents, Contents, 50
-        If !InStr(contents, "TIMEOUT /T")
-           FileDelete, %binaryUpdater%
-     }
 
     zipFile := "lib.zip"
     zipFileTmp := zipFile
@@ -8785,6 +9019,7 @@ VerifyNonCrucialFiles() {
     SoundsZipUrl := BaseURL SoundsZipFile
     historyFile := "Lib\keypress-osd-changelog.txt"
     beepersFile := "Lib\keypress-beeperz-functions.ahk"
+    MouseNumpadFile := "Lib\keypress-numpadmouse.ahk"
     DeadKeysAidFile := "Lib\keypress-keystrokes-helper.ahk"
     ripplesFile := "Lib\keypress-mouse-ripples-functions.ahk"
     mouseFile := "Lib\keypress-mouse-functions.ahk"
@@ -8795,7 +9030,7 @@ VerifyNonCrucialFiles() {
     featuresHtml := "Lib\help\features.html"
 
     FilePack := "DeadKeysAidFile,beepersFile,ripplesFile,mouseFile,historyFile
-              ,faqHtml,presentationHtml,shortcutsHtml,featuresHtml"
+              ,faqHtml,presentationHtml,shortcutsHtml,featuresHtml,MouseNumpadFile"
     If !FileExist(A_ScriptDir "\Lib")
     {
         FileCreateDir, Lib
@@ -8807,15 +9042,21 @@ VerifyNonCrucialFiles() {
            Else
               reloadRequired := 1
         }
-        FileCreateDir, Lib\Help
-        If A_IsCompiled
-        {
-           FileInstall, Lib\Help\faq.html, %faqHtml%
-           FileInstall, Lib\Help\presentation.html, %presentationHtml%
-           FileInstall, Lib\Help\shortcuts.html, %shortcutsHtml%
-           FileInstall, Lib\Help\features.html, %featuresHtml%
-        }
     }
+
+    If (!FileExist(A_ScriptDir "\Lib\Help") && A_IsCompiled)
+    {
+       FileCreateDir, Lib\Help
+       FileInstall, Lib\Help\faq.html, %faqHtml%
+       FileInstall, Lib\Help\presentation.html, %presentationHtml%
+       FileInstall, Lib\Help\shortcuts.html, %shortcutsHtml%
+       FileInstall, Lib\Help\features.html, %featuresHtml%
+       If !FileExist(A_ScriptDir "\Lib\Help\mouse-keys-info.png")
+          FileInstall, Lib\Help\mouse-keys-info.png, Lib\Help\mouse-keys-info.png
+    }
+
+    If (!FileExist(binaryUpdater) && A_IsCompiled)
+       FileInstall, updater.bat, %binaryUpdater%
 
     IniRead, checkFilesRan, %IniFile%, TempSettings, checkFilesRan, 0
     IniRead, checkVersion, %IniFile%, SavedSettings, Version, 0
@@ -9155,9 +9396,20 @@ INIsettings(a) {
   INIaction(a, "CaretHaloFlash", "Mouse")
   INIaction(a, "CaretHaloThick", "Mouse")
   INIaction(a, "CaretHaloShape", "Mouse")
+  INIaction(a, "MouseKeys", "Mouse")
+  INIaction(a, "MouseNumpadSpeed1", "Mouse")
+  INIaction(a, "MouseNumpadAccel1", "Mouse")
+  INIaction(a, "MouseNumpadTopSpeed1", "Mouse")
+  INIaction(a, "MouseWheelSpeed", "Mouse")
+  INIaction(a, "MouseCapsSpeed", "Mouse")
+  INIaction(a, "MouseKeysHalo", "Mouse")
+  INIaction(a, "MouseKeysWrap", "Mouse")
+  INIaction(a, "MouseKeysHaloColor", "Mouse")
+  INIaction(a, "MouseKeysHaloRadius", "Mouse")
 
 ; Hotkey settings
   INIaction(a, "GlobalKBDhotkeys", "Hotkeys")
+  INIaction(a, "GlobalKBDsNoIntercept", "Hotkeys")
   INIaction(a, "KBDaltTypeMode", "Hotkeys")
   INIaction(a, "KBDpasteOSDcnt1", "Hotkeys")
   INIaction(a, "KBDpasteOSDcnt2", "Hotkeys")
@@ -9234,6 +9486,7 @@ CheckSettings() {
     BinaryVar(JumpHover, 0)
     BinaryVar(KeyBeeper, 0)
     BinaryVar(GlobalKBDhotkeys, 1)
+    BinaryVar(GlobalKBDsNoIntercept, 0)
     BinaryVar(MediateNavKeys, 0)
     BinaryVar(ModBeeper, 0)
     BinaryVar(MouseBeeper, 0)
@@ -9271,6 +9524,9 @@ CheckSettings() {
     BinaryVar(UpDownAsHE, 0)
     BinaryVar(UpDownAsLR, 0)
     BinaryVar(UseMUInames, 1)
+    BinaryVar(MouseKeysHalo, 1)
+    BinaryVar(MouseKeys, 0)
+    BinaryVar(MouseKeysWrap, 0)
     CaretHaloShape := (CaretHaloShape=1 || CaretHaloShape=2) ? CaretHaloShape : 2
     MouseOSDbehavior := (MouseOSDbehavior=1 || MouseOSDbehavior=2 || MouseOSDbehavior=3) ? MouseOSDbehavior : 1
     OSDalignment1 := (OSDalignment1=1 || OSDalignment1=2 || OSDalignment1=3) ? OSDalignment1 : 1
@@ -9313,6 +9569,13 @@ CheckSettings() {
        ConstantAutoDetect := 0
 
 ; verify numeric values: min, max and default values
+    MinMaxVar(MouseNumpadTopSpeed1, 5, 250, 65)
+    MinMaxVar(MouseNumpadSpeed1, 1, 70, 5)
+    MinMaxVar(MouseNumpadAccel1, 2, 100, 20)
+    MinMaxVar(MouseNumpadSpeed1, 1, MouseNumpadTopSpeed1, MouseNumpadTopSpeed1)
+    MinMaxVar(MouseNumpadAccel1, 2, MouseNumpadTopSpeed1, MouseNumpadTopSpeed1)
+    MinMaxVar(MouseCapsSpeed, 1, 35, 2)
+    MinMaxVar(MouseWheelSpeed, 2, 50, 7)
     MinMaxVar(BeepsVolume, 5, 99, 60)
     MinMaxVar(CaretHaloAlpha, 20, 240, 128)
     MinMaxVar(CaretHaloHeight, 10, 350, 30)
@@ -9331,13 +9594,14 @@ CheckSettings() {
     MinMaxVar(MaxGuiWidth, FontSize*2, 2995, 500)
     MinMaxVar(MaximumTextClips, 3, 31, 10)
     MinMaxVar(MaxRTFtextClipLen, 10000, 250500, 60000)
-    MinMaxVar(MouseHaloAlpha, 20, 240, 130)
-    MinMaxVar(MouseHaloRadius, 25, 999, 85)
+    MinMaxVar(MouseHaloAlpha, 20, 240, 90)
+    MinMaxVar(MouseKeysHaloRadius, 25, 999, 45)
+    MinMaxVar(MouseHaloRadius, 25, 999, 75)
     MinMaxVar(MouseIdleAfter, 3, 999, 10)
     MinMaxVar(MouseIdleAlpha, 20, 240, 70)
     MinMaxVar(MouseIdleRadius, 25, 999, 130)
     MinMaxVar(MouseRippleFrequency, 3, 40, 15)
-    MinMaxVar(MouseRippleMaxSize, 100, 400, 140)
+    MinMaxVar(MouseRippleMaxSize, 125, 400, 140)
     MinMaxVar(MouseRippleOpacity, 20, 240, 160)
     MinMaxVar(MouseRippleThickness, 5, 50, 10)
     MinMaxVar(MouseVclickAlpha, 20, 240, 150)
@@ -9356,6 +9620,7 @@ CheckSettings() {
    HexyVar(CapsColorHighlight, "88AAff")
    HexyVar(CaretHaloColor, "BBAA99")
    HexyVar(MouseHaloColor, "888888")
+   HexyVar(MouseKeysHaloColor, "22EE11")
    HexyVar(MouseIdleColor, "333333")
    HexyVar(MouseRippleLbtnColor, "ff2211")
    HexyVar(MouseRippleMbtnColor, "33cc33")
@@ -9488,7 +9753,7 @@ FormatMessage(ctx, msg, arg="") {
     , "PtrP" , buf    ; lpBuffer
     , "UInt" , 0      ; nSize
     , "Str"  , arg)   ; Arguments
-  txt := StrGet(&buf, "UTF-16")
+  txt := StrGet(buf, "UTF-16")
   DllCall("kernel32\LocalFree", "Ptr", buf)
   return "Error " msg " in " ctx ":`n" txt
 }
@@ -9503,6 +9768,12 @@ InitAHKhThreads() {
          {
             MouseFuncThread := %func2exec%(StrGet(&data))
             While !IsMouseFile := MouseFuncThread.ahkgetvar.IsMouseFile
+                  Sleep, 10
+         }
+         If GetRes(data, 0, "KEYPRESS-NUMPADMOUSE.AHK", "LIB")
+         {
+            MouseNumpadThread := %func2exec%(StrGet(&data))
+            While !IsMouseNumpadFile := MouseNumpadThread.ahkgetvar.IsMouseNumpadFile
                   Sleep, 10
          }
          If GetRes(data, 0, "KEYPRESS-MOUSE-RIPPLES-FUNCTIONS.AHK", "LIB")
@@ -9538,10 +9809,12 @@ InitAHKhThreads() {
       } Else
       {
           IsMouseFile := FileExist("Lib\keypress-mouse-functions.ahk")
+          IsMouseNumpadFile := FileExist("Lib\keypress-numpadmouse.ahk")
           IsRipplesFile := FileExist("Lib\keypress-mouse-ripples-functions.ahk")
           IsSoundsFile := FileExist("Lib\keypress-beeperz-functions.ahk")
           IsKeystrokesFile := FileExist("Lib\keypress-keystrokes-helper.ahk")
           MouseFuncThread := %func2exec%(" #Include *i Lib\keypress-mouse-functions.ahk ")
+          MouseNumpadThread := %func2exec%(" #Include *i Lib\keypress-numpadmouse.ahk ")
           MouseRipplesThread := %func2exec%(" #Include *i Lib\keypress-mouse-ripples-functions.ahk ")
           SoundsThread := %func2exec%(" #Include *i Lib\keypress-beeperz-functions.ahk ")
           If (AlternativeHook2keys=1 && DisableTypingMode=0 && ShowSingleKey=1 && IsKeystrokesFile)
@@ -9550,6 +9823,9 @@ InitAHKhThreads() {
               OnMessage(0x4a, "KeyStrokeReceiver")  ; 0x4a is WM_COPYDATA
           }
       }
+      Sleep, 10
+      If IsMouseNumpadFile
+         SendVarsMouseKeysAHKthread(1)
       Sleep, 10
       If IsRipplesFile
          SendVarsRipplesAHKthread(1)
@@ -9573,12 +9849,15 @@ Cleanup() {
        If IsMouseFile
        {
           MouseFuncThread.ahkFunction["ToggleMouseTimerz", "Y"] ; force all timers off
+          Sleep, 5
           %func2exec%(MouseFuncThread) ; Should call MouseClose() in thread's OnExit
           MouseFuncThread := ""
        }
 
        If IsRipplesFile
        {
+          MouseRipplesThread.ahkFunction["MREnd"]
+          Sleep, 5
           %func2exec%(MouseRipplesThread) ; Should call MouseRippleClose() in thread's OnExit, otherwise bad things happen!
           MouseRipplesThread := ""
        }
@@ -9593,6 +9872,12 @@ Cleanup() {
        {
           %func2exec%(KeyStrokesThread)
           KeyStrokesThread := ""
+       }
+
+       If IsMouseNumpadFile
+       {
+          %func2exec%(MouseNumpadThread)
+          MouseNumpadThread := ""
        }
     }
     Sleep, 10

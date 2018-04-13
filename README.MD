@@ -4,9 +4,9 @@
 <h2>To keep the development going, <a href="https://www.paypal.me/MariusSucan/15">please donate</a> using PayPal.</h2>
 <p>This program is an On-Screen Display or a Heads-Up Display for keys. It displays every key or mouse button press at a clearly visible text size. I developed it for people like me, with poor eye sight or low vision. It is meant to aid desktop computer usage. It is especially useful while chatting or for occasional typing. The user no longer has to squint at the screen or zoom in the entire screen to see what s/he wrote for every text field.</p>
 
-<p>This application can also be used for screen casts or presentations, by disabling the typing mode at Preferences.</p>
+<p>This application can also be used for screen casts or presentations, by disabling the typing mode at Preferences. In its main menu, you can select Quick Start Presets to help you get started.</p>
 
-<p>Numerous options and settings are available in the different Preferences windows provided in the program, such that everyone can find a way to adapt it to personal needs.</p>
+<p>Numerous unique features, options and settings are available in the different Preferences windows provided in the program, such that everyone can find a way to adapt it to personal needs.</p>
 
 <p>This application has support for Cyrillic and Latin-based keyboard layouts. I also did some limited testing with Indic  layouts, e.g., Bengali, and as far as I can tell, KeyPress OSD works with these as well.</p>
 
@@ -46,7 +46,14 @@
 <li>Automatic resizing of OSD/HUD or fixed size.</li>
 <li>Customizable size, position and colors.</li>
 <li>Hides or switches position automatically when mouse runs over it.</li>
-<li>Customizable visual mouse clicks and idle mouse highlighter.</li>
+<li>Customizable visual mouse clicks and mouse halo to indicate its location, flash mouse cursor after idling.</li>
+<li>Mouse keys. Move the mouse cursor with the numpad keys.</li>
+<ul>
+  <li>Ability to lock Left, Right and Middle clicks to facilitate drag-n-drop operations, using ScrollLock or numpad Enter.</li>
+  <li>Option to wrap / warp mouse movements at screen edges.</li>
+  <li>Ability to move in 16 different directions by combining two directions simultaneously.</li>
+  <li>Ease to alternate between cursor speeds using Capslock.</li>
+</ul>
 <li>Distinct beepers for different types of keys and buttons or when typing with Capslock.</li>
 <li>Clipboard monitor. It displays briefly texts copied to clipboard.</li>
 <li>Live text capture with Capture2Text (*)</li>

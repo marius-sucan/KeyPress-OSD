@@ -54,6 +54,7 @@ Global IniFile           := "keypress-osd.ini"
  , CaretBlinkTime := DllCall("user32\GetCaretBlinkTime")
  , wa := 0
  , ha := 0
+ , SilentMode := 0
  , ScriptelSuspendel := 0
  , MouseClickCounter := 0
  , MouseVclickScale := MouseVclickScaleUser/10
@@ -163,6 +164,7 @@ ShowMouseIdleLocation() {
 }
 
 checkMcursorState(ByRef hpCursor) {
+; thanks to Drugwash
     VarSetCapacity(CI, sz:=16+A_PtrSize, 0), z := NumPut(sz, CI, 0, "UInt")
     r := DllCall("user32\GetCursorInfo", "Ptr", &CI) ; get cursor info
     h := NumGet(CI, 4, "UInt"), hpCursor := NumGet(CI, 8, "Ptr")
@@ -170,6 +172,11 @@ checkMcursorState(ByRef hpCursor) {
        h := 0
 ;    ToolTip, %h% - %hpCursor% - %r% - %z%
     Return h
+}
+
+mouseBleep() {
+    If (SilentMode=0)
+       SoundPlay, sounds\mouseGlide.wav
 }
 
 MouseHalo(killNow:=0) {
@@ -199,8 +206,7 @@ MouseHalo(killNow:=0) {
           If (hpCursor!=oldhpCursor && MouseChangeFeedback=1)
           {
              WinSet, Transparent, % MouseHaloAlpha/2, %WinMouseHalo%
-             SoundPlay, sounds\mouseGlide.wav
-             Sleep, 5
+             SetTimer, mouseBleep, -1
              WinSet, Transparent, %MouseHaloAlpha%, %WinMouseHalo%
           }
           oldhpCursor := hpCursor
