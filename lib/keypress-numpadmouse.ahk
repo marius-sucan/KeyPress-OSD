@@ -64,6 +64,9 @@ Global IsMouseNumpadFile := 1
 Return
 
 MouseKeysInit() {
+  ; OnMessage(0x02B1, "WM_WTSSESSION_CHANGE")
+
+  Hotkey, ~#l, DeactivateMouseKeys, UseErrorLevel
   Hotkey, ~MButton, ButtonTheClicks, UseErrorLevel
   Hotkey, ~RButton, ButtonTheClicks, UseErrorLevel
   Hotkey, ~LButton, ButtonTheClicks, UseErrorLevel
@@ -89,6 +92,15 @@ MouseKeysInit() {
   Hotkey, *NumpadPgUp, MouseMover, UseErrorLevel
   Hotkey, *NumpadPgDn, MouseMover, UseErrorLevel
 
+  Hotkey, *NumpadUp Up, ReleaseKey, UseErrorLevel
+  Hotkey, *NumpadDown Up, ReleaseKey, UseErrorLevel
+  Hotkey, *NumpadLeft Up, ReleaseKey, UseErrorLevel
+  Hotkey, *NumpadRight Up, ReleaseKey, UseErrorLevel
+  Hotkey, *NumpadHome Up, ReleaseKey, UseErrorLevel
+  Hotkey, *NumpadEnd Up, ReleaseKey, UseErrorLevel
+  Hotkey, *NumpadPgUp Up, ReleaseKey, UseErrorLevel
+  Hotkey, *NumpadPgDn Up, ReleaseKey, UseErrorLevel
+
   Hotkey, ~NumLock Up, ToggleNumLock, UseErrorLevel
   Hotkey, ~CapsLock Up, ToggleCapsLock, UseErrorLevel
   moduleInitialized := 1
@@ -98,7 +110,12 @@ MouseKeysInit() {
   ToggleCapsLock()
 }
 
-;Key activation support
+DeactivateMouseKeys() {
+  SetNumLockState, On
+  Sleep, 5
+  ToggleNumLock()
+  MainExe.ahkPostFunction("LEDsIndicatorsManager")
+}
 
 SuspendScript(killNow:=1) {
   If (MouseKeys=0 && moduleInitialized=0)
@@ -110,15 +127,19 @@ SuspendScript(killNow:=1) {
   If (killNow=0)
   {
      ToggleNumLock(1)
+     Hotkey, ~#l, Off
      Hotkey, ~NumLock Up, Off
      Hotkey, ~CapsLock Up, Off
   } Else
   {
      ToggleNumLock()
+     Hotkey, ~#l, On
      Hotkey, ~NumLock Up, On
      Hotkey, ~CapsLock Up, On
   }
 }
+
+;Key activation support
 
 ToggleNumLock(stopAll:=0) {
   If (MouseKeys=0 && moduleInitialized=0)
@@ -150,6 +171,15 @@ ToggleNumLock(stopAll:=0) {
      Hotkey, *NumpadPgUp, On
      Hotkey, *NumpadPgDn, On
 
+     Hotkey, *NumpadUp Up, On
+     Hotkey, *NumpadDown Up, On
+     Hotkey, *NumpadLeft Up, On
+     Hotkey, *NumpadRight Up, On
+     Hotkey, *NumpadHome Up, On
+     Hotkey, *NumpadEnd Up, On
+     Hotkey, *NumpadPgUp Up, On
+     Hotkey, *NumpadPgDn Up, On
+
      Hotkey, ~MButton, On
      Hotkey, ~RButton, On
      Hotkey, ~LButton, On
@@ -157,6 +187,8 @@ ToggleNumLock(stopAll:=0) {
 
   If (NumLockState=1 || stopAll=1 || MouseKeys=0)
   {
+     testLock := ButtonEnter(0)
+     SetTimer, MouseMoverTimer, Off
      Hotkey, *NumpadIns, Off
      Hotkey, *NumpadClear, Off
      Hotkey, *NumpadDel, Off
@@ -176,6 +208,15 @@ ToggleNumLock(stopAll:=0) {
      Hotkey, *NumpadPgUp, Off
      Hotkey, *NumpadPgDn, Off
 
+     Hotkey, *NumpadUp Up, Off
+     Hotkey, *NumpadDown Up, Off
+     Hotkey, *NumpadLeft Up, Off
+     Hotkey, *NumpadRight Up, Off
+     Hotkey, *NumpadHome Up, Off
+     Hotkey, *NumpadEnd Up, Off
+     Hotkey, *NumpadPgUp Up, Off
+     Hotkey, *NumpadPgDn Up, Off
+
      Hotkey, ~MButton, Off
      Hotkey, ~RButton, Off
      Hotkey, ~LButton, Off
@@ -185,9 +226,9 @@ ToggleNumLock(stopAll:=0) {
      MainExe.ahkPostFunction("ToggleMouseKeysHalo", NumLockState)
 }
 
-
 ToggleCapsLock() {
   True2ndSpeed := MouseCapsSpeed/10
+  SetTimer, MouseMoverTimer, Off
   CapsLockState := GetKeyState("CapsLock", "T")
   If (CapsLockState=0)
   {
@@ -277,8 +318,9 @@ ButtonEnter(doNotLock:=1) {
   If !lastClick
      Return
 
-  If locked
+  If (locked=1)
   {
+     SetTimer, MouseMoverTimer, Off
      MouseClick, %lastClick%,,, 1, 0, U
      locked := 0
      MainExe.ahkPostFunction("OnMouseKeysPressed", lastClick " Click (unlocked)")
@@ -286,8 +328,9 @@ ButtonEnter(doNotLock:=1) {
      Return 1
   }
 
-  If doNotLock
+  If (doNotLock=1)
   {
+     SetTimer, MouseMoverTimer, Off
      MouseClick, %lastClick%,,, 1, 0, D
      locked := 1
      MainExe.ahkPostFunction("OnMouseKeysPressed", lastClick " Click (locked down)")
@@ -376,6 +419,7 @@ MouseMoverTimer() {
      reset := 1
   CalculateSpeed(MoveX, MoveY, reset)
   StringReplace, NumPadButton, A_ThisHotkey, *
+  PadUpDown := PadDownDown := PadLeftDown := PadRightDown := PadPgUpDown := PadHomeDown := PadEndDown := PadPgDnDown := 0
   PadUpDown := GetKeyState("NumpadUp", "P")
   PadDownDown := GetKeyState("NumpadDown", "P")
   PadLeftDown := GetKeyState("NumpadLeft", "P")
@@ -384,10 +428,8 @@ MouseMoverTimer() {
   PadHomeDown := GetKeyState("NumpadHome", "P")
   PadEndDown := GetKeyState("NumpadEnd", "P")
   PadPgDnDown := GetKeyState("NumpadPgDn", "P")
-
   If ((NumPadButton = "NumpadUp" || PadUpDown=1) && PadDownDown=0)
   {
-    ; SoundBeep
      MoveY0 := -1 * MoveY*2
      MoveX0 := 0
      MouseMove, %MoveX0%, %MoveY0%,1, R
@@ -439,6 +481,12 @@ MouseMoverTimer() {
      ScreenWrap()
 }
 
+ReleaseKey() {
+  StringReplace, btn2release, A_ThisHotkey, *,
+  StringReplace, btn2release, btn2release, %A_Space%Up,
+  SendInput, {%btn2release% Up}
+  ; ToolTip, %btn2release%
+}
 ;Mouse wheel movement support
 
 ButtonWheels() {
@@ -540,3 +588,41 @@ ScreenWrap() {
   }
 }
 
+
+WM_WTSSESSION_CHANGE(wParam, lParam, Msg, hWnd){
+; function by Nextron
+; found on https://autohotkey.com/boards/viewtopic.php?t=8023
+  static init := DllCall("Wtsapi32.dll\WTSRegisterSessionNotification", UInt, A_ScriptHwnd, UInt, 1)
+  
+  If (wParam=0x7)       ; lock
+     SuspendScript(0)
+  Else If (wParam=0x8)  ; unlock
+     SuspendScript(1)
+
+      /*
+      wParam::::::
+      WTS_CONSOLE_CONNECT := 0x1 ; A session was connected to the console terminal.
+      WTS_CONSOLE_DISCONNECT := 0x2 ; A session was disconnected from the console terminal.
+      WTS_REMOTE_CONNECT := 0x3 ; A session was connected to the remote terminal.
+      WTS_REMOTE_DISCONNECT := 0x4 ; A session was disconnected from the remote terminal.
+      WTS_SESSION_LOGON := 0x5 ; A user has logged on to the session.
+      WTS_SESSION_LOGOFF := 0x6 ; A user has logged off the session.
+      WTS_SESSION_LOCK := 0x7 ; A session has been locked.
+      WTS_SESSION_UNLOCK := 0x8 ; A session has been unlocked.
+      WTS_SESSION_REMOTE_CONTROL := 0x9 ; A session has changed its remote controlled status. To determine the status, call GetSystemMetrics and check the SM_REMOTECONTROL metric.
+      */
+}
+
+SessionIsLocked() {
+  static WTS_CURRENT_SERVER_HANDLE := 0, WTSSessionInfoEx := 25, WTS_SESSIONSTATE_LOCK := 0x00000000, WTS_SESSIONSTATE_UNLOCK := 0x00000001 ;, WTS_SESSIONSTATE_UNKNOWN := 0xFFFFFFFF
+  ret := False
+  if (DllCall("ProcessIdToSessionId", "UInt", DllCall("GetCurrentProcessId", "UInt"), "UInt*", sessionId)
+     && DllCall("wtsapi32\WTSQuerySessionInformation", "Ptr", WTS_CURRENT_SERVER_HANDLE, "UInt", sessionId, "UInt", WTSSessionInfoEx, "Ptr*", sesInfo, "Ptr*", BytesReturned))
+  {
+    SessionFlags := NumGet(sesInfo+0, 16, "Int")
+    ; "Windows Server 2008 R2 and Windows 7: Due to a code defect, the usage of the WTS_SESSIONSTATE_LOCK and WTS_SESSIONSTATE_UNLOCK flags is reversed."
+    ret := A_OSVersion != "WIN_7" ? SessionFlags == WTS_SESSIONSTATE_LOCK : SessionFlags == WTS_SESSIONSTATE_UNLOCK
+    DllCall("wtsapi32\WTSFreeMemory", "Ptr", sesInfo)
+  }
+  return ret
+}

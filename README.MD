@@ -45,8 +45,8 @@
 <li>Typed text history with Page Up/Down. On pressing Enter or Escape, it records the written line and you can get back to it with Page Up.</li>
 <li>Automatic resizing of OSD/HUD or fixed size.</li>
 <li>Customizable size, position and colors.</li>
-<li>Hides or switches position automatically when mouse runs over it.</li>
-<li>Customizable visual mouse clicks and mouse halo to indicate its location, flash mouse cursor after idling.</li>
+<li>The OSD can hide or switch position automatically when the mouse runs over it.</li>
+<li>Customizable visual mouse clicks and mouse halo to indicate its location, and flash mouse cursor after idling.</li>
 <li>Mouse keys. Move the mouse cursor with the numpad keys.</li>
 <ul>
   <li>Ability to lock Left, Right and Middle clicks to facilitate drag-n-drop operations, using ScrollLock or numpad Enter.</li>

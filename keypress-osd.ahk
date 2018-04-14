@@ -148,7 +148,7 @@
 ;@Ahk2Exe-SetMainIcon Lib\keypress.ico
 ;@Ahk2Exe-SetName KeyPress OSD v4
 ;@Ahk2Exe-SetDescription KeyPress OSD v4 [mirror keyboard and mouse usage]
-;@Ahk2Exe-SetVersion 4.30.0
+;@Ahk2Exe-SetVersion 4.30.1
 ;@Ahk2Exe-SetCopyright Marius Şucan (2017-2018)
 ;@Ahk2Exe-SetCompanyName ROBODesign.ro
 ;@Ahk2Exe-SetOrigFilename keypress-osd.ahk
@@ -204,7 +204,9 @@
  , AltHook2keysUser       := 1
  , TypingDelaysScaleUser  := 7
  , UseMUInames            := 1
+ 
  , EnableClipManager      := 0
+ , ClippyIgnoreHideOSD    := 0
  , MaximumTextClips       := 10
  , MaxRTFtextClipLen      := 60000
  , DoNotPasteClippy       := 0
@@ -354,8 +356,8 @@
  , DownloadExternalFiles  := 1
 
 ; Release info
- , Version                := "4.30.0"
- , ReleaseDate            := "2018 / 04 / 13"
+ , Version                := "4.30.1"
+ , ReleaseDate            := "2018 / 04 / 14"
  , hMutex, ScriptInitialized, FirstRun := 1
  , KPregEntry := "HKEY_CURRENT_USER\SOFTWARE\KeyPressOSD\v4"
 
@@ -4939,12 +4941,15 @@ ClipChanged(Type) {
     Thread, Priority, -20
     Critical, off
     Static PrivateMode
+    If (PrefOpen=1)
+       Return
+
     ClippyData := Clipboard
-    PrivateMode := (NeverDisplayOSD=1 || A_IsSuspended=1) ? 1 : 0
+    PrivateMode := (ClippyIgnoreHideOSD=0 && NeverDisplayOSD=1 || A_IsSuspended=1) ? 1 : 0
     If (EnableClipManager=1 && StrLen(clippyData)>0 && (A_TickCount-DoNotRepeatTimer>2000))
        ClipboardManager(PrivateMode, ClippyData)
 
-    If (A_IsSuspended=1 || (OutputOSDtoToolTip=0 && NeverDisplayOSD=1))
+    If (PrefOpen=1 || A_IsSuspended=1 || (OutputOSDtoToolTip=0 && NeverDisplayOSD=1))
        Return
 
     If (Type=1 && ClipMonitor=1 && (A_TickCount-LastTypedSince > DisplayTimeTyping/2))
@@ -5078,7 +5083,7 @@ GenerateClippyMenu() {
     StringLeft, troll, troll, 45
     Sort, TheClippyList, R
     Menu, ClippyMenu, Delete
-    PrivateMode := (NeverDisplayOSD=1 || A_IsSuspended=1) ? 1 : 0
+    PrivateMode := (ClippyIgnoreHideOSD=0 && NeverDisplayOSD=1 || A_IsSuspended=1) ? 1 : 0
     If (StrLen(troll)>0 && PrefOpen=0)
     {
         If (StrLen(ClippyData) < Round(MaxRTFtextClipLen/2))
@@ -5360,7 +5365,7 @@ ForceReleaseMODs() {
 }
 
 SynchronizeApp(SynchronizeMode:=0) {
-  If (A_IsSuspended=1 || SecondaryTypingMode=1)
+  If (A_IsSuspended=1 || SecondaryTypingMode=1 || PrefOpen=1)
   || (OutputOSDtoToolTip=0 && NeverDisplayOSD=1)
      Return
 
@@ -5447,7 +5452,7 @@ SynchronizeApp2() {
 }
 
 sendOSDcontent(ForceIT:=0, mode:=0) {
-  If (ForceIT=0) && (A_IsSuspended=1 || NeverDisplayOSD=1)
+  If (ForceIT=0) && (A_IsSuspended=1 || NeverDisplayOSD=1 || PrefOpen=1)
      Return
 
   Typed := BackTypeCtrl
@@ -5481,8 +5486,6 @@ sendOSDcontent(ForceIT:=0, mode:=0) {
 }
 
 sendOSDcontent2() {
-  If (SecondaryTypingMode=1 || A_IsSuspended=1)
-     Return
   sendOSDcontent(0,1)
 }
 
@@ -7454,6 +7457,7 @@ ShowKBDsettings() {
     Gui, Add, Text, xs+15 y+7 veditF32, Do not preserve formatting for `ntexts exceeding (characters)
     Gui, Add, Edit, x+5 w75 gVerifyKeybdOptions r1 limit6 -multi number -wantCtrlA -wantReturn -wantTab -wrap vMaxRTFtextClipLen, %MaxRTFtextClipLen%
     Gui, Add, Checkbox, xs+15 y+25 gVerifyKeybdOptions Checked%DoNotPasteClippy% vDoNotPasteClippy, Do not paste, just change the clipboard content
+    Gui, Add, Checkbox, y+7 gVerifyKeybdOptions Checked%ClippyIgnoreHideOSD% vClippyIgnoreHideOSD, Store clipboards even when the OSD is hidden
     Gui, Add, Text, xs+0 y+7 w%txtWid% veditF25, To access the stored clipboard history from any application, press WinKey + V (default keyboard shortcut).
     INIaction(0, "ClipDataMD5s", "ClipboardManager")
     If StrLen(ClipDataMD5s)>5
@@ -7585,6 +7589,7 @@ VerifyKeybdOptions(EnableApply:=1) {
     GuiControl, %action2%, EditF25
     GuiControl, %action2%, EditF32
     GuiControl, %action2%, MaxRTFtextClipLen
+    GuiControl, %action2%, ClippyIgnoreHideOSD
     GuiControl, %action2%, DoNotPasteClippy
     GuiControl, % (OSDshowLEDs=0 ? "Disable" : "Enable"), EditF26
     If (RealTimeUpdates=1)
@@ -9276,6 +9281,7 @@ INIsettings(a) {
 
 ; Clipboard settings
   INIaction(a, "ClipMonitor", "ClipboardManager")
+  INIaction(a, "ClippyIgnoreHideOSD", "ClipboardManager")
   INIaction(a, "DoNotPasteClippy", "ClipboardManager")
   INIaction(a, "EnableClipManager", "ClipboardManager")
   INIaction(a, "MaximumTextClips", "ClipboardManager")
@@ -9464,6 +9470,7 @@ CheckSettings() {
     BinaryVar(CapslockBeeper, 1)
     BinaryVar(CaretHaloFlash, 1)
     BinaryVar(ClipMonitor, 1)
+    BinaryVar(ClippyIgnoreHideOSD, 0)
     BinaryVar(ConstantAutoDetect, 1)
     BinaryVar(DeadKeyBeeper, 1)
     BinaryVar(DifferModifiers, 0)
