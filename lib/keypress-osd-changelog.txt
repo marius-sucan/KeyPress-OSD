@@ -11,7 +11,11 @@ http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip
 
 by Marius Sucan (robodesign.ro)
 
-  v4.30.0 (2018-03-13)
+  v4.30.1 (2018-04-14)
+  - [new] option at Keyboard > Clipboard Manager, to keep store clipboards even when the OSD is hidden [private mode]. This enable users to still be able to use the clipboard manager when they do not want the OSD.
+  - minor bug fixes
+
+  v4.30.0 (2018-04-13)
   - [new] Mouse Keys. Control the mouse cursor with the numpad keys.
     - ability to move in 16 directions
     - toggle Capslock to move at an alternate speed
@@ -20,22 +24,22 @@ by Marius Sucan (robodesign.ro)
   - [new] option to allow other apps to use the same keyboard shortcuts as KeyPress OSD. [feature requested on GitHub]
   - minor bug fixes
 
-  v4.28.6 (2018-03-07)
+  v4.28.6 (2018-04-07)
   - bug fixes
 
-  v4.28.5 (2018-03-04)
+  v4.28.5 (2018-04-04)
   - dead keys related fixes
   - made the dead keys specific code for hotkey bindings more simple and straigth-forward
   - improvements related to the dynamic add/remove entries for auto-replace
   - and other fixes
 
-  v4.28.4 (2018-03-03)
+  v4.28.4 (2018-04-03)
   - [new] ability to dynamically learn / unlearn expandable/auto-replace words on Enter by writing: +//+ word2match // words to replace with;
     - to remove an entry use: -//- word2match // [anything];
   - code readjustments; thanks to Drugwash, very long lines are now split into multiple lines;
   - bug fixes
 
-  v4.28.3 (2018-03-02)
+  v4.28.3 (2018-04-02)
   - [new] option to have the mouse halos hide whenever the mouse cursor hides
   - [new] option to offer audio-visual feedback on mouse cursor changes
   - [improvement] text caret halo is now adjusting to the real caret height
@@ -939,7 +943,7 @@ Features to implement:
 - elimină iniWrite for clipboard manager? then make ID per install
  - warnings. debugger?
  - reparații la mouse ripples; wheel up/down frequency mess-up
- - ignore hide OSD [clippy man]
+
  - afișează shortcuts in meniuri
 
 - Drugwash: checkWindowKBD() - TO FIX
@@ -950,7 +954,7 @@ Features to implement:
   - external GUI - multi-line
 
 - add shortcut to add/remove auto-replace entries
-- mouse ripples can cause silent crashes
+- mouse ripples can cause silent crashes ?!?
 - KeyStrokeAider causes crashes after a long period of running
 - integrate Vis2
 
