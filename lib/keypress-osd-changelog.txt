@@ -11,6 +11,10 @@ http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip
 
 by Marius Sucan (robodesign.ro)
 
+  v4.30.2 (2018-04-16)
+  - bug fixes regarding mouse keys
+  - other minor bug fixes
+
   v4.30.1 (2018-04-14)
   - [new] option at Keyboard > Clipboard Manager, to keep store clipboards even when the OSD is hidden [private mode]. This enable users to still be able to use the clipboard manager when they do not want the OSD.
   - minor bug fixes
@@ -926,6 +930,10 @@ by tmplinshi from https://autohotkey.com/boards/viewtopic.php?f=6&t=225
 
 TO-DO:
 Features to implement:
+ - afișează shortcuts in meniuri
+ - add shortcut to add/remove auto-replace entries
+
+
 - compile the thing! include all scripts inside?
   - separate UI settings and tray menu? separate files with include
   - [bug] when x32 compiled, double-click pe layout, KeyPress starts twice
@@ -939,24 +947,17 @@ Features to implement:
 - test slow VM; laptop, pc
 
 - Kill switch. On click exit. Force exit. 
-
 - elimină iniWrite for clipboard manager? then make ID per install
- - warnings. debugger?
- - reparații la mouse ripples; wheel up/down frequency mess-up
-
- - afișează shortcuts in meniuri
-
-- Drugwash: checkWindowKBD() - TO FIX
-
-- capture text to-do:
-  - wm-getobject, send message [chrome]
-  - get tool tips
-  - external GUI - multi-line
-
-- add shortcut to add/remove auto-replace entries
-- mouse ripples can cause silent crashes ?!?
-- KeyStrokeAider causes crashes after a long period of running
 - integrate Vis2
+
+ - shellmessage gets unhooked sometimes
+ - coordmode, screen, wrong halo positions in some apps; win7
+ - reparații la mouse ripples; wheel up/down frequency mess-up
+ - Drugwash: checkWindowKBD() - TO FIX
+ - mouse ripples can still cause silent crashes ?!?
+ - KeyStrokeAider can cause crashes after a long period of running
+ - updater.bat does not work in XP
+
 
 - auto-correct [with 1,2,3] - long words; visualize first
 - https://autohotkey.com/board/topic/54987-sift3-super-fast-and-accurate-string-distance-algorithm/
@@ -964,9 +965,10 @@ Features to implement:
 - https://www.sketchengine.co.uk/word-lists/
 http://www.itprotoday.com/software-development/double-metaphone-sounds-great
 
-- pune Compiled version in downloads, desktop [win7, win10]
-
-
+- capture text to-do:
+  - wm-getobject, send message [chrome]
+  - get tool tips
+  - external GUI - multi-line
 https://www.chromium.org/developers/design-documents/accessibility#TOC-How-Chrome-detects-the-presence-of-Assistive-Technology
 https://github.com/neptercn/Component_AHK/blob/master/uia.ahk
 https://autohotkey.com/board/topic/53672-get-the-text-content-of-a-tool-tip-window/
