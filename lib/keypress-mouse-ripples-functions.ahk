@@ -78,14 +78,14 @@ MouseRippleSetup() {
 
 MRInit() {
     Global
-    If !ModuleInitialized
+    If (!ModuleInitialized || !pToken)
        MouseRippleSetup()
     MouseRippleMaxSize := MouseRippleMaxSize < 100 ? 101 : MouseRippleMaxSize
 
-    RippleWinSize := MouseRippleMaxSize + 2*MouseRippleThickness + 1
+    RippleWinSize := MouseRippleMaxSize + 3*MouseRippleThickness + 1
     MainMouseRippleThickness := (MouseRippleMaxSize < 200 && MouseRippleThickness > 35) ? MouseRippleThickness/1.7 : MouseRippleThickness
     RippleMinSize := 2*MouseRippleThickness + 2
-    RippleMaxSize := RippleWinSize - 2*MouseRippleThickness - 2
+    RippleMaxSize := RippleWinSize - 3*MouseRippleThickness - 2
     RippleStep := MouseRippleMaxSize < 160 ? 4 : 6
     RippleAlphaMax := MouseRippleOpacity
     RippleAlphaStep := RippleAlphaMax // ((RippleMaxSize - RippleMinSize) / RippleStep)

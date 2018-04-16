@@ -148,7 +148,7 @@
 ;@Ahk2Exe-SetMainIcon Lib\keypress.ico
 ;@Ahk2Exe-SetName KeyPress OSD v4
 ;@Ahk2Exe-SetDescription KeyPress OSD v4 [mirror keyboard and mouse usage]
-;@Ahk2Exe-SetVersion 4.30.1
+;@Ahk2Exe-SetVersion 4.30.2
 ;@Ahk2Exe-SetCopyright Marius Şucan (2017-2018)
 ;@Ahk2Exe-SetCompanyName ROBODesign.ro
 ;@Ahk2Exe-SetOrigFilename keypress-osd.ahk
@@ -302,7 +302,7 @@
  , MouseChangeFeedback    := 0
  , HideMhalosMcurHidden   := 1
  , MouseVclickAlpha       := 150   ; from 0 to 255
- , MouseVclickColor       := "555555"
+ , MouseVclickColor       := "555599"
  , MouseVclickScaleUser   := 10
  , MouseRippleMaxSize     := 140
  , MouseRippleThickness   := 10
@@ -356,8 +356,8 @@
  , DownloadExternalFiles  := 1
 
 ; Release info
- , Version                := "4.30.1"
- , ReleaseDate            := "2018 / 04 / 14"
+ , Version                := "4.30.2"
+ , ReleaseDate            := "2018 / 04 / 16"
  , hMutex, ScriptInitialized, FirstRun := 1
  , KPregEntry := "HKEY_CURRENT_USER\SOFTWARE\KeyPressOSD\v4"
 
@@ -543,16 +543,20 @@ If (ExpandWords=1 && DisableTypingMode=0)
 If (EnableClipManager=1)
    InitClipboardManager()
 
-If (EraseTextWinChange=1 && DisableTypingMode=0)
+If (SafeModeExec!=1)
 {
-   DllCall("RegisterShellHookWindow", "UInt", hOSD)
+   info := DllCall("RegisterShellHookWindow", "UInt", hOSD)
+   If (info!=1)
+   {
+      Sleep, 10
+      info := DllCall("RegisterShellHookWindow", "UInt", hOSD)
+   }
    MsgNum := DllCall("RegisterWindowMessage", "Str","SHELLHOOK")
+ ;  ToolTip, %info% - %msgnum%
    OnMessage(MsgNum, "ShellMessage")
 }
-
 ModsLEDsIndicatorsManager()
 Sleep, 5
-
 ScriptInitialized := 1      ; the end of the autoexec section and INIT
 RegWrite, REG_SZ, %KPregEntry%, Initializing, No
 Return
@@ -2744,19 +2748,37 @@ ST_Delete(string, start=1, length=1) {
 ; -------------------------------------------------  String Things by tidbit
 
 ShellMessage(wParam, lParam) {
-; function used for EraseTextWinChange=1
+; function used to update parts of the UI
+; based on window changes
 ; HSHELL_WINDOWACTIVATED Or HSHELL_RUDEAPPACTIVATED
+   Static timera
+   If !timera
+      timera := 1
 
-   ; WinGetTitle, title, ahk_id %lParam%
-   If (SecondaryTypingMode=0
-   && (A_TickCount-DoNotRepeatTimer>2000)
-   && EraseTextWinChange=1 && StrLen(Typed)>1
-   && (wParam == 4 || wParam == 17 || wParam == 32772))
+   If ((wParam == 4 || wParam == 17 || wParam == 32772) && PrefOpen=0
+      && (A_TickCount - timera > 1000) && A_IsSuspended=0)
    {
-      If (EnableTypingHistory=1)
-         recordTypedHistory()
-      cleanTypeSlate()
-      HideGUI()
+      If (SecondaryTypingMode=0 && DisableTypingMode=0
+      && (A_TickCount - DoNotRepeatTimer > 2000)
+      && (A_TickCount - LastTypedSince > 1500)
+      && EraseTextWinChange=1 && StrLen(Typed)>1)
+      {
+         If (EnableTypingHistory=1)
+            recordTypedHistory()
+         cleanTypeSlate()
+         HideGUI()
+      }
+      WinGetTitle, title, ahk_id %lParam%
+      If InStr(title, "KeyPressOSDwin")
+         HideGUI()
+      LEDsIndicatorsManager()
+      If (MouseKeys=1)
+      {
+         ToggleMouseKeysHalo()
+         MouseNumpadThread.ahkPostFunction["ToggleNumLock"]
+         MouseNumpadThread.ahkPostFunction["ToggleCapsLock"]
+      }
+      timera := A_TickCount
    }
 }
 
@@ -3154,6 +3176,7 @@ HideGUI() {
     Critical, off
     OSDvisible := 0
     Gui, OSD: Hide
+    Gui, OSDghost: Hide
     Gui, capTxt: Hide
     SetTimer, checkMousePresence, off
 }
@@ -7963,9 +7986,10 @@ SendVarsSoundsAHKthread() {
    SoundsThread.ahkPostFunction["CreateHotkey"] 
 }
 
-ToggleMouseKeysHalo(mode) {
-   If (mode=1)
-   {
+ToggleMouseKeysHalo() {
+  NumLockState := GetKeyState("NumLock", "T")
+  If (NumLockState=1)
+  {
       MouseFuncThread.ahkassign("ShowMouseHalo", ShowMouseHalo)
       MouseFuncThread.ahkassign("MouseHaloColor", MouseHaloColor)
       MouseFuncThread.ahkassign("MouseHaloRadius", MouseHaloRadius)
@@ -8128,6 +8152,10 @@ editsOSDwin() {
   VerifyOsdOptions()
 }
 
+ResetOSDsizeFactor() {
+  GuiControl, , editF9, % calcOSDresizeFactor()
+}
+
 ShowOSDsettings() {
     doNotOpen := initSettingsWindow()
     If (doNotOpen=1)
@@ -8178,9 +8206,10 @@ ShowOSDsettings() {
 
     Gui, Add, Edit, xs+%columnBpos1b% ys+0 w65 geditsOSDwin r1 limit4 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF7, %GuiWidth%
     Gui, Add, UpDown, gVerifyOsdOptions vGuiWidth Range55-2900, %GuiWidth%
-    Gui, Add, Edit, xp+0 yp+30 w65 geditsOSDwin r1 limit3 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF9, %OSDsizingFactor%
+    Gui, Add, Edit, xp+0 yp+30 Section w65 geditsOSDwin r1 limit3 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF9, %OSDsizingFactor%
     Gui, Add, UpDown, gVerifyOsdOptions vOSDsizingFactor Range20-399, %OSDsizingFactor%
-    Gui, Add, Edit, xp+0 yp+30 w65 geditsOSDwin r1 limit4 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF8, %MaxGuiWidth%
+    Gui, Add, Text, x+5 gResetOSDsizeFactor hwndhTXT, DPI: %A_ScreenDPI%
+    Gui, Add, Edit, xs+0 yp+30 w65 geditsOSDwin r1 limit4 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF8, %MaxGuiWidth%
     Gui, Add, UpDown, gVerifyOsdOptions vMaxGuiWidth Range90-2900, %MaxGuiWidth%
     Gui, Add, DropDownList, xp+0 yp+30 w160 gVerifyOsdOptions AltSubmit Choose%MouseOSDbehavior% vMouseOSDbehavior, Immediately hide|Toggle positions (A/B)|Allow drag to reposition
 
@@ -8235,7 +8264,7 @@ ShowOSDsettings() {
     Gui, Show, AutoSize, OSD appearance: KeyPress OSD
     verifySettingsWindowSize()
     VerifyOsdOptions(0)
-    ColorPickerHandles := hLV1 "," hLV2 "," hLV3 "," hLV5
+    ColorPickerHandles := hLV1 "," hLV2 "," hLV3 "," hLV5 "," hTXT
 }
 
 VerifyOsdOptions(EnableApply:=1) {
@@ -9633,7 +9662,7 @@ CheckSettings() {
    HexyVar(MouseRippleMbtnColor, "33cc33")
    HexyVar(MouseRippleRbtnColor, "4499ff")
    HexyVar(MouseRippleWbtnColor, "33cc33")
-   HexyVar(MouseVclickColor, "555555")
+   HexyVar(MouseVclickColor, "555599")
    HexyVar(OSDbgrColor, "131209")
    HexyVar(OSDtextColor, "FFFEFA")
    HexyVar(TypingColorHighlight, "12E217")
@@ -10198,6 +10227,7 @@ CheckAcc:
   If (SafeModeExec!=1)
   {
      Sleep, 1
-     addScript("ahkThread_Free(deleteME)",0)   ; comment/delete this line to execute this script with AHK_L
+ ;    addScript("ahkThread_Free(deleteME)",0)   ; comment/delete this line to execute this script with AHK_L
+     ahkThread_Free(deleteME)   ; comment/delete this line to execute this script with AHK_L
   }
 Return

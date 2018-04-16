@@ -141,89 +141,75 @@ SuspendScript(killNow:=1) {
 
 ;Key activation support
 
+HotkeysList(act) {
+     Hotkey, *NumpadIns, %act%
+     Hotkey, *NumpadClear, %act%
+     Hotkey, *NumpadDel, %act%
+     Hotkey, *NumpadDiv, %act%
+     Hotkey, *NumpadMult, %act%
+     Hotkey, *NumpadEnter, %act%
+
+     Hotkey, *NumpadSub, %act%
+     Hotkey, *NumpadAdd, %act%
+
+     Hotkey, *NumpadUp, %act%
+     Hotkey, *NumpadDown, %act%
+     Hotkey, *NumpadLeft, %act%
+     Hotkey, *NumpadRight, %act%
+     Hotkey, *NumpadHome, %act%
+     Hotkey, *NumpadEnd, %act%
+     Hotkey, *NumpadPgUp, %act%
+     Hotkey, *NumpadPgDn, %act%
+
+     Hotkey, *NumpadUp Up, %act%
+     Hotkey, *NumpadDown Up, %act%
+     Hotkey, *NumpadLeft Up, %act%
+     Hotkey, *NumpadRight Up, %act%
+     Hotkey, *NumpadHome Up, %act%
+     Hotkey, *NumpadEnd Up, %act%
+     Hotkey, *NumpadPgUp Up, %act%
+     Hotkey, *NumpadPgDn Up, %act%
+
+     Hotkey, ~MButton, %act%
+     Hotkey, ~RButton, %act%
+     Hotkey, ~LButton, %act%
+}
+
 ToggleNumLock(stopAll:=0) {
+  Static activated
+
   If (MouseKeys=0 && moduleInitialized=0)
      Return
   If (moduleInitialized=0)
      MouseKeysInit()
 
   NumLockState := GetKeyState("NumLock", "T")
-  If (NumLockState=0 && MouseKeys=1)
+  If (NumLockState=0 && MouseKeys=1 && activated!=1)
   {
      If (MouseKeysWrap=1)
         ScreenInfos()
-     Hotkey, *NumpadIns, On
-     Hotkey, *NumpadClear, On
-     Hotkey, *NumpadDel, On
-     Hotkey, *NumpadDiv, On
-     Hotkey, *NumpadMult, On
-     Hotkey, *NumpadEnter, On
-
-     Hotkey, *NumpadSub, On
-     Hotkey, *NumpadAdd, On
-
-     Hotkey, *NumpadUp, On
-     Hotkey, *NumpadDown, On
-     Hotkey, *NumpadLeft, On
-     Hotkey, *NumpadRight, On
-     Hotkey, *NumpadHome, On
-     Hotkey, *NumpadEnd, On
-     Hotkey, *NumpadPgUp, On
-     Hotkey, *NumpadPgDn, On
-
-     Hotkey, *NumpadUp Up, On
-     Hotkey, *NumpadDown Up, On
-     Hotkey, *NumpadLeft Up, On
-     Hotkey, *NumpadRight Up, On
-     Hotkey, *NumpadHome Up, On
-     Hotkey, *NumpadEnd Up, On
-     Hotkey, *NumpadPgUp Up, On
-     Hotkey, *NumpadPgDn Up, On
-
-     Hotkey, ~MButton, On
-     Hotkey, ~RButton, On
-     Hotkey, ~LButton, On
+     HotkeysList("On")
+     activated := 1
   }
 
-  If (NumLockState=1 || stopAll=1 || MouseKeys=0)
+  If ((NumLockState=1 || stopAll=1 || MouseKeys=0) && activated!=0)
   {
      testLock := ButtonEnter(0)
      SetTimer, MouseMoverTimer, Off
-     Hotkey, *NumpadIns, Off
-     Hotkey, *NumpadClear, Off
-     Hotkey, *NumpadDel, Off
-     Hotkey, *NumpadDiv, Off
-     Hotkey, *NumpadMult, Off
-     Hotkey, *NumpadEnter, Off
-
-     Hotkey, *NumpadSub, Off
-     Hotkey, *NumpadAdd, Off
-
-     Hotkey, *NumpadUp, Off
-     Hotkey, *NumpadDown, Off
-     Hotkey, *NumpadLeft, Off
-     Hotkey, *NumpadRight, Off
-     Hotkey, *NumpadHome, Off
-     Hotkey, *NumpadEnd, Off
-     Hotkey, *NumpadPgUp, Off
-     Hotkey, *NumpadPgDn, Off
-
-     Hotkey, *NumpadUp Up, Off
-     Hotkey, *NumpadDown Up, Off
-     Hotkey, *NumpadLeft Up, Off
-     Hotkey, *NumpadRight Up, Off
-     Hotkey, *NumpadHome Up, Off
-     Hotkey, *NumpadEnd Up, Off
-     Hotkey, *NumpadPgUp Up, Off
-     Hotkey, *NumpadPgDn Up, Off
-
-     Hotkey, ~MButton, Off
-     Hotkey, ~RButton, Off
-     Hotkey, ~LButton, Off
+     HotkeysList("Off")
+     SendInput, {NumpadUp Up}
+     SendInput, {NumpadDown Up}
+     SendInput, {NumpadLeft Up}
+     SendInput, {NumpadRight Up}
+     SendInput, {NumpadHome Up}
+     SendInput, {NumpadEnd Up}
+     SendInput, {NumpadPgUp Up}
+     SendInput, {NumpadPgDn Up}
+     activated := 0
   }
 
   If (MouseKeysHalo=1 && stopAll=0 && MouseKeys=1)
-     MainExe.ahkPostFunction("ToggleMouseKeysHalo", NumLockState)
+     MainExe.ahkPostFunction("ToggleMouseKeysHalo")
 }
 
 ToggleCapsLock() {
@@ -407,6 +393,11 @@ CalculateSpeed(ByRef MoveX, ByRef MoveY,reset:=0) {
 ;    ToolTip, %currentspeed% - %MouseMaxSpeed% - %MouseSpeed%
 }
 
+MouseEventAPI(x, y) {
+    DllCall("mouse_event", "UInt", 0x01, "UInt", x, "UInt", y) ; move
+    ; MouseMove, %x%, %y%, 1, R
+}
+
 MouseMover() {
   SetTimer, MouseMoverTimer, -10
 }
@@ -419,7 +410,7 @@ MouseMoverTimer() {
      reset := 1
   CalculateSpeed(MoveX, MoveY, reset)
   StringReplace, NumPadButton, A_ThisHotkey, *
-  PadUpDown := PadDownDown := PadLeftDown := PadRightDown := PadPgUpDown := PadHomeDown := PadEndDown := PadPgDnDown := 0
+
   PadUpDown := GetKeyState("NumpadUp", "P")
   PadDownDown := GetKeyState("NumpadDown", "P")
   PadLeftDown := GetKeyState("NumpadLeft", "P")
@@ -432,47 +423,47 @@ MouseMoverTimer() {
   {
      MoveY0 := -1 * MoveY*2
      MoveX0 := 0
-     MouseMove, %MoveX0%, %MoveY0%,1, R
+     MouseEventAPI(MoveX0, MoveY0)
   }
   if ((NumPadButton = "NumpadDown" || PadDownDown=1)  && PadUpDown=0)
   {
      MoveY1 := MoveY*2
      MoveX1 := 0
-     MouseMove, %MoveX1%, %MoveY1%,1, R
+     MouseEventAPI(MoveX1, MoveY1)
   }
   if ((NumPadButton = "NumpadLeft" || PadLeftDown=1) && PadRightDown=0)
   {
      MoveX2 := -1 * MoveX*2
      MoveY2 := 0
-     MouseMove, %MoveX2%, %MoveY2%,1, R
+     MouseEventAPI(MoveX2, MoveY2)
   }
   if ((NumPadButton = "NumpadRight" || PadRightDown=1) && PadLeftDown=0)
   {
      MoveX3 := MoveX*2
      MoveY3 := 0
-     MouseMove, %MoveX3%, %MoveY3%,1, R
+     MouseEventAPI(MoveX3, MoveY3)
   }
   if ((NumPadButton = "NumpadHome" || PadHomeDown=1) && PadPgDnDown=0)
   {
      MoveX4 := -1 * MoveX
      MoveY4 := -1 * MoveY
-     MouseMove, %MoveX4%, %MoveY4%,1, R
+     MouseEventAPI(MoveX4, MoveY4)
   }
   if ((NumPadButton = "NumpadPgUp" || PadPgUpDown=1) && PadEndDown=0)
   {
      MoveY5 := -1 * MoveY
      MoveX5 := MoveX
-     MouseMove, %MoveX5%, %MoveY5%,1, R
+     MouseEventAPI(MoveX5, MoveY5)
   }
   if ((NumPadButton = "NumpadEnd" || PadEndDown=1) && PadPgUpDown=0)
   {
      MoveX6 := -1 * MoveX
      MoveY6 := MoveY
-     MouseMove, %MoveX6%, %MoveY6%,1, R
+     MouseEventAPI(MoveX6, MoveY6)
   }
   if ((NumPadButton = "NumpadPgDn" || PadPgDnDown=1) && PadHomeDown=0)
-     MouseMove, %MoveX%, %MoveY%,1, R
-
+     MouseEventAPI(MoveX, MoveY)
+; 
   If (PadUpDown=1 || PadDownDown=1 || PadLeftDown=1 || PadRightDown=1
   || PadHomeDown=1 || PadPgUpDown=1 || PadEndDown=1 || PadPgDnDown=1)
      SetTimer, MouseMoverTimer, -55
@@ -555,8 +546,6 @@ ScreenInfos() {
   }
 }
 
-
-
 ScreenWrap() {
   CoordMode Mouse, Screen
   MouseGetPos PosX, PosY
@@ -598,19 +587,6 @@ WM_WTSSESSION_CHANGE(wParam, lParam, Msg, hWnd){
      SuspendScript(0)
   Else If (wParam=0x8)  ; unlock
      SuspendScript(1)
-
-      /*
-      wParam::::::
-      WTS_CONSOLE_CONNECT := 0x1 ; A session was connected to the console terminal.
-      WTS_CONSOLE_DISCONNECT := 0x2 ; A session was disconnected from the console terminal.
-      WTS_REMOTE_CONNECT := 0x3 ; A session was connected to the remote terminal.
-      WTS_REMOTE_DISCONNECT := 0x4 ; A session was disconnected from the remote terminal.
-      WTS_SESSION_LOGON := 0x5 ; A user has logged on to the session.
-      WTS_SESSION_LOGOFF := 0x6 ; A user has logged off the session.
-      WTS_SESSION_LOCK := 0x7 ; A session has been locked.
-      WTS_SESSION_UNLOCK := 0x8 ; A session has been unlocked.
-      WTS_SESSION_REMOTE_CONTROL := 0x9 ; A session has changed its remote controlled status. To determine the status, call GetSystemMetrics and check the SM_REMOTECONTROL metric.
-      */
 }
 
 SessionIsLocked() {
@@ -626,3 +602,4 @@ SessionIsLocked() {
   }
   return ret
 }
+
