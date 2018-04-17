@@ -382,6 +382,8 @@ GuiGetSize( ByRef W, ByRef H, vindov) {
 CaretHalo(restartNow:=0) {
     Static
     Static lastFlash := A_TickCount
+         , CaretHaloW := CaretHaloH := mX := mY := 1
+
     If (restartNow=1)
     {
        Gui, CaretH: Destroy
@@ -390,23 +392,24 @@ CaretHalo(restartNow:=0) {
     }
 
     doNotShow := 0
-    If (ShowCaretHalo=1 && ScriptelSuspendel!="Y") ; && (A_TimeIdle > 200)
+    If (ShowCaretHalo=1 && ScriptelSuspendel!="Y" && (A_TimeIdlePhysical < MouseIdleAfter*1500))
     {
-       CaretHeight := GetFocusedCtrl(hwCaret)
-       CaretHaloHeight2 := CaretHaloHeight + Round(CaretHeight/2)
-       CaretHeight := CaretHeight>10 ? CaretHeight : 15 ; must increase it based on DPI !!!
-       CaretHaloW := (CaretHaloWidth>10) ? CaretHaloWidth : 10
-       CaretHaloH := (CaretHaloMode=1) ? CaretHaloHeight2 : CaretHeight+2*CaretHaloThick+10
-       mX := !A_CaretX ? 2 : A_CaretX - Round(CaretHaloW/2 + 1)
-       mY := !A_CaretY ? 2 : Round(A_CaretY + CaretHeight/2 - CaretHaloH/2 + 1)
-       mX := !mX ? 2 : mX
-       mY := !mY ? 2 : mY
-
-       If (mX=2 && mY=2)
+       If (A_CaretX && A_CaretY)
        {
-          lastFlash := A_TickCount
-          doNotShow := 1
-       }
+          CaretHeight := GetFocusedCtrl(hwCaret)
+          CaretHaloHeight2 := CaretHaloHeight + Round(CaretHeight/2)
+          CaretHeight := CaretHeight>10 ? CaretHeight : 15 ; must increase it based on DPI !!!
+          CaretHaloW := (CaretHaloWidth>10) ? CaretHaloWidth : 10
+          CaretHaloH := (CaretHaloMode=1) ? CaretHaloHeight2 : CaretHeight+2*CaretHaloThick+10
+          mX := A_CaretX - Round(CaretHaloW/2 + 1)
+          mY := Round(A_CaretY + CaretHeight/2 - CaretHaloH/2 + 1)
+          If (!mX || !mY)
+          {
+             lastFlash := A_TickCount
+             doNotShow := 1
+          }
+       } Else (doNotShow := 1)
+
        If !IsHaloGui
        {
            Gui, CaretH: +AlwaysOnTop -Caption +ToolWindow +E0x20 +hwndhHalo
@@ -422,7 +425,7 @@ CaretHalo(restartNow:=0) {
        If (doNotShow!=1)
        {
           Gui, CaretH: Show, NoActivate x%mX% y%mY% w%CaretHaloW% h%CaretHaloH%, %WinCaretHalo%
-           HaloRegion%CaretHaloShape%(hHalo, 0, 0, CaretHaloW, CaretHaloH, CaretHaloThick)
+          HaloRegion%CaretHaloShape%(hHalo, 0, 0, CaretHaloW, CaretHaloH, CaretHaloThick)
           WinSet, Transparent, %CaretHaloAlpha%, %WinCaretHalo%
           WinSet, AlwaysOnTop, On, %WinCaretHalo%
           If ((A_TickCount-lastFlash>CaretBlinkTime*2) && CaretHaloFlash)
@@ -437,9 +440,30 @@ CaretHalo(restartNow:=0) {
     If ((ShowCaretHalo=1 && ScriptelSuspendel="Y") || doNotShow=1)
        Gui, CaretH: Hide
 }
-;================================================================
-GetFocusedCtrl(ByRef hCtrl)
-{
+
+newGetFocusedCtrl(ByRef hCtrl) {
+hcActive := WinExist("A")
+tID := DllCall("user32\GetWindowThreadProcessId", "Ptr", hcActive, "Ptr", 0) ; hActive is not passed to this thread
+ctID := DllCall("kernel32\GetCurrentThreadId")
+DllCall("user32\AttachThreadInput", "UInt", tID, "UInt", ctID, "UInt", 1)
+hcFocus := DllCall("user32\GetFocus", "Ptr")
+DllCall("user32\AttachThreadInput", "UInt", tID, "UInt", ctID, "UInt", 0)
+VarSetCapacity(GTI, sz := 24+6*A_PtrSize, 0) ; GUITHREADINFO struct
+NumPut(sz, GTI, 0, "UInt") ; cbSize
+If r:= DllCall("user32\GetGUIThreadInfo", "UInt", tID, "Ptr", &GTI)
+        {
+        hCaret := NumGet(GTI, 8+5*A_PtrSize, "Ptr")
+;       hFocus := NumGet(GTI, 8+A_PtrSize, "Ptr")
+;       hActive := NumGet(GTI, 8, "Ptr")
+        If hCtrl := hCaret ? hCaret : 0 ; hFocus ? hFocus : hcFocus ? hcFocus : hActive ? hActive : hcActive
+                CaretH := NumGet(GTI, 20+6*A_PtrSize, "Int")-NumGet(GTI, 12+6*A_PtrSize, "Int")
+;       CaretW := NumGet(GTI, 16+6*A_PtrSize, "Int")-NumGet(GTI, 8+6*A_PtrSize, "Int")
+        }
+Else hCtrl := hcFocus ? hcFocus : 0 ; hcActive
+Return CaretH ? CaretH : 0
+}
+
+GetFocusedCtrl(ByRef hCtrl) {
 hcActive := WinExist("A")
 tID := DllCall("user32\GetWindowThreadProcessId", "Ptr", hActive, "Ptr", 0)
 ctID := DllCall("kernel32\GetCurrentThreadId")

@@ -54,6 +54,8 @@ Global IsMouseNumpadFile := 1
 , MouseAccelerationSpeed := 0
 , MouseMaxSpeed := 0
 , lastClick := "Left"
+, clickHeldDown := 0
+, locked := 0
 , moduleInitialized := 0
 , MainExe := AhkExported()
 , DCT := DllCall("user32\GetDoubleClickTime")
@@ -103,6 +105,9 @@ MouseKeysInit() {
 
   Hotkey, ~NumLock Up, ToggleNumLock, UseErrorLevel
   Hotkey, ~CapsLock Up, ToggleCapsLock, UseErrorLevel
+  Hotkey, ~#NumpadSub, dummy, UseErrorLevel
+  Hotkey, ~#NumpadAdd, dummy, UseErrorLevel
+
   moduleInitialized := 1
   Sleep, 15
   ToggleNumLock()    ; Initialize based on current numlock state.
@@ -173,6 +178,8 @@ HotkeysList(act) {
      Hotkey, ~MButton, %act%
      Hotkey, ~RButton, %act%
      Hotkey, ~LButton, %act%
+     Hotkey, ~#NumpadSub, %act%
+     Hotkey, ~#NumpadAdd, %act%
 }
 
 ToggleNumLock(stopAll:=0) {
@@ -300,7 +307,6 @@ ButtonRightClick() {
 }
 
 ButtonEnter(doNotLock:=1) {
-  Static locked
   If !lastClick
      Return
 
@@ -326,16 +332,17 @@ ButtonEnter(doNotLock:=1) {
 
 ButtonClickStart() {
   MouseClick, %lastClick%,,, 1, 0, D
+  clickHeldDown := 1
   MainExe.ahkPostFunction("OnMouseKeysPressed", lastClick " Click")
   SetTimer, ButtonClickEnd, 20
 }
 
 ButtonClickEnd() {
   Static lastUpped
-
-  StringReplace, PadButton, A_ThisHotkey, *
-  GetKeyState, isButtonDown, %PadButton%, P
-  if (isButtonDown = "D")
+  LClickDown := GetKeyState("NumpadClear", "P")
+  RClickDown := GetKeyState("NumpadIns", "P")
+  MClickDown := GetKeyState("NumpadDel", "P")
+  if (LClickDown=1 || RClickDown=1 || MClickDown=1)
      Return
   SetTimer,, Off
   ; MouseClick, %lastClick%,,, 1, 0, U
@@ -353,6 +360,7 @@ ButtonClickEnd() {
      MouseClick, Left,,, 1, 0, U
   If lastUpped && (A_TickCount - lastUpped < DCT)
      MainExe.ahkPostFunction("OnMouseKeysPressed", "Double Click")
+  clickHeldDown := 0
   lastUpped := A_TickCount
 }
 
@@ -394,8 +402,8 @@ CalculateSpeed(ByRef MoveX, ByRef MoveY,reset:=0) {
 }
 
 MouseEventAPI(x, y) {
-    DllCall("mouse_event", "UInt", 0x01, "UInt", x, "UInt", y) ; move
-    ; MouseMove, %x%, %y%, 1, R
+  DllCall("mouse_event", "UInt", 0x01, "UInt", x, "UInt", y) ; move
+  ; MouseMove, %x%, %y%, 1, R
 }
 
 MouseMover() {
@@ -409,8 +417,10 @@ MouseMoverTimer() {
   If (NewButton!=NumPadButton)
      reset := 1
   CalculateSpeed(MoveX, MoveY, reset)
+  total := MoveX + MoveY
   StringReplace, NumPadButton, A_ThisHotkey, *
 
+  PadUpDown := PadDownDown := PadLeftDown := PadRightDown := PadPgUpDown := PadHomeDown := PadEndDown := PadPgDnDown := 0
   PadUpDown := GetKeyState("NumpadUp", "P")
   PadDownDown := GetKeyState("NumpadDown", "P")
   PadLeftDown := GetKeyState("NumpadLeft", "P")
@@ -419,6 +429,7 @@ MouseMoverTimer() {
   PadHomeDown := GetKeyState("NumpadHome", "P")
   PadEndDown := GetKeyState("NumpadEnd", "P")
   PadPgDnDown := GetKeyState("NumpadPgDn", "P")
+
   If ((NumPadButton = "NumpadUp" || PadUpDown=1) && PadDownDown=0)
   {
      MoveY0 := -1 * MoveY*2
@@ -445,34 +456,38 @@ MouseMoverTimer() {
   }
   if ((NumPadButton = "NumpadHome" || PadHomeDown=1) && PadPgDnDown=0)
   {
-     MoveX4 := -1 * MoveX
-     MoveY4 := -1 * MoveY
+     MoveX4 := -1.35 * MoveX
+     MoveY4 := -1.35 * MoveY
      MouseEventAPI(MoveX4, MoveY4)
   }
   if ((NumPadButton = "NumpadPgUp" || PadPgUpDown=1) && PadEndDown=0)
   {
-     MoveY5 := -1 * MoveY
-     MoveX5 := MoveX
+     MoveY5 := -1.35 * MoveY
+     MoveX5 := MoveX * 1.35
      MouseEventAPI(MoveX5, MoveY5)
   }
   if ((NumPadButton = "NumpadEnd" || PadEndDown=1) && PadPgUpDown=0)
   {
-     MoveX6 := -1 * MoveX
-     MoveY6 := MoveY
+     MoveX6 := -1.35 * MoveX
+     MoveY6 := MoveY * 1.35
      MouseEventAPI(MoveX6, MoveY6)
   }
   if ((NumPadButton = "NumpadPgDn" || PadPgDnDown=1) && PadHomeDown=0)
-     MouseEventAPI(MoveX, MoveY)
+  {
+     MouseEventAPI(MoveX * 1.35, MoveY * 1.35)
+  }
 ; 
   If (PadUpDown=1 || PadDownDown=1 || PadLeftDown=1 || PadRightDown=1
   || PadHomeDown=1 || PadPgUpDown=1 || PadEndDown=1 || PadPgDnDown=1)
-     SetTimer, MouseMoverTimer, -55
+     SetTimer, MouseMoverTimer, -50
 
   If (MouseKeysWrap=1)
      ScreenWrap()
 }
 
 ReleaseKey() {
+  if (locked=1 || clickHeldDown=1)
+     Return
   StringReplace, btn2release, A_ThisHotkey, *,
   StringReplace, btn2release, btn2release, %A_Space%Up,
   SendInput, {%btn2release% Up}
@@ -603,3 +618,6 @@ SessionIsLocked() {
   return ret
 }
 
+dummy() {
+  Return
+}

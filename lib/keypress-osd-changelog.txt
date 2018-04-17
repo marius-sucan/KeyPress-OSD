@@ -11,6 +11,10 @@ http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip
 
 by Marius Sucan (robodesign.ro)
 
+  v4.30.5 (2018-04-17)
+  - [new] eliminated the need for restarts on keyboard layout changes; at Keyboard preferences you can enable/disable this; enabled by default
+  - bug fixes regarding mouse keys, and others
+
   v4.30.2 (2018-04-16)
   - bug fixes regarding mouse keys
   - other minor bug fixes
@@ -933,7 +937,6 @@ Features to implement:
  - afișează shortcuts in meniuri
  - add shortcut to add/remove auto-replace entries
 
-
 - compile the thing! include all scripts inside?
   - separate UI settings and tray menu? separate files with include
   - [bug] when x32 compiled, double-click pe layout, KeyPress starts twice
@@ -942,7 +945,9 @@ Features to implement:
   - keypress lite? compiled with AHK_L
   - win xp [vm], win 7 [vm, pc], win 10 [laptop]
 
-- test TabletPro
+- balance speed amongst the different directions? mouse keys
+- test update, binary, changelog and help files update?
+
 - safer defaults?
 - test slow VM; laptop, pc
 
@@ -950,11 +955,14 @@ Features to implement:
 - elimină iniWrite for clipboard manager? then make ID per install
 - integrate Vis2
 
+ - caret halo shows at tray menu, right-click 
  - shellmessage gets unhooked sometimes
+   - how to detect if it is still registered?
  - coordmode, screen, wrong halo positions in some apps; win7
- - reparații la mouse ripples; wheel up/down frequency mess-up
+   - use mouse_event API?
  - Drugwash: checkWindowKBD() - TO FIX
  - mouse ripples can still cause silent crashes ?!?
+   - reparații la mouse ripples; wheel up/down frequency mess-up
  - KeyStrokeAider can cause crashes after a long period of running
  - updater.bat does not work in XP
 
@@ -973,9 +981,6 @@ https://www.chromium.org/developers/design-documents/accessibility#TOC-How-Chrom
 https://github.com/neptercn/Component_AHK/blob/master/uia.ahk
 https://autohotkey.com/board/topic/53672-get-the-text-content-of-a-tool-tip-window/
 
-- detect kbd layout without reloads; dynamically unload/remove all hotkeys, and set new ones
-- https://autohotkey.com/boards/viewtopic.php?f=5&t=42933&p=195025#p195025
-
 - Go through older posts. Check what's done. 
 - update help; separate FAQs into sections
 
@@ -989,7 +994,6 @@ https://autohotkey.com/board/topic/53672-get-the-text-content-of-a-tool-tip-wind
 Glitches to fix or think of possible solutions:
 - caret gets out of synch in FF, multi-line fields
   - use real caret data?
-- make the OSD text field non-selectable
 - OSD is never on top of Start menu in Windows 10
 - support for Bengali, Assamese and other similar scripts is shady
 

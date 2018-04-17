@@ -33,7 +33,7 @@ Return
 
 MainLoop() {
    Loop 
-   { 
+   {
       ; Get one key at a time 
       ; Input, InputChar, L1 B V E I, {LControl}{RControl}{LAlt}{RAlt}{LShift}{RShift}{LWin}{RWin}{AppsKey}{F1}{F2}{F3}{F4}{F5}{F6}{F7}{F8}{F9}{F10}{F11}{F12}{Left}{Right}{Up}{Down}{Home}{End}{PgUp}{PgDn}{Del}{Ins}{BS}{Capslock}{Numlock}{PrintScreen}{Pause}
       Input, InputChar, L1 B V E I, {tab}
@@ -59,7 +59,7 @@ Send_WM_COPYDATA(ByRef StringToSend, ByRef TargetScriptTitle) {
     SizeInBytes := (StrLen(StringToSend) + 1) * (A_IsUnicode ? 2 : 1)
     NumPut(SizeInBytes, CopyDataStruct, A_PtrSize)  ; OS requires that this be done.
     NumPut(&StringToSend, CopyDataStruct, 2*A_PtrSize)  ; Set lpData to point to the string itself.
-    TimeOutTime := 900  ; Optional. Milliseconds to wait for response from receiver.ahk. Default is 5000
+    TimeOutTime := 3000  ; Optional. Milliseconds to wait for response from receiver.ahk. Default is 5000
     ; Must use SendMessage not PostMessage.
     SendMessage, 0x4a, 0, &CopyDataStruct,, %TargetScriptTitle%,,,, %TimeOutTime% ; 0x4a is WM_COPYDATA.
     Return

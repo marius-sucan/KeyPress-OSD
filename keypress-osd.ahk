@@ -144,11 +144,12 @@
 ;@Ahk2Exe-AddResource LIB Lib\keypress-beeperz-functions.ahk
 ;@Ahk2Exe-AddResource LIB Lib\keypress-keystrokes-helper.ahk
 ;@Ahk2Exe-AddResource LIB Lib\keypress-numpadmouse.ahk
+;@Ahk2Exe-AddResource LIB Lib\keypress-typing-aid.ahk
 ;@Ahk2Exe-AddResource Lib\paypal.bmp, 100
 ;@Ahk2Exe-SetMainIcon Lib\keypress.ico
 ;@Ahk2Exe-SetName KeyPress OSD v4
 ;@Ahk2Exe-SetDescription KeyPress OSD v4 [mirror keyboard and mouse usage]
-;@Ahk2Exe-SetVersion 4.30.2
+;@Ahk2Exe-SetVersion 4.30.5
 ;@Ahk2Exe-SetCopyright Marius Şucan (2017-2018)
 ;@Ahk2Exe-SetCompanyName ROBODesign.ro
 ;@Ahk2Exe-SetOrigFilename keypress-osd.ahk
@@ -204,7 +205,8 @@
  , AltHook2keysUser       := 1
  , TypingDelaysScaleUser  := 7
  , UseMUInames            := 1
- 
+ , NoRestartLangChange    := 1
+
  , EnableClipManager      := 0
  , ClippyIgnoreHideOSD    := 0
  , MaximumTextClips       := 10
@@ -356,8 +358,8 @@
  , DownloadExternalFiles  := 1
 
 ; Release info
- , Version                := "4.30.2"
- , ReleaseDate            := "2018 / 04 / 16"
+ , Version                := "4.30.5"
+ , ReleaseDate            := "2018 / 04 / 17"
  , hMutex, ScriptInitialized, FirstRun := 1
  , KPregEntry := "HKEY_CURRENT_USER\SOFTWARE\KeyPressOSD\v4"
 
@@ -507,8 +509,8 @@ Global Debug := 0    ; for testing purposes
  , Emojis := "(☀|🤣|👌|☹|☺|♥|⛄|❤|️|🌙|🌛|🌜|🌷|🌸|🎄|👄|👋|👍|👏|👙|👳|👶|👼|👽|💁|💃|💋
     |💏|💓|💕|💖|💗|💞|💤|💯|😀|😁|😂|😃|😄|😆|😇|😈|😉|😊|😋|😌|😍|😎|😐|😓|😔|😕|😗
     |😘|😙|😚|😛|😜|😝|😞|😡|😢|😥|😩|😫|😭|😮|😲|😳|😴|😶|🙁|🙂|🙃|🙈|🙊|🙏|🤔|🤢)"
- , MouseFuncThread, MouseNumpadThread, MouseRipplesThread, SoundsThread, KeyStrokesThread
- , IsMouseFile, IsMouseNumpadFile, IsRipplesFile, IsSoundsFile, IsKeystrokesFile, IsAcc1File, IsAcc2File, NoAhkH
+ , MouseFuncThread, MouseNumpadThread, MouseRipplesThread, SoundsThread, KeyStrokesThread, TypingAidThread
+ , IsMouseFile, IsMouseNumpadFile, IsRipplesFile, IsSoundsFile, IsKeystrokesFile, IsTypingAidFile, IsAcc1File, IsAcc2File, NoAhkH
  , ClipDataMD5s, CurrentClippyCount := 0
  , BaseURL := "http://marius.sucan.ro/media/files/blog/ahk-scripts/"
  , hWinMM := DllCall("kernel32\LoadLibraryW", "Str", "winmm.dll", "Ptr")
@@ -530,6 +532,7 @@ If (SafeModeExec!=1)
 }
 Sleep, 5
 CreateGlobalShortcuts()
+IdentifyKBDlayoutWrapper()
 CreateHotkey()
 InitializeTray()
 If (ClipMonitor=1 || EnableClipManager=1)
@@ -552,7 +555,7 @@ If (SafeModeExec!=1)
       info := DllCall("RegisterShellHookWindow", "UInt", hOSD)
    }
    MsgNum := DllCall("RegisterWindowMessage", "Str","SHELLHOOK")
- ;  ToolTip, %info% - %msgnum%
+   ; ToolTip, %info% - %msgnum%
    OnMessage(MsgNum, "ShellMessage")
 }
 ModsLEDsIndicatorsManager()
@@ -1492,7 +1495,7 @@ OnKeyPressed() {
     }
 }
 
-OnLetterPressed(onLatterUp:=0) {
+OnLetterPressed(onLatterUp:=0,externKey:=0) {
 ;  Sleep, 60 ; megatest
     PressKeyRecorded := 1
     If (A_TickCount-LastTypedSince > 2000*StrLen(Typed)) && StrLen(Typed)<5 && (OnlyTypingMode=0)
@@ -1512,7 +1515,8 @@ OnLetterPressed(onLatterUp:=0) {
 
         AltGrMatcher := "i)^((AltGr|.?Alt \+ .?Ctrl|.?Ctrl \+ .?Alt) \+ (.?shift \+ )?((.)$|(.)[\r\n \,]))"
         ShiftMatcher := "i)^(.?Shift \+ ((.)$|(.)[\r\n \,]))"
-        key := GetKeyStr()
+        theHotkey := externKey ? externKey : A_ThisHotkey
+        key := GetKeyStr(theHotkey)
 
         If (Prefixed || DisableTypingMode=1)
         {
@@ -1520,8 +1524,8 @@ OnLetterPressed(onLatterUp:=0) {
             If ((key ~= AltGrMatcher) && TypeValidate=1 && EnableAltGr=1)
             || ((key ~= ShiftMatcher) && TypeValidate=1)
             {
-               (EnableAltGr=1) && (key ~= AltGrMatcher) ? Typed := TypedLetter(A_ThisHotkey)
-               (key ~= ShiftMatcher) ? Typed := TypedLetter(A_ThisHotkey)
+               (EnableAltGr=1) && (key ~= AltGrMatcher) ? Typed := TypedLetter(theHotkey)
+               (key ~= ShiftMatcher) ? Typed := TypedLetter(theHotkey)
                hasTypedNow := 1
                If (StrLen(Typed)>1)
                {
@@ -1545,7 +1549,7 @@ OnLetterPressed(onLatterUp:=0) {
             SetTimer, HideGUI, % -DisplayTime
         } Else If (SecondaryTypingMode=0)
         {
-            TypedLetter(A_ThisHotkey, onLatterUp)
+            TypedLetter(theHotkey, onLatterUp)
             ShowHotkey(VisibleTextField)
             SetTimer, HideGUI, % -DisplayTimeTyping
         }
@@ -1591,15 +1595,15 @@ OnNumpadsPressed() {
     TrueRmDkSymbol := LastMatchedExpandPair := ""
 }
 
-OnDeadKeyPressed() {
+OnDeadKeyPressed(externKey:=0) {
   If (SecondaryTypingMode=1)
      Return
 
   If (AlternativeHook2keys=0)
      Sleep, % 85 * TypingDelaysScale
-
+  theHotkey := externKey ? externKey : A_ThisHotkey
   RmDkSymbol := CSx1
-  TrueRmDkSymbol := GetDeadKeySymbol(A_ThisHotkey)
+  TrueRmDkSymbol := GetDeadKeySymbol(theHotkey)
   StringRight, TrueRmDkSymbol, TrueRmDkSymbol, 1
   TrueRmDkSymbol2 := TrueRmDkSymbol
 
@@ -1639,7 +1643,7 @@ OnDeadKeyPressed() {
      If (ShowDeadKeys=1 && DisableTypingMode=0 && AlternativeHook2keys=0)
         InsertChar2caret(RmDkSymbol)
 
-     If (A_ThisHotkey ~= "i)^(~\+)")
+     If (theHotkey ~= "i)^(~\+)")
      {
         DeadKeyMod := "Shift + " TrueRmDkSymbol2
         ShowHotkey(DeadKeyMod " [dead key]")
@@ -1651,14 +1655,16 @@ OnDeadKeyPressed() {
      SoundsThread.ahkPostFunction["OnDeathKeyPressed", ""]
 }
 
-OnAltGrDeadKeyPressed() {
+OnAltGrDeadKeyPressed(externKey:=0) {
   If (SecondaryTypingMode=1)
      Return
 
   If (AlternativeHook2keys=0)
      Sleep, % 85 * TypingDelaysScale
+
+  theHotkey := externKey ? externKey : A_ThisHotkey
   RmDkSymbol := CSx1
-  TrueRmDkSymbol := GetDeadKeySymbol(A_ThisHotkey)
+  TrueRmDkSymbol := GetDeadKeySymbol(theHotkey)
   StringRight, TrueRmDkSymbol, TrueRmDkSymbol, 1
   TrueRmDkSymbol2 := TrueRmDkSymbol
 
@@ -1703,13 +1709,13 @@ OnAltGrDeadKeyPressed() {
      If (ShowDeadKeys=1 && DisableTypingMode=0 && AlternativeHook2keys=0)
         InsertChar2caret(RmDkSymbol)
 
-     If (A_ThisHotkey ~= "i)^(~\^!)")
+     If (theHotkey ~= "i)^(~\^!)")
         DeadKeyMods := "Ctrl + Alt + " TrueRmDkSymbol2
 
-     If (A_ThisHotkey ~= "i)^(~\+\^!)")
+     If (theHotkey ~= "i)^(~\+\^!)")
         DeadKeyMods := "Ctrl + Alt + Shift + " TrueRmDkSymbol2
 
-     If (A_ThisHotkey ~= "i)^(~<\^>!)")
+     If (theHotkey ~= "i)^(~<\^>!)")
         DeadKeyMods := "AltGr + " TrueRmDkSymbol2
 
      ShowHotkey(DeadKeyMods " [dead key]")
@@ -2096,12 +2102,12 @@ OnKeyUp() {
     Global Tickcount_start := A_TickCount
 }
 
-OnLetterUp() {
+OnLetterUp(externKey:=0,priorExternKey:=0) {
     LastMatchedExpandPair := ""
-    a1 := A_ThisHotkey
+    a1 := externKey ? externKey : A_ThisHotkey
     StringReplace, a2, A_ThisHotkey, %A_Space%up
     StringRight, a2, a2, 4
-    b1 := A_PriorHotKey
+    b1 := priorExternKey ? priorExternKey : A_PriorHotKey
 
     If (PressKeyRecorded=0 && DisableTypingMode=0
     && SecondaryTypingMode=0 && InStr(b1, "vk")
@@ -2161,10 +2167,10 @@ TypedLetter(key,onLatterUp:=0) {
          TypedKeysHistory .= key
       StringRight, TypedKeysHistory, TypedKeysHistory, 30
 
-      If InStr(A_ThisHotkey, "+")
+      If InStr(key, "+")
          shiftPressed := 1
 
-      If (EnableAltGr=1 && (InStr(A_ThisHotkey, "^!") || InStr(A_ThisHotkey, "<^>")))
+      If (EnableAltGr=1 && (InStr(key, "^!") || InStr(key, "<^>")))
          AltGrPressed := 1
 
       If (AlternativeHook2keys=1 && DeadKeys=0)
@@ -2760,7 +2766,7 @@ ShellMessage(wParam, lParam) {
    {
       If (SecondaryTypingMode=0 && DisableTypingMode=0
       && (A_TickCount - DoNotRepeatTimer > 2000)
-      && (A_TickCount - LastTypedSince > 1500)
+      && (A_TickCount - LastTypedSince > 1000)
       && EraseTextWinChange=1 && StrLen(Typed)>1)
       {
          If (EnableTypingHistory=1)
@@ -2768,9 +2774,10 @@ ShellMessage(wParam, lParam) {
          cleanTypeSlate()
          HideGUI()
       }
-      WinGetTitle, title, ahk_id %lParam%
+      WinGetActiveTitle, title
       If InStr(title, "KeyPressOSDwin")
-         HideGUI()
+         SetTimer, HideGUI, -500
+
       LEDsIndicatorsManager()
       If (MouseKeys=1)
       {
@@ -3454,6 +3461,8 @@ ClicksTimer() {
 modsTimer() {
     Critical, Off
     Thread, Priority, -50
+    If A_IsSuspended
+       Return
 
     GlobalPrefix := profix := ""
     profix := checkIfModsHeld()
@@ -3521,7 +3530,7 @@ checkIfModsHeld(displayIT:=1) {
     Return modsHeld
 }
 
-GetKeyStr() {
+GetKeyStr(externKey:=0) {
 ;  Sleep, 40 ; megatest
     If (OutputOSDtoToolTip=0 && NeverDisplayOSD=1)
        Return
@@ -3541,8 +3550,7 @@ GetKeyStr() {
     SetTimer, modsTimer, Off
     If (!prefix && !ShowSingleKey)
        Throw
-
-    backupKey := key := A_ThisHotkey
+    backupKey := key := externKey ? externKey : A_ThisHotkey
     StringReplace, key, key, %A_Space%up,
     Loop, Parse, % "^~#!+<>$*"
           StringReplace, key, key, %A_LoopField%
@@ -3806,7 +3814,7 @@ BindTypeHotKeys() {
     keysHaveBound := 1
 }
 
-CreateHotkey() {
+IdentifyKBDlayoutWrapper() {
     If (AutoDetectKBD=1)
     {
        IdentifyKBDlayout()
@@ -3816,11 +3824,11 @@ CreateHotkey() {
        KeyStrokesThread.ahkassign("AlternativeHook2keys", AlternativeHook2keys)
     }
 
-    Sleep, 20
-    Static AllMods_list := ["!", "!#", "!#^", "!#^+", "!+", "#!+", "#!^", "#", "#+", "#+^", "#^", "+", "+<^>!", "+^!", "+^", "<^>!", "^!", "^"]
-    AllDKsList := DKaltGR_list "." DKshift_list "." DKnotShifted_list
-    If (EnableAltGr=0)
-       AllDKsList := DKshift_list "." DKnotShifted_list
+    If (NoRestartLangChange=1 && SafeModeExec=0 && IsTypingAidFile)
+       SendVarsTypingAHKthread()
+}
+
+CreateHotkey() {
 
 ; bind keys relevant to the typing mode
     If (DisableTypingMode=0)
@@ -3863,85 +3871,89 @@ CreateHotkey() {
     }
 
 ; identify and bind to the list of possible letters/chars
-
-    Loop, 256
+    If (NoRestartLangChange=0 || !IsTypingAidFile || NoAhkH=1 || SafeModeExec=1)
     {
-        k := A_Index
-        code := Format("{:x}", k)
-        n := GetKeyName("vk" code)
-
-        If (n = "")
-           n := GetKeyChar("vk" code)
-
-        If (n = " ") || (n = "") || (StrLen(n)>1)
-           Continue
-
-        If (DeadKeys=1)
+        Static AllMods_list := ["!", "!#", "!#^", "!#^+", "!+", "#!+", "#!^", "#", "#+", "#+^", "#^", "+", "+<^>!", "+^!", "+^", "<^>!", "^!", "^"]
+        Loop, 256
         {
-           For each, char2skip in StrSplit(AllDKsList, ".")        ; dead keys to ignore
-           {
-               If (InStr(char2skip, "vk" code) && DoNotBindDeadKeys=0)
-               || (InStr(char2skip, "vk" code) && DoNotBindDeadKeys=1
-               && DoNotBindAltGrDeadKeys=0 && InStr(DKaltGR_list, "vk" code))
+            k := A_Index
+            code := Format("{:x}", k)
+            n := GetKeyName("vk" code)
+
+            If (n = "")
+               n := GetKeyChar("vk" code)
+
+            If (n = " ") || (n = "") || (StrLen(n)>1)
+               Continue
+
+            If (DeadKeys=1)
+            {
+               For each, char2skip in StrSplit(AllDKsList, ".")        ; dead keys to ignore
                {
-                  For i, mod in AllMods_list
-                  {
-                      Hotkey, % "~vk" code, OnLetterPressed, useErrorLevel
-                      Hotkey, % "~vk" code " Up", OnLetterUp, useErrorLevel
-                      Hotkey, % "~" mod "vk" code, OnLetterPressed, useErrorLevel
-                      If ((mod ~= "i)^(\#|^|\!|\+\^\!|\+\^)$") && code>29 && code<40)
-                         Hotkey, % "~" mod "vk" code " Up", OnLetterUp, useErrorLevel
-                  }
-                  Continue, 2
+                   If (InStr(char2skip, "vk" code) && DoNotBindDeadKeys=0)
+                   || (InStr(char2skip, "vk" code) && DoNotBindDeadKeys=1
+                   && DoNotBindAltGrDeadKeys=0 && InStr(DKaltGR_list, "vk" code))
+                   {
+                      For i, mod in AllMods_list
+                      {
+                          Hotkey, % "~vk" code, OnLetterPressed, useErrorLevel
+                          Hotkey, % "~vk" code " Up", OnLetterUp, useErrorLevel
+                          Hotkey, % "~" mod "vk" code, OnLetterPressed, useErrorLevel
+                          If ((mod ~= "i)^(\#|^|\!|\+\^\!|\+\^)$") && code>29 && code<40)
+                             Hotkey, % "~" mod "vk" code " Up", OnLetterUp, useErrorLevel
+                      }
+                      Continue, 2
+                   }
+                   If InStr(char2skip, "vk" code)
+                      Continue, 2
                }
-               If InStr(char2skip, "vk" code)
-                  Continue, 2
-           }
+            }
+     
+            If (IgnoreAdditionalKeys=1)
+            {
+               For each, char2skip in StrSplit(IgnorekeysList, ".")
+               {
+                   If (n=char2skip)
+                      Continue, 2
+               }
+            }
+
+            Hotkey, % "~*vk" code, OnLetterPressed, useErrorLevel
+            Hotkey, % "~*vk" code " Up", OnLetterUp, useErrorLevel
+            If (DisableTypingMode=0)
+            {
+               Hotkey, % "~+vk" code, OnLetterPressed, useErrorLevel
+               Hotkey, % "~^!vk" code, OnLetterPressed, useErrorLevel
+               Hotkey, % "~<^>!vk" code, OnLetterPressed, useErrorLevel
+               Hotkey, % "~+^!vk" code, OnLetterPressed, useErrorLevel
+               Hotkey, % "~+<^>!vk" code, OnLetterPressed, useErrorLevel
+            }
+            If (ErrorLevel!=0 && AudioAlerts=1)
+               SoundBeep, 1900, 50
         }
- 
-        If (IgnoreAdditionalKeys=1)
+
+    ; bind to dead keys to show the proper symbol when such a key is pressed
+        If (DeadKeys=1 && DoNotBindDeadKeys=0)
         {
-           For each, char2skip in StrSplit(IgnorekeysList, ".")
+           For each, char2bind in StrSplit(DKshift_list, ".")
+               Hotkey, % "~+" char2bind, OnDeadKeyPressed, useErrorLevel
+
+           For each, char2bind in StrSplit(DKnotShifted_list, ".")
+               Hotkey, % "~" char2bind, OnDeadKeyPressed, useErrorLevel
+        }
+
+        If (EnableAltGr=1 && DeadKeys=1
+        && (DoNotBindDeadKeys=0 || DoNotBindAltGrDeadKeys=0))
+        {
+           For each, char2bind in StrSplit(DKaltGR_list, ".")
            {
-               If (n=char2skip)
-                  Continue, 2
+               Hotkey, % "~^!" char2bind, OnAltGrDeadKeyPressed, useErrorLevel
+               Hotkey, % "~+^!" char2bind, OnAltGrDeadKeyPressed, useErrorLevel
+               Hotkey, % "~<^>!" char2bind, OnAltGrDeadKeyPressed, useErrorLevel
            }
         }
-
-        Hotkey, % "~*vk" code, OnLetterPressed, useErrorLevel
-        Hotkey, % "~*vk" code " Up", OnLetterUp, useErrorLevel
-        If (DisableTypingMode=0)
-        {
-           Hotkey, % "~+vk" code, OnLetterPressed, useErrorLevel
-           Hotkey, % "~^!vk" code, OnLetterPressed, useErrorLevel
-           Hotkey, % "~<^>!vk" code, OnLetterPressed, useErrorLevel
-           Hotkey, % "~+^!vk" code, OnLetterPressed, useErrorLevel
-           Hotkey, % "~+<^>!vk" code, OnLetterPressed, useErrorLevel
-        }
-        If (ErrorLevel!=0 && AudioAlerts=1)
-           SoundBeep, 1900, 50
     }
 
-; bind to dead keys to show the proper symbol when such a key is pressed
-    If (DeadKeys=1 && DoNotBindDeadKeys=0)
-    {
-       For each, char2bind in StrSplit(DKshift_list, ".")
-           Hotkey, % "~+" char2bind, OnDeadKeyPressed, useErrorLevel
-
-       For each, char2bind in StrSplit(DKnotShifted_list, ".")
-           Hotkey, % "~" char2bind, OnDeadKeyPressed, useErrorLevel
-    }
-
-    If (EnableAltGr=1 && DeadKeys=1
-    && (DoNotBindDeadKeys=0 || DoNotBindAltGrDeadKeys=0))
-    {
-       For each, char2bind in StrSplit(DKaltGR_list, ".")
-       {
-           Hotkey, % "~^!" char2bind, OnAltGrDeadKeyPressed, useErrorLevel
-           Hotkey, % "~+^!" char2bind, OnAltGrDeadKeyPressed, useErrorLevel
-           Hotkey, % "~<^>!" char2bind, OnAltGrDeadKeyPressed, useErrorLevel
-       }
-    }
     If (MouseKeys=0)
     {
        NumpadKeysList := "NumpadDel|NumpadIns|NumpadEnd|NumpadDown|NumpadPgdn|NumpadLeft"
@@ -4014,6 +4026,8 @@ CreateHotkey() {
            Hotkey, % "~*F" A_Index, OnKeyPressed, useErrorLevel
            Hotkey, % "~*F" A_Index " Up", OnKeyUp, useErrorLevel
        }
+       If (ErrorLevel!=0 && AudioAlerts=1)
+          SoundBeep, 1900, 50
     }
 }
 
@@ -4085,19 +4099,34 @@ tehDKcollector() {
            If !InStr(DKaltGR_list, A_LoopField)
               DKaltGR_list .= "." A_LoopField
       }
+      AllDKsList := DKaltGR_list "." DKshift_list "." DKnotShifted_list
+      If (EnableAltGr=0 || DisableTypingMode=1)
+         AllDKsList := DKshift_list "." DKnotShifted_list
 
       If (StrLen(DKnamez)<2)
       {
          GenerateDKnames()
          Sleep, 25
-         IniWrite, %DKnamez%, %LangFile%, %KbLayoutRaw%, DKnamez
+         If !ScriptInitialized
+            IniWrite, %DKnamez%, %LangFile%, %KbLayoutRaw%, DKnamez
+      }
+      If (AltHook2keysUser=1 && NoRestartLangChange=1)
+      {
+         AlternativeHook2keys := DeadKeys := 1
+         KeyStrokesThread.ahkassign("AlternativeHook2keys", AlternativeHook2keys)
+         Sleep, 10
+         KeyStrokesThread.ahkPostFunction("MainLoop")
       }
   } Else If (hasDKs=0)
   {
+      AllDKsList := ""
       AlternativeHook2keys := DeadKeys := 0
       KeyStrokesThread.ahkassign("AlternativeHook2keys", AlternativeHook2keys)
   } Else If (hasDKs="ERROR")
-         troubledWaterz := 10
+  {
+      AllDKsList := ""
+      troubledWaterz := 10
+  }
   Return troubledWaterz
 }
 
@@ -4228,7 +4257,7 @@ IdentifyKBDlayout() {
      langFriendlySysName := ISOcodeCulture(KbLayoutRaw) GetLayoutDisplayName(perWindowKbLayout)
 
   initLangFile()
-  If !ScriptInitialized
+  If (!ScriptInitialized || (NoRestartLangChange=1 && IsTypingAidFile && SafeModeExec=0))
   {
      testLangExist := tehDKcollector()
      Sleep, 25
@@ -4289,15 +4318,20 @@ IdentifyKBDlayout() {
       SetTimer, HideGUI, % -DisplayTime/2
   }
 
-  If !ScriptInitialized
+  If (KBDisUnsupported=1 || IsLangRTL=1) && (ScriptInitialized=1
+  && SilentDetection=0 && NoRestartLangChange=1 && SafeModeExec!=1)
+     TrayTip, KeyPress OSD: warning, %CurrentKBD%
+
+  If (!ScriptInitialized && NoRestartLangChange=0)
   {
      StringLeft, clayout, langFriendlySysName, 25
      Menu, Tray, Add, %clayout%, dummy
      Menu, Tray, Disable, %clayout%
      Menu, Tray, Add
-     If (ConstantAutoDetect=1 && AutoDetectKBD=1)
-        SetTimer, ConstantKBDdummyDelay, -4000, 915
   }
+
+  If (!ScriptInitialized && ConstantAutoDetect=1 && AutoDetectKBD=1)
+     SetTimer, ConstantKBDdummyDelay, -4000, 915
 }
 
 GetLocaleInfo(ByRef strg, loc, HKL:=0) {
@@ -4747,8 +4781,6 @@ listIMEs() {
 }
 
 ConstantKBDdummyDelay() {
-  Thread, Priority, -20
-  Critical, off
   Sleep, 5
   IniRead, KBDsDetected, %LangFile%, Options, KBDsDetected
   If (KBDsDetected<2)
@@ -4761,20 +4793,35 @@ ConstantKBDdummyDelay() {
 }
 
 ConstantKBDtimer() {
+    IsNoRestart := (NoRestartLangChange=1 && SafeModeExec=0 && IsTypingAidFile) ? 1 : 0
+    delay := (IsNoRestart=1) ? 300 : 1000
     If (A_TimeIdle > 5000 || A_IsSuspended
     || SecondaryTypingMode=1 || AnyWindowOpen>0
-    || (A_TickCount - LastTypedSince < 1000)
+    || (A_TickCount - LastTypedSince < delay)
     || (A_TickCount - DeadKeyPressed < 6900))
        Return
-
     Critical, off
     newLayout := checkWindowKBD()
     If (newLayout!=KbLayoutRaw)
     {
+       If (StrLen(Typed)>1 && IsNoRestart=1)
+          ShowLongMsg("Switching layout...")
        If (SilentDetection=0 && SilentMode=0)
           SoundsThread.ahkPostFunction["firingKeys", ""]
-       If (A_TickCount - LastTypedSince > 1500) && (A_TickCount - Tickcount_start > 700)
-          ReloadScript()
+       If (A_TickCount - LastTypedSince > delay) && (A_TickCount - Tickcount_start > delay)
+       {
+          If (IsNoRestart=1)
+          {
+             KbLayoutRaw := newLayout
+             IdentifyKBDlayout()
+             Sleep, 25
+             TypingAidThread.ahkReload[]
+             Sleep, 90
+             SendVarsTypingAHKthread()
+             If StrLen(Typed)>2
+                SetTimer, CalcVisibleTextFieldDummy, -50
+          } Else ReloadScript()
+       }
     }
 }
 
@@ -4898,16 +4945,15 @@ CharMSG(wParam, lParam) {
 
     Global DeadKeyPressed := 9900
     Global LastTypedSince := A_TickCount
-    OnMSGchar := ""
-    OnMSGdeadChar := ""
+    OnMSGchar := OnMSGdeadChar := ""
     CalcVisibleText()
     ShowHotkey(VisibleTextField)
-    If (KeyBeeper=1 || CapslockBeeper=1)
+    If ((KeyBeeper=1 || CapslockBeeper=1) && SilentMode=0)
        SetTimer, charMSGbeeper, -40, 30
 }
 
 charMSGbeeper() {
-    SoundsThread.ahkPostFunction["OnLetterPressed", ""]
+    SoundsThread.ahkPostFunction["OnLetterPressed"]
 }
 
 deadCharMSG(wParam, lParam) {
@@ -5518,7 +5564,7 @@ SuspendScriptNow() {
 
 SuspendScript(partially:=0) {
    Suspend, Permit
-   Thread, Priority, 50
+   Thread, Priority, 150
    Critical, On
 
    If (SecondaryTypingMode=1)
@@ -5535,6 +5581,7 @@ SuspendScript(partially:=0) {
       ToggleCapture2Text()
    If (AccTextCaptureActive=1)
       ToggleAccCaptureText()
+   SetTimer, ModsLEDsIndicatorsManager, Off
    Sleep, 50
    Menu, Tray, UseErrorLevel
    Menu, Tray, Rename, &KeyPress activated,&KeyPress deactivated
@@ -5544,14 +5591,23 @@ SuspendScript(partially:=0) {
       Menu, Tray, Check, &KeyPress activated
    }
    Menu, Tray, Uncheck, &KeyPress deactivated
+
    CreateOSDGUI()
-   cleanTypeSlate()
    friendlyName := A_IsSuspended ? "activated" : "deactivated"
    ShowLongMsg("KeyPress OSD " friendlyName)
-   SetTimer, HideGUI, % -DisplayTime/2
+   cleanTypeSlate()
+
+   ScriptelSuspendel := A_IsSuspended ? 0 : "Y"
+   TypingAidThread.ahkassign("ScriptelSuspendel", ScriptelSuspendel)
+
+   If (AltHook2keysUser=1 && DeadKeys=1 && DisableTypingMode=0)
+   {
+      KeyStrokesThread.ahkassign("AlternativeHook2keys", A_IsSuspended)
+      KeyStrokesThread.ahkPostFunction("MainLoop")
+   }
+
    If (NoAhkH!=1 && partially=0)
    {
-      ScriptelSuspendel := A_IsSuspended ? 0 : "Y"
       MouseFuncThread.ahkassign("ScriptelSuspendel", ScriptelSuspendel)
       Sleep, 5
       MouseFuncThread.ahkFunction["ToggleMouseTimerz", ScriptelSuspendel]
@@ -5564,6 +5620,7 @@ SuspendScript(partially:=0) {
          MouseNumpadThread.ahkFunction["SuspendScript", A_IsSuspended]
    }
    Sleep, 50
+   SetTimer, HideGUI, % -DisplayTime/2
    Suspend
 }
 
@@ -5572,6 +5629,12 @@ ToggleNeverDisplay() {
       Return
 
    cleanTypeSlate()
+   If (AltHook2keysUser=1 && DeadKeys=1
+      && OutputOSDtoToolTip=0 && DisableTypingMode=0)
+   {
+      KeyStrokesThread.ahkassign("AlternativeHook2keys", NeverDisplayOSD)
+      KeyStrokesThread.ahkPostFunction("MainLoop")
+   }
    NeverDisplayOSD := !NeverDisplayOSD
    INIaction(1, "NeverDisplayOSD", "OSDprefs")
    Menu, Tray, % (NeverDisplayOSD=0 ? "Uncheck" : "Check"), &Do not show the OSD
@@ -7428,9 +7491,11 @@ ShowKBDsettings() {
     Gui, Add, Checkbox, y+7 gVerifyKeybdOptions Checked%ConstantAutoDetect% vConstantAutoDetect, Continuously detect layout changes
     Gui, Add, Checkbox, y+7 gVerifyKeybdOptions Checked%UseMUInames% vUseMUInames, Use system default language names for layouts
     Gui, Add, Checkbox, y+7 gVerifyKeybdOptions Checked%SilentDetection% vSilentDetection, Silent detection (no messages)
+    Gui, Add, Checkbox, y+7 gVerifyKeybdOptions Checked%NoRestartLangChange% vNoRestartLangChange, No restarts on keyboard layout changes
     Gui, Add, Checkbox, y+7 Section gVerifyKeybdOptions Checked%EnableAltGr% vEnableAltGr, Enable Ctrl+Alt / AltGr support
     Gui, Add, Checkbox, xs+0 y+7 gVerifyKeybdOptions Checked%IgnoreAdditionalKeys% vIgnoreAdditionalKeys, Ignore specific keys (dot separated)
     Gui, Add, Edit, xp+20 y+5 gVerifyKeybdOptions w180 r1 -multi -wantReturn -wantTab -wrap vIgnorekeysList, %IgnorekeysList%
+
     Gui, Font, Bold
     Gui, Add, Text, xp-20 y+7, Current keyboard layout:
     Gui, Add, Text, y+7 w%txtWid%, %CurrentKBD%
@@ -7440,7 +7505,11 @@ ShowKBDsettings() {
 
     If (LoadedLangz!=1 && AutoDetectKBD=1)
        Gui, Add, Text, y+7 w%txtWid%, WARNING: Language definitions file is missing. Support for dead keys is limited. Otherwise, everything should be fine.
+
+    If (!IsTypingAidFile || SafeModeExec=1 || NoAhkH=1)
+       Gui, Add, Text, y+7 w%txtWid%, No restarts option is disabled, because the application is executed in a limited mode or files are missing.
     Gui, Font, Normal
+
     If (KBDsDetected>1)
        Gui, Add, Button, y+10 w%btnWid% h30 gSwitch2KBDsList, List detected layouts
 
@@ -7573,7 +7642,13 @@ VerifyKeybdOptions(EnableApply:=1) {
     GuiControl, % (AutoDetectKBD=1 ? "Enable" : "Disable"), SilentDetection
     GuiControl, % (IgnoreAdditionalKeys=0 ? "Disable" : "Enable"), IgnorekeysList
 
-    If (!IsMouseFile || SafeModeExec=1)
+    If (!IsTypingAidFile || SafeModeExec=1 || NoAhkH=1)
+    {
+        GuiControl, , NoRestartLangChange, 0
+        GuiControl, Disable, NoRestartLangChange
+    }
+
+    If (!IsMouseFile || SafeModeExec=1 || NoAhkH=1)
     {
         GuiControl, , ShowCaretHalo, 0
         GuiControl, Disable, ShowCaretHalo
@@ -7732,7 +7807,7 @@ ShowMouseSettings() {
        Gui, Font, Bold
        Gui, Add, Text, xs y+8 w%txtWid%, These options are disabled because files are missing or running in a limited mode.
        Gui, Font, Normal
-    } Else If FileExist("Lib\mouse-keys-info.png")
+    } Else If FileExist("Lib\Help\mouse-keys-info.png")
     {
        Gui, Add, Text, xs y+12 +0x200 vtxt11, For usage instructions: 
        Gui, Add, Button, x+5 w90 hp+5 vShowHelpBTN gOpenMouseKeysIMG, Show hel&p
@@ -7948,6 +8023,27 @@ SendVarsMouseAHKthread(initMode) {
    sendMouseVar("SilentMode")
    If (initMode=1)
       MouseFuncThread.ahkPostFunction["MouseInit"] 
+}
+
+SendVarsTypingAHKthread(initMode:=0) {
+   sendTypingVar("IgnoreAdditionalKeys")
+   sendTypingVar("IgnorekeysList")
+   sendTypingVar("DoNotBindDeadKeys")
+   sendTypingVar("DoNotBindAltGrDeadKeys")
+   sendTypingVar("AudioAlerts")
+   sendTypingVar("EnableAltGr")
+   sendTypingVar("DisableTypingMode")
+   sendTypingVar("DeadKeys")
+   sendTypingVar("DKaltGR_list")
+   sendTypingVar("DKnotShifted_list")
+   sendTypingVar("DKshift_list")
+   sendTypingVar("DisableTypingMode")
+   TypingAidThread.ahkPostFunction["TypingKeysInit"] 
+}
+
+sendTypingVar(var) {
+   varValue := %var%
+   TypingAidThread.ahkassign(var, varValue)
 }
 
 sendSndVar(var) {
@@ -8458,12 +8554,14 @@ OpenChangeLog() {
      historyFile := "Lib\" historyFileName
      historyFileURL := BaseURL historyFileName
 
-     If (!FileExist(historyFile) || ForceDownloadExternalFiles=1)
+     If ((!FileExist(historyFile) || ForceDownloadExternalFiles=1) && !A_IsCompiled)
      {
          SoundBeep
          UrlDownloadToFile, %historyFileURL%, %historyFile%
          Sleep, 4000
      }
+     If (!FileExist(historyFile) && A_IsCompiled)
+        FileInstall, Lib\keypress-osd-changelog.txt, %historyFile%
 
      If FileExist(historyFile)
      {
@@ -8981,6 +9079,8 @@ updateNow() {
         MsgBox, Update seems to be succesful. No errors detected. `nThe script will now reload.
         If (A_IsCompiled && ahkDownloaded=1)
         {
+           FileRemoveDir, Lib\Help, 1
+           FileDelete, Lib\keypress-osd-changelog.txt
            Cleanup()
            Run, %binaryUpdater% %ThisFile%,, hide
            ExitApp
@@ -9054,6 +9154,7 @@ VerifyNonCrucialFiles() {
     historyFile := "Lib\keypress-osd-changelog.txt"
     beepersFile := "Lib\keypress-beeperz-functions.ahk"
     MouseNumpadFile := "Lib\keypress-numpadmouse.ahk"
+    TypingAidFile := "Lib\keypress-typing-aid.ahk"
     DeadKeysAidFile := "Lib\keypress-keystrokes-helper.ahk"
     ripplesFile := "Lib\keypress-mouse-ripples-functions.ahk"
     mouseFile := "Lib\keypress-mouse-functions.ahk"
@@ -9063,7 +9164,7 @@ VerifyNonCrucialFiles() {
     shortcutsHtml := "Lib\help\shortcuts.html"
     featuresHtml := "Lib\help\features.html"
 
-    FilePack := "DeadKeysAidFile,beepersFile,ripplesFile,mouseFile,historyFile
+    FilePack := "TypingAidFile,DeadKeysAidFile,beepersFile,ripplesFile,mouseFile,historyFile
               ,faqHtml,presentationHtml,shortcutsHtml,featuresHtml,MouseNumpadFile"
     If !FileExist(A_ScriptDir "\Lib")
     {
@@ -9300,6 +9401,7 @@ INIsettings(a) {
   }
   INIaction(a, "AutoDetectKBD", "SavedSettings")
   INIaction(a, "ConstantAutoDetect", "SavedSettings")
+  INIaction(a, "NoRestartLangChange", "SavedSettings")
   INIaction(a, "DoBackup", "SavedSettings")
   INIaction(a, "IgnoreAdditionalKeys", "SavedSettings")
   INIaction(a, "IgnorekeysList", "SavedSettings")
@@ -9527,6 +9629,7 @@ CheckSettings() {
     BinaryVar(ModBeeper, 0)
     BinaryVar(MouseBeeper, 0)
     BinaryVar(MouseIdleFlash, 1)
+    BinaryVar(NoRestartLangChange, 1)
     BinaryVar(NeverDisplayOSD, 0)
     BinaryVar(OSDautosize, 1)
     BinaryVar(OSDborder, 0)
@@ -9812,6 +9915,12 @@ InitAHKhThreads() {
             While !IsMouseNumpadFile := MouseNumpadThread.ahkgetvar.IsMouseNumpadFile
                   Sleep, 10
          }
+         If GetRes(data, 0, "KEYPRESS-TYPING-AID.AHK", "LIB")
+         {
+            TypingAidThread := %func2exec%(StrGet(&data))
+            While !IsTypingAidFile := TypingAidThread.ahkgetvar.IsTypingAidFile
+                  Sleep, 10
+         }
          If GetRes(data, 0, "KEYPRESS-MOUSE-RIPPLES-FUNCTIONS.AHK", "LIB")
          {
             MouseRipplesThread := %func2exec%(StrGet(&data))
@@ -9849,8 +9958,10 @@ InitAHKhThreads() {
           IsRipplesFile := FileExist("Lib\keypress-mouse-ripples-functions.ahk")
           IsSoundsFile := FileExist("Lib\keypress-beeperz-functions.ahk")
           IsKeystrokesFile := FileExist("Lib\keypress-keystrokes-helper.ahk")
+          IsTypingAidFile := FileExist("Lib\keypress-typing-aid.ahk")
           MouseFuncThread := %func2exec%(" #Include *i Lib\keypress-mouse-functions.ahk ")
           MouseNumpadThread := %func2exec%(" #Include *i Lib\keypress-numpadmouse.ahk ")
+          TypingAidThread := %func2exec%(" #Include *i Lib\keypress-typing-aid.ahk ")
           MouseRipplesThread := %func2exec%(" #Include *i Lib\keypress-mouse-ripples-functions.ahk ")
           SoundsThread := %func2exec%(" #Include *i Lib\keypress-beeperz-functions.ahk ")
           If (AlternativeHook2keys=1 && DisableTypingMode=0 && ShowSingleKey=1 && IsKeystrokesFile)
@@ -10218,7 +10329,7 @@ dummy() {
     Return
 }
 
-#SPACE::
+~#SPACE::
 Return
 
 CheckAcc:
