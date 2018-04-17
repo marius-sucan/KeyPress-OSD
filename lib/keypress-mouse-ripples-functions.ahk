@@ -164,6 +164,7 @@ ShowRipple(_color, _style, _interval:=10, _dir:="") {
     RippleStart := w ? RippleMinSize+50 : RippleMinSize
     If ((A_TickCount-lastClk<DCT) && lastEvent=_color && !w)
     {
+       Sleep, 25
        tf := 1.5
        MouseRippleThickness := MainMouseRippleThickness*tf
        RippleColor := _color & 0xBFBFBF
