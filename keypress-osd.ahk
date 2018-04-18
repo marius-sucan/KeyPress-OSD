@@ -149,7 +149,7 @@
 ;@Ahk2Exe-SetMainIcon Lib\keypress.ico
 ;@Ahk2Exe-SetName KeyPress OSD v4
 ;@Ahk2Exe-SetDescription KeyPress OSD v4 [mirror keyboard and mouse usage]
-;@Ahk2Exe-SetVersion 4.30.5
+;@Ahk2Exe-SetVersion 4.30.6
 ;@Ahk2Exe-SetCopyright Marius Şucan (2017-2018)
 ;@Ahk2Exe-SetCompanyName ROBODesign.ro
 ;@Ahk2Exe-SetOrigFilename keypress-osd.ahk
@@ -358,8 +358,8 @@
  , DownloadExternalFiles  := 1
 
 ; Release info
- , Version                := "4.30.5"
- , ReleaseDate            := "2018 / 04 / 17"
+ , Version                := "4.30.6"
+ , ReleaseDate            := "2018 / 04 / 18"
  , hMutex, ScriptInitialized, FirstRun := 1
  , KPregEntry := "HKEY_CURRENT_USER\SOFTWARE\KeyPressOSD\v4"
 
@@ -505,6 +505,7 @@ Global Debug := 0    ; for testing purposes
     |PadIns|PadLeft|PadRight|PadAdd|PadSub|PadMult|PadPage_Down|PadPage_Up|PadUp|PadDown|Sleep
     |Volume_Mute|Volume_Up|Volume_Down|WheelUp|WheelDown|WheelLeft|WheelRight|[[ VK nnn ]]|[[ SC nnn ]]"
  , hOSD, OSDhandles, dragOSDhandles, ColorPickerHandles
+ , hMain := A_ScriptHwnd
  , CCLVO := "-E0x200 +Border -Hdr -Multi +ReadOnly Report AltSubmit gsetColors"
  , Emojis := "(☀|🤣|👌|☹|☺|♥|⛄|❤|️|🌙|🌛|🌜|🌷|🌸|🎄|👄|👋|👍|👏|👙|👳|👶|👼|👽|💁|💃|💋
     |💏|💓|💕|💖|💗|💞|💤|💯|😀|😁|😂|😃|😄|😆|😇|😈|😉|😊|😋|😌|😍|😎|😐|😓|😔|😕|😗
@@ -675,7 +676,8 @@ OnMouseKeysPressed(key) {
     Thread, Priority, -20
     Critical, off
     Global lastClickTimer := A_TickCount
-    If (ShowMouseButton=1 && OnlyTypingMode=0 && NeverDisplayOSD=0 && PrefOpen=0)
+    If (ShowMouseButton=1 && OnlyTypingMode=0 && PrefOpen=0)
+    && (NeverDisplayOSD=0 || OutputOSDtoToolTip=1)
     {
        KeyCount := 0.3
        If !InStr(key, "lock")
@@ -1406,7 +1408,11 @@ OnDelPressed() {
 }
 
 OnEscPressed() {
-   If (StrLen(Typed)>1 && DisableTypingMode=0 && SecondaryTypingMode=0)
+   TrueRmDkSymbol := ""
+   If (A_TickCount-LastTypedSince < 500) || (A_TickCount-DeadKeyPressed < 500)
+      Return
+   If (StrLen(Typed)>1 && DisableTypingMode=0 && SecondaryTypingMode=0
+   && (A_TickCount-LastTypedSince < ReturnToTypingDelay))
    {
       OnKeyPressed()
    } Else
@@ -1425,7 +1431,7 @@ OnKeyPressed() {
     Try {
         BackTypeCtrl := Typed || (A_TickCount-LastTypedSince > DisplayTimeTyping) ? Typed : BackTypeCtrl
         key := GetKeyStr()
-        TypingFriendlyKeys := "i)^((.?shift \+ )?(Num|Caps|Scroll|Insert|Tab)|\{|AppsKey|Volume |Media_|Wheel |◐)"
+        Static TypingFriendlyKeys := "i)^((.?shift \+ )?(Num|Caps|Scroll|Insert|Tab)|\{|AppsKey|Volume |Media_|Wheel |◐)"
 
         If (EnterErasesLine=1 && SecondaryTypingMode=1 && (key ~= "i)(enter|esc)"))
         {
@@ -2190,7 +2196,7 @@ TypedLetter(key,onLatterUp:=0) {
             ExternalKeyStrokeRecvd .= key
          Typed := (ExternalKeyStrokeRecvd && AlternativeHook2keys=1)
                 ? InsertChar2caret(ExternalKeyStrokeRecvd) : InsertChar2caret(key)
-         If (!ExternalKeyStrokeRecvd && IsKeystrokesFile)
+         If (!ExternalKeyStrokeRecvd && IsKeystrokesFile && NeverDisplayOSD=0)
          {
             Static KeyStrokesRestarts
             If (KeyStrokesRestarts>6)
@@ -2754,39 +2760,42 @@ ST_Delete(string, start=1, length=1) {
 ; -------------------------------------------------  String Things by tidbit
 
 ShellMessage(wParam, lParam) {
-; function used to update parts of the UI
-; based on window changes
+; function used to update parts of the UI based on window changes
 ; HSHELL_WINDOWACTIVATED Or HSHELL_RUDEAPPACTIVATED
    Static timera
    If !timera
       timera := 1
 
    If ((wParam == 4 || wParam == 17 || wParam == 32772) && PrefOpen=0
-      && (A_TickCount - timera > 1000) && A_IsSuspended=0)
+      && (A_TickCount - timera > 900) && A_IsSuspended=0)
    {
-      If (SecondaryTypingMode=0 && DisableTypingMode=0
-      && (A_TickCount - DoNotRepeatTimer > 2000)
-      && (A_TickCount - LastTypedSince > 1000)
-      && EraseTextWinChange=1 && StrLen(Typed)>1)
-      {
-         If (EnableTypingHistory=1)
-            recordTypedHistory()
-         cleanTypeSlate()
-         HideGUI()
-      }
-      WinGetActiveTitle, title
-      If InStr(title, "KeyPressOSDwin")
-         SetTimer, HideGUI, -500
-
-      LEDsIndicatorsManager()
-      If (MouseKeys=1)
-      {
-         ToggleMouseKeysHalo()
-         MouseNumpadThread.ahkPostFunction["ToggleNumLock"]
-         MouseNumpadThread.ahkPostFunction["ToggleCapsLock"]
-      }
+      SetTimer, ShellMessageDummy, -5
       timera := A_TickCount
    }
+}
+
+ShellMessageDummy() {
+  If (SecondaryTypingMode=0 && DisableTypingMode=0
+  && (A_TickCount - DoNotRepeatTimer > 2000)
+  && (A_TickCount - LastTypedSince > 1000)
+  && EraseTextWinChange=1 && StrLen(Typed)>1)
+  {
+     If (EnableTypingHistory=1)
+        recordTypedHistory()
+     cleanTypeSlate()
+     HideGUI()
+  }
+  WinGetActiveTitle, title
+  If InStr(title, "KeyPressOSDwin")
+     SetTimer, HideGUI, -500
+
+  LEDsIndicatorsManager()
+  If (MouseKeys=1)
+  {
+     ToggleMouseKeysHalo()
+     MouseNumpadThread.ahkPostFunction["ToggleNumLock"]
+     MouseNumpadThread.ahkPostFunction["ToggleCapsLock"]
+  }
 }
 
 GetDeadKeySymbol(hotkeya) {
@@ -3094,8 +3103,9 @@ CreateOSDGUIghost() {
 }
 
 OSDoutputToolTip() {
-   MouseGetPos, px, py
-   ToolTip, %OSDcontentOutput%, px+10, py+10
+   GetPhysicalCursorPos(mX, mY)
+   CoordMode, ToolTip, Screen
+   ToolTip, %OSDcontentOutput%, mX+20, mY+20
    If (OSDvisible=0)
    {
       ToolTip
@@ -3109,7 +3119,7 @@ ShowHotkey(HotkeyStr) {
     If (MousePosition && (A_TickCount-Tickcount_start2 < 1000) && MouseOSDbehavior=1)
        Return
 
-    MouseGetPos, mX, mY,
+    GetPhysicalCursorPos(mX, mY)
     NewMousePosition := mX "," mY
     If (NewMousePosition=MousePosition && (A_TickCount-Tickcount_start2 < 6000)  && MouseOSDbehavior=1)
        Return
@@ -3282,7 +3292,7 @@ MouseMove(wP, lP, msg, hwnd) {
     && (A_TickCount - DoNotRepeatTimer > 1000)
     && !InStr(dragOSDhandles, hwnd) && PrefOpen=0)
     {
-       MouseGetPos, mX, mY,
+       GetPhysicalCursorPos(mX, mY)
        MousePosition := mX "," mY
        HideGUI()
     } Else If (DragOSDmode=1 || PrefOpen=1 || InStr(dragOSDhandles, hwnd))
@@ -3322,10 +3332,8 @@ trackMouseDragging() {
   Global
   WinGetPos, NewX, NewY,,, ahk_id %hOSD%
   If (OSDalignment>1)
-  {
-     CoordMode Mouse, Screen
-     MouseGetPos, NewX, NewY
-  }
+     GetPhysicalCursorPos(newX, newY)
+
   GuiX := !NewX ? "2" : NewX
   GuiY := !NewY ? "2" : NewY
 
@@ -7991,6 +7999,13 @@ VerifyMouseOptions(EnableApply:=1) {
        GuiControl, Disable, ShowMouseHalo
        GuiControl, Disable, ShowMouseIdle
     }
+    SysGet Monitors, MonitorCount
+    If (Monitors>1)
+    {
+       GuiControl, , MouseKeysWrap, 0
+       GuiControl, Disable, MouseKeysWrap
+    }
+
     If (SafeModeExec=1 || NoAhkH=1)
        GuiControl, Disable, RealTimeUpdates
 }
@@ -8440,12 +8455,11 @@ LocatePositionA() {
        Return
 
     ToolTip, Move mouse to desired location and click
-    CoordMode Mouse, Screen
     KeyWait, LButton, D, T10
-    MouseGetPos, x, y
+    GetPhysicalCursorPos(mX, mY)
     ToolTip
-    GuiControl, , GuiXa, %x%
-    GuiControl, , GuiYa, %y%
+    GuiControl, , GuiXa, %mX%
+    GuiControl, , GuiYa, %mY%
     OSDpreview()
 }
 
@@ -8454,12 +8468,11 @@ LocatePositionB() {
     If (GUIposition=0)
     {
         ToolTip, Move mouse to desired location and click
-        CoordMode Mouse, Screen
         KeyWait, LButton, D, T10
         ToolTip
-        MouseGetPos, x, y
-        GuiControl, , GuiXb, %x%
-        GuiControl, , GuiYb, %y%
+        GetPhysicalCursorPos(mX, mY)
+        GuiControl, , GuiXb, %mX%
+        GuiControl, , GuiYb, %mY%
     } Else Return
     OSDpreview()
 }
@@ -9811,6 +9824,18 @@ CheckIfRunning(ForceIT:=0) {
 ; be modified/adapted/transformed by Marius Șucan or other people.
 ;================================================================
 
+GetPhysicalCursorPos(ByRef mX, ByRef mY) {
+; function from: https://github.com/jNizM/AHK_DllCall_WinAPI/blob/master/src/Cursor%20Functions/GetPhysicalCursorPos.ahk
+; by jNizM, modified by Marius Șucan
+    Static POINT, init := VarSetCapacity(POINT, 8, 0) && NumPut(8, POINT, "Int")
+    If !(DllCall("user32.dll\GetPhysicalCursorPos", "Ptr", &POINT))
+       Return MouseGetPos, mX, mY
+;       Return DllCall("kernel32.dll\GetLastError")
+    mX := NumGet(POINT, 0, "Int")
+    mY := NumGet(POINT, 4, "Int")
+    Return
+}
+
 ;================================================================
 ; Functions by Drugwash. Direct contribuitor to this script. Many thanks!
 ; ===============================================================
@@ -10329,9 +10354,6 @@ dummy() {
     Return
 }
 
-~#SPACE::
-Return
-
 CheckAcc:
   #Include *i %A_ScriptDir%\Lib\keypress-acc-viewer-functions.ahk
   #Include *i %A_ScriptDir%\Lib\UIA_Interface.ahk
@@ -10342,3 +10364,4 @@ CheckAcc:
      ahkThread_Free(deleteME)   ; comment/delete this line to execute this script with AHK_L
   }
 Return
+

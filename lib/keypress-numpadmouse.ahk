@@ -56,6 +56,7 @@ Global IsMouseNumpadFile := 1
 , lastClick := "Left"
 , clickHeldDown := 0
 , locked := 0
+, Monitors := 1
 , moduleInitialized := 0
 , MainExe := AhkExported()
 , DCT := DllCall("user32\GetDoubleClickTime")
@@ -411,13 +412,12 @@ MouseMover() {
 }
 
 MouseMoverTimer() {
-  Static NumPadButton
+  Static NumPadButton, dF := 1.25   ; diagonals max-speed scaling factor
   StringReplace, NewButton, A_ThisHotkey, *
   reset := 0
   If (NewButton!=NumPadButton)
      reset := 1
   CalculateSpeed(MoveX, MoveY, reset)
-  total := MoveX + MoveY
   StringReplace, NumPadButton, A_ThisHotkey, *
 
   PadUpDown := PadDownDown := PadLeftDown := PadRightDown := PadPgUpDown := PadHomeDown := PadEndDown := PadPgDnDown := 0
@@ -429,57 +429,66 @@ MouseMoverTimer() {
   PadHomeDown := GetKeyState("NumpadHome", "P")
   PadEndDown := GetKeyState("NumpadEnd", "P")
   PadPgDnDown := GetKeyState("NumpadPgDn", "P")
+  MoveX0 := MoveX1 := MoveX2 := MoveX3 := MoveX4 := MoveX5 := MoveX6 := MoveX7 := 0
+  MoveY0 := MoveY1 := MoveY2 := MoveY3 := MoveY4 := MoveY5 := MoveY6 := MoveY7 := 0
 
-  If ((NumPadButton = "NumpadUp" || PadUpDown=1) && PadDownDown=0)
+  If (NumPadButton="NumpadUp" || PadUpDown=1)
   {
      MoveY0 := -1 * MoveY*2
      MoveX0 := 0
-     MouseEventAPI(MoveX0, MoveY0)
   }
-  if ((NumPadButton = "NumpadDown" || PadDownDown=1)  && PadUpDown=0)
+  if (NumPadButton="NumpadDown" || PadDownDown=1)
   {
      MoveY1 := MoveY*2
      MoveX1 := 0
-     MouseEventAPI(MoveX1, MoveY1)
   }
-  if ((NumPadButton = "NumpadLeft" || PadLeftDown=1) && PadRightDown=0)
+  if (NumPadButton="NumpadLeft" || PadLeftDown=1)
   {
      MoveX2 := -1 * MoveX*2
      MoveY2 := 0
-     MouseEventAPI(MoveX2, MoveY2)
   }
-  if ((NumPadButton = "NumpadRight" || PadRightDown=1) && PadLeftDown=0)
+  if (NumPadButton="NumpadRight" || PadRightDown=1)
   {
      MoveX3 := MoveX*2
      MoveY3 := 0
-     MouseEventAPI(MoveX3, MoveY3)
   }
-  if ((NumPadButton = "NumpadHome" || PadHomeDown=1) && PadPgDnDown=0)
+  if (NumPadButton="NumpadHome" || PadHomeDown=1)
   {
-     MoveX4 := -1.35 * MoveX
-     MoveY4 := -1.35 * MoveY
-     MouseEventAPI(MoveX4, MoveY4)
+     MoveX4 := -dF * MoveX
+     MoveY4 := -dF * MoveY
   }
-  if ((NumPadButton = "NumpadPgUp" || PadPgUpDown=1) && PadEndDown=0)
+  if (NumPadButton="NumpadPgUp" || PadPgUpDown=1)
   {
-     MoveY5 := -1.35 * MoveY
-     MoveX5 := MoveX * 1.35
-     MouseEventAPI(MoveX5, MoveY5)
+     MoveY5 := -dF * MoveY
+     MoveX5 := MoveX * dF
   }
-  if ((NumPadButton = "NumpadEnd" || PadEndDown=1) && PadPgUpDown=0)
+  if (NumPadButton="NumpadEnd" || PadEndDown=1)
   {
-     MoveX6 := -1.35 * MoveX
-     MoveY6 := MoveY * 1.35
-     MouseEventAPI(MoveX6, MoveY6)
+     MoveX6 := -dF * MoveX
+     MoveY6 := MoveY * dF
   }
-  if ((NumPadButton = "NumpadPgDn" || PadPgDnDown=1) && PadHomeDown=0)
+  if (NumPadButton="NumpadPgDn" || PadPgDnDown=1)
   {
-     MouseEventAPI(MoveX * 1.35, MoveY * 1.35)
+     MoveX7 := MoveX * dF
+     MoveY7 := MoveY * dF
   }
-; 
+  FinMoveX := MoveX0 + MoveX1 + MoveX2 + MoveX3 + MoveX4 + MoveX5 + MoveX6 + MoveX7
+  FinMoveY := MoveY0 + MoveY1 + MoveY2 + MoveY3 + MoveY4 + MoveY5 + MoveY6 + MoveY7
+  testHighest := Max(Abs(FinMoveX), Abs(FinMoveY))
+  If (testHighest>MouseMaxSpeed)
+  {
+     Loop
+     {
+       FinMoveX := FinMoveX/1.05
+       FinMoveY := FinMoveY/1.05
+       total := Abs(FinMoveY) + Abs(FinMoveX)
+     } Until (total<MouseMaxSpeed*dF)
+  }
+  MouseEventAPI(Ceil(FinMoveX), Ceil(FinMoveY))
+
   If (PadUpDown=1 || PadDownDown=1 || PadLeftDown=1 || PadRightDown=1
   || PadHomeDown=1 || PadPgUpDown=1 || PadEndDown=1 || PadPgDnDown=1)
-     SetTimer, MouseMoverTimer, -50
+     SetTimer, MouseMoverTimer, -40
 
   If (MouseKeysWrap=1)
      ScreenWrap()
@@ -543,7 +552,6 @@ ScreenInfos() {
   iBorderRight := 0
   iBorderTop := 0
   iBorderBottom := 0
-
   Loop, %Monitors%
   {
     SysGet Monitor, Monitor, %A_Index%
@@ -562,8 +570,10 @@ ScreenInfos() {
 }
 
 ScreenWrap() {
+  If (Monitors>1)
+     Return
   CoordMode Mouse, Screen
-  MouseGetPos PosX, PosY
+  GetPhysicalCursorPos(PosX, PosY)
 
   if (bHWrap=1)
   {
@@ -621,3 +631,17 @@ SessionIsLocked() {
 dummy() {
   Return
 }
+
+GetPhysicalCursorPos(ByRef mX, ByRef mY) {
+; function from: https://github.com/jNizM/AHK_DllCall_WinAPI/blob/master/src/Cursor%20Functions/GetPhysicalCursorPos.ahk
+; by jNizM, modified by Marius Șucan
+    Static POINT, init := VarSetCapacity(POINT, 8, 0) && NumPut(8, POINT, "Int")
+    If !(DllCall("user32.dll\GetPhysicalCursorPos", "Ptr", &POINT))
+       Return MouseGetPos, mX, mY
+;       Return DllCall("kernel32.dll\GetLastError")
+    mX := NumGet(POINT, 0, "Int")
+    mY := NumGet(POINT, 4, "Int")
+    Return
+}
+
+
