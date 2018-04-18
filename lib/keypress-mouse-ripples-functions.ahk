@@ -259,6 +259,9 @@ RippleTimer() {
     }
 
     L := RippleDiameter+MouseRippleThickness*tf
+    ; dimension used for UpdateLayeredWindow. Needs to be a bit larger than L
+    ;   to prevent ripple cropping in some systems
+    WinDim := L+4
     VarSetCapacity(buf, 8)
     NumPut(_pointerX - L // 2, buf, 0)
     NumPut(_pointerY - L // 2, buf, 4)
@@ -266,7 +269,7 @@ RippleTimer() {
        , "Ptr"    , hRippleWin
        , "Ptr"    , 0
        , "Ptr"    , &buf
-       , "Int64P" , L|L<<32
+       , "Int64P" , WinDim|WinDim<<32
        , "Ptr"    , hRippleDC
        , "Int64P" , 0
        , "UInt"   , 0
