@@ -186,7 +186,7 @@ ShowRipple(_color, _style, _interval:=10, _dir:="") {
     RippleDiameter := RippleStart
     RippleAlpha := RippleAlphaMax
     WinSet, AlwaysOnTop, On, %WinMouseRipples%
-    MouseGetPos _pointerX, _pointerY
+    GetPhysicalCursorPos(_pointerX, _pointerY)
     RippleTimer()
     SetTimer RippleTimer, %Period%
     Return
@@ -259,9 +259,9 @@ RippleTimer() {
     }
 
     L := RippleDiameter+MouseRippleThickness*tf
-    ; dimension used for UpdateLayeredWindow. Needs to be a bit larger than L
-    ;   to prevent ripple cropping in some systems
-    WinDim := L+4
+    ; WinDim, dimension used for UpdateLayeredWindow. Needs to be a bit larger than L
+    ; to prevent ripple cropping in some systems [fixed by i-give-up on GitHub]
+    WinDim := L+8
     VarSetCapacity(buf, 8)
     NumPut(_pointerX - L // 2, buf, 0)
     NumPut(_pointerY - L // 2, buf, 4)
@@ -320,3 +320,17 @@ Return
 OnMouseWheelRight:
 ShowRipple(WheelColor, style3, MouseRippleFrequency, "R")
 Return
+
+GetPhysicalCursorPos(ByRef mX, ByRef mY) {
+; function from: https://github.com/jNizM/AHK_DllCall_WinAPI/blob/master/src/Cursor%20Functions/GetPhysicalCursorPos.ahk
+; by jNizM, modified by Marius Șucan
+    Static POINT, init := VarSetCapacity(POINT, 8, 0) && NumPut(8, POINT, "Int")
+    If !(DllCall("user32.dll\GetPhysicalCursorPos", "Ptr", &POINT))
+       Return MouseGetPos, mX, mY
+;       Return DllCall("kernel32.dll\GetLastError")
+    mX := NumGet(POINT, 0, "Int")
+    mY := NumGet(POINT, 4, "Int")
+    Return
+}
+
+

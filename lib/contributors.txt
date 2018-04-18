@@ -100,4 +100,9 @@ by Paegus (paegus@gmail.com) from MouseWrapper v1.2
 - ScreenInfos()     ; (modified)
 - ScreenWrap()      ; (modified)
 
+by jNizM
+- GetPhysicalCursorPos()   ; (modified)
+; function from: https://github.com/jNizM/AHK_DllCall_WinAPI/blob/master/src/Cursor%20Functions/GetPhysicalCursorPos.ahk
+
+
 For Mouse Keys features, inspired by deguix's Mouse Numpad script 
