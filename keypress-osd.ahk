@@ -149,7 +149,7 @@
 ;@Ahk2Exe-SetMainIcon Lib\keypress.ico
 ;@Ahk2Exe-SetName KeyPress OSD v4
 ;@Ahk2Exe-SetDescription KeyPress OSD v4 [mirror keyboard and mouse usage]
-;@Ahk2Exe-SetVersion 4.30.6
+;@Ahk2Exe-SetVersion 4.30.7
 ;@Ahk2Exe-SetCopyright Marius Şucan (2017-2018)
 ;@Ahk2Exe-SetCompanyName ROBODesign.ro
 ;@Ahk2Exe-SetOrigFilename keypress-osd.ahk
@@ -324,9 +324,9 @@
 
 ; Mouse keys 
  , MouseKeys             := 0
- , MouseNumpadSpeed1     := 5
- , MouseNumpadAccel1     := 20
- , MouseNumpadTopSpeed1  := 65
+ , MouseNumpadSpeed1     := 1
+ , MouseNumpadAccel1     := 5
+ , MouseNumpadTopSpeed1  := 35
  , MouseWheelSpeed       := 7
  , MouseCapsSpeed        := 2
  , MouseKeysWrap         := 0
@@ -358,8 +358,8 @@
  , DownloadExternalFiles  := 1
 
 ; Release info
- , Version                := "4.30.6"
- , ReleaseDate            := "2018 / 04 / 18"
+ , Version                := "4.30.7"
+ , ReleaseDate            := "2018 / 04 / 19"
  , hMutex, ScriptInitialized, FirstRun := 1
  , KPregEntry := "HKEY_CURRENT_USER\SOFTWARE\KeyPressOSD\v4"
 
@@ -593,10 +593,12 @@ OnMudPressed() {
 
     If (A_TickCount-Tickcount_start2 < 35)
        Return
-
-    If (InStr(fl_prefix, "Shift") && ShiftDisableCaps=1)
+    CapsLockState := GetKeyState("CapsLock", "T")
+    If (InStr(fl_prefix, "Shift") && ShiftDisableCaps=1) && (CapsLockState=1)
     {
        SetCapsLockState, off
+       If (MouseKeys=1) && (A_TickCount-Tickcount_start2 > 50)
+          MouseNumpadThread.ahkPostFunction["ToggleCapsLock"]
        If (OSDshowLEDs=1)
           GuiControl, OSD:, CapsLED, 0
     }
@@ -2228,7 +2230,7 @@ TypedLetter(key,onLatterUp:=0) {
 
 StartKeystrokesThread() {
    Static hasInit
-   If (hasInit=1 || !IsKeystrokesFile)
+   If (hasInit=1 || !IsKeystrokesFile || NeverDisplayOSD=1)
       Return
    AlternativeHook2keys := (AltHook2keysUser=1) ? 1 : 0
    KeyStrokesThread.ahkassign("AlternativeHook2keys", AlternativeHook2keys)
@@ -2411,6 +2413,7 @@ ReturnToTyped() {
     && (A_TickCount-LastTypedSince < ReturnToTypingDelay)
     && ShowSingleKey=1 && DisableTypingMode=0)
     {
+        CalcVisibleText()
         ShowHotkey(VisibleTextField)
         SetTimer, HideGUI, % -DisplayTimeTyping
     }
@@ -4118,7 +4121,7 @@ tehDKcollector() {
          If !ScriptInitialized
             IniWrite, %DKnamez%, %LangFile%, %KbLayoutRaw%, DKnamez
       }
-      If (AltHook2keysUser=1 && NoRestartLangChange=1)
+      If (AltHook2keysUser=1 && NoRestartLangChange=1 && NeverDisplayOSD=0)
       {
          AlternativeHook2keys := DeadKeys := 1
          KeyStrokesThread.ahkassign("AlternativeHook2keys", AlternativeHook2keys)
@@ -5611,7 +5614,8 @@ SuspendScript(partially:=0) {
    If (AltHook2keysUser=1 && DeadKeys=1 && DisableTypingMode=0)
    {
       KeyStrokesThread.ahkassign("AlternativeHook2keys", A_IsSuspended)
-      KeyStrokesThread.ahkPostFunction("MainLoop")
+      If (NeverDisplayOSD=0)
+         KeyStrokesThread.ahkPostFunction("MainLoop")
    }
 
    If (NoAhkH!=1 && partially=0)
@@ -7977,6 +7981,9 @@ VerifyMouseOptions(EnableApply:=1) {
        GuiControl, , Txt2, % "Acceleration: " MouseNumpadAccel1
        GuiControl, , Txt1, % "Speed: " MouseNumpadSpeed1
        GuiControl, , Txt3, % "Top speed: " MouseNumpadTopSpeed1
+       GuiControl, , MouseNumpadAccel1, %MouseNumpadAccel1%
+       GuiControl, , MouseNumpadSpeed1, %MouseNumpadSpeed1%
+       GuiControl, , MouseNumpadTopSpeed1, %MouseNumpadTopSpeed1%
     }
 
     If (RealTimeUpdates=1)
@@ -9721,9 +9728,9 @@ CheckSettings() {
        ConstantAutoDetect := 0
 
 ; verify numeric values: min, max and default values
-    MinMaxVar(MouseNumpadTopSpeed1, 5, 250, 65)
-    MinMaxVar(MouseNumpadSpeed1, 1, 70, 5)
-    MinMaxVar(MouseNumpadAccel1, 2, 100, 20)
+    MinMaxVar(MouseNumpadTopSpeed1, 5, 250, 35)
+    MinMaxVar(MouseNumpadSpeed1, 1, 70, 1)
+    MinMaxVar(MouseNumpadAccel1, 2, 100, 5)
     MinMaxVar(MouseNumpadSpeed1, 1, MouseNumpadTopSpeed1, MouseNumpadTopSpeed1)
     MinMaxVar(MouseNumpadAccel1, 2, MouseNumpadTopSpeed1, MouseNumpadTopSpeed1)
     MinMaxVar(MouseCapsSpeed, 1, 35, 2)

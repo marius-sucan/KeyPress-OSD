@@ -1,4 +1,17 @@
-﻿
+﻿; KeypressOSD.ahk - typing aid file
+; This thread binds to letters, numbers and symbols
+; It is reloaded each time the keyboard layout changes.
+; This helps to avoid the complete reload of the
+; main thread and consequently, all its other threads.
+; The thread only calls functions found in the main thread.
+;
+; Latest version at:
+; https://github.com/marius-sucan/KeyPress-OSD
+; http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd.ahk
+;
+; Charset for this file must be UTF 8 with BOM.
+; it may not function properly otherwise.
+
 #SingleInstance force
 #MaxHotkeysPerInterval 500
 #MaxThreads 255
@@ -10,7 +23,7 @@
 SetKeyDelay, -1
 SetMouseDelay, -1
 
-Global IsTypingAidFile    := 0
+Global IsTypingAidFile    := 1
  , IgnoreAdditionalKeys   := 0
  , IgnorekeysList         := "a.b.c"
  , DoNotBindDeadKeys      := 0

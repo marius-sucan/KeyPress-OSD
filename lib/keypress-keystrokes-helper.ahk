@@ -1,4 +1,9 @@
 ﻿; KeypressOSD.ahk - file used for alternative hooks
+; The role of this thread is to capture characters
+; [using the Input command in a Loop]; resulted from
+; combinations with dead keys. Each char is sent to
+; the main thread using SendMessage.
+;
 ; Latest version at:
 ; https://github.com/marius-sucan/KeyPress-OSD
 ; http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd.ahk
@@ -30,8 +35,10 @@ Global IniFile := "keypress-osd.ini"
  , MainExe := AhkExported()
  , TargetScriptTitle := "KeyPressOSDwin"
  , TargetHwnd := MainExe.ahkgetvar.hOSD
+ , NeverDisplayOSD := MainExe.ahkgetvar.NeverDisplayOSD
 
-MainLoop()
+If (NeverDisplayOSD!=1)
+   MainLoop()
 Return
 
 MainLoop() {

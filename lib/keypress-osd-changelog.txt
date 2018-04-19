@@ -11,6 +11,9 @@ http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip
 
 by Marius Sucan (robodesign.ro)
 
+  v4.30.7 (2018-04-19)
+  - more bug fixes
+
   v4.30.6 (2018-04-18)
   - various (minor) bug fixes
 
@@ -952,10 +955,20 @@ Features to implement:
 - elimină iniWrite for clipboard manager? then make ID per install
 - integrate Vis2
 
- - Drugwash: checkWindowKBD() - TO FIX
- - mouse ripples can still cause silent crashes ?!?
-   - reparații la mouse ripples; wheel up/down frequency mess-up
+
+RASPUNDE LA OLANDEZI!!!!!!!!!
+
+
+- it sometimes
+ -- crashes on restart
+ -- hangs after system unlock
+ - reparații la mouse ripples; wheel up/down frequency mess-up
  - KeyStrokeAider can cause crashes after a long period of running
+ - Drugwash: checkWindowKBD() - TO FIX
+
+ -- mouse keys directions remain stuck down [is it fixed now ?!?]
+ -- fails to recalc visible text field [probably fixed now]
+ - [Justice PC] test if mouse ripples can still cause silent crashes [probably fixed now]
  - updater.bat does not work in XP
 
 
@@ -979,7 +992,6 @@ https://autohotkey.com/board/topic/53672-get-the-text-content-of-a-tool-tip-wind
 
 - Go through older posts. Check what's done. 
 - update help; separate FAQs into sections
-
 - test different DPIs
 - test on different computers - slow computers...
 
@@ -990,7 +1002,6 @@ Glitches to fix or think of possible solutions:
 - support for Bengali, Assamese and other similar scripts is shady
  - shellmessage gets unhooked sometimes [partially fixed]
    - how to detect if it is still registered?
-
 
 
 https://regex101.com/r/QKXvg9/1

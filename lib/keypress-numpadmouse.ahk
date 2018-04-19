@@ -1,4 +1,12 @@
-﻿/*
+﻿; KeypressOSD.ahk - mouse keys functions file
+; Latest version at:
+; https://github.com/marius-sucan/KeyPress-OSD
+; http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd.ahk
+;
+; Charset for this file must be UTF 8 with BOM.
+; it may not function properly otherwise.
+
+/*
 o------------------------------------------------------------o
 | Using Keyboard Numpad as a Mouse                           |
 (------------------------------------------------------------)
@@ -39,11 +47,13 @@ o------------------------------------------------------------o
 #Persistent
 SetKeyDelay, -1
 SetMouseDelay, -1
+; SetBatchLines, -1
+; ListLines, Off
 
 Global IsMouseNumpadFile := 1
- , MouseNumpadSpeed1     := 5
- , MouseNumpadAccel1     := 20
- , MouseNumpadTopSpeed1  := 65
+ , MouseNumpadSpeed1     := 1
+ , MouseNumpadAccel1     := 5
+ , MouseNumpadTopSpeed1  := 35
  , MouseCapsSpeed        := 2  ; 1 - 25
  , MouseKeys             := 1
  , MouseKeysWrap         := 0
@@ -63,6 +73,7 @@ Global IsMouseNumpadFile := 1
 , bHWrap := 1
 , bVWrap := 1
 , iBorderLeft, bVWrap, iBorderRight, iBorderTop, iBorderBottom
+, buttonsDownList := ""
 
 Return
 
@@ -94,15 +105,6 @@ MouseKeysInit() {
   Hotkey, *NumpadEnd, MouseMover, UseErrorLevel
   Hotkey, *NumpadPgUp, MouseMover, UseErrorLevel
   Hotkey, *NumpadPgDn, MouseMover, UseErrorLevel
-
-  Hotkey, *NumpadUp Up, ReleaseKey, UseErrorLevel
-  Hotkey, *NumpadDown Up, ReleaseKey, UseErrorLevel
-  Hotkey, *NumpadLeft Up, ReleaseKey, UseErrorLevel
-  Hotkey, *NumpadRight Up, ReleaseKey, UseErrorLevel
-  Hotkey, *NumpadHome Up, ReleaseKey, UseErrorLevel
-  Hotkey, *NumpadEnd Up, ReleaseKey, UseErrorLevel
-  Hotkey, *NumpadPgUp Up, ReleaseKey, UseErrorLevel
-  Hotkey, *NumpadPgDn Up, ReleaseKey, UseErrorLevel
 
   Hotkey, ~NumLock Up, ToggleNumLock, UseErrorLevel
   Hotkey, ~CapsLock Up, ToggleCapsLock, UseErrorLevel
@@ -167,15 +169,6 @@ HotkeysList(act) {
      Hotkey, *NumpadPgUp, %act%
      Hotkey, *NumpadPgDn, %act%
 
-     Hotkey, *NumpadUp Up, %act%
-     Hotkey, *NumpadDown Up, %act%
-     Hotkey, *NumpadLeft Up, %act%
-     Hotkey, *NumpadRight Up, %act%
-     Hotkey, *NumpadHome Up, %act%
-     Hotkey, *NumpadEnd Up, %act%
-     Hotkey, *NumpadPgUp Up, %act%
-     Hotkey, *NumpadPgDn Up, %act%
-
      Hotkey, ~MButton, %act%
      Hotkey, ~RButton, %act%
      Hotkey, ~LButton, %act%
@@ -191,6 +184,7 @@ ToggleNumLock(stopAll:=0) {
   If (moduleInitialized=0)
      MouseKeysInit()
 
+  buttonsDownList := ""
   NumLockState := GetKeyState("NumLock", "T")
   If (NumLockState=0 && MouseKeys=1 && activated!=1)
   {
@@ -205,14 +199,6 @@ ToggleNumLock(stopAll:=0) {
      testLock := ButtonEnter(0)
      SetTimer, MouseMoverTimer, Off
      HotkeysList("Off")
-     SendInput, {NumpadUp Up}
-     SendInput, {NumpadDown Up}
-     SendInput, {NumpadLeft Up}
-     SendInput, {NumpadRight Up}
-     SendInput, {NumpadHome Up}
-     SendInput, {NumpadEnd Up}
-     SendInput, {NumpadPgUp Up}
-     SendInput, {NumpadPgDn Up}
      activated := 0
   }
 
@@ -223,6 +209,8 @@ ToggleNumLock(stopAll:=0) {
 ToggleCapsLock() {
   True2ndSpeed := MouseCapsSpeed/10
   SetTimer, MouseMoverTimer, Off
+
+  buttonsDownList := ""
   CapsLockState := GetKeyState("CapsLock", "T")
   If (CapsLockState=0)
   {
@@ -310,7 +298,7 @@ ButtonRightClick() {
 ButtonEnter(doNotLock:=1) {
   If !lastClick
      Return
-
+  buttonsDownList := ""
   If (locked=1)
   {
      SetTimer, MouseMoverTimer, Off
@@ -387,12 +375,10 @@ ButtonX2Click() {
 
 ;Mouse movement support
 
-CalculateSpeed(ByRef MoveX, ByRef MoveY,reset:=0) {
+CalculateSpeed(ByRef MoveX, ByRef MoveY,reset:=0, wheelMode:=0) {
   Static repeats, lastCalc
-  If (reset=1) || (A_TickCount - lastCalc > 100)
-     repeats := 0
-  Else
-     repeats++
+  accelDelay := (wheelMode=1) ? 0.4 : 0.9
+  repeats := (reset=1) ? 0 : repeats + accelDelay
   CurrentSpeed := MouseSpeed + (MouseAccelerationSpeed/1.5) * repeats/3
   If (CurrentSpeed>MouseMaxSpeed)
      CurrentSpeed := MouseMaxSpeed
@@ -408,17 +394,14 @@ MouseEventAPI(x, y) {
 }
 
 MouseMover() {
-  SetTimer, MouseMoverTimer, -10
+  SetTimer, MouseMoverTimer, -25
 }
 
 MouseMoverTimer() {
-  Static NumPadButton, dF := 1.25   ; diagonals max-speed scaling factor
-  StringReplace, NewButton, A_ThisHotkey, *
-  reset := 0
-  If (NewButton!=NumPadButton)
-     reset := 1
-  CalculateSpeed(MoveX, MoveY, reset)
+  Static AllPadsState, dF := 1.25   ; diagonals max-speed scaling factor
   StringReplace, NumPadButton, A_ThisHotkey, *
+  If !InStr(buttonsDownList, NumPadButton)
+     buttonsDownList .= NumPadButton ","
 
   PadUpDown := PadDownDown := PadLeftDown := PadRightDown := PadPgUpDown := PadHomeDown := PadEndDown := PadPgDnDown := 0
   PadUpDown := GetKeyState("NumpadUp", "P")
@@ -429,45 +412,49 @@ MouseMoverTimer() {
   PadHomeDown := GetKeyState("NumpadHome", "P")
   PadEndDown := GetKeyState("NumpadEnd", "P")
   PadPgDnDown := GetKeyState("NumpadPgDn", "P")
+  newAllPadsState := PadUpDown PadDownDown PadLeftDown PadRightDown PadPgUpDown PadHomeDown PadEndDown PadPgDnDown
+  resetSpeed := (newAllPadsState!=AllPadsState) ? 1 : 0
+  CalculateSpeed(MoveX, MoveY, resetSpeed)
+  AllPadsState := newAllPadsState
   MoveX0 := MoveX1 := MoveX2 := MoveX3 := MoveX4 := MoveX5 := MoveX6 := MoveX7 := 0
   MoveY0 := MoveY1 := MoveY2 := MoveY3 := MoveY4 := MoveY5 := MoveY6 := MoveY7 := 0
 
-  If (NumPadButton="NumpadUp" || PadUpDown=1)
+  If (PadUpDown=1 && InStr(buttonsDownList, NumPadButton))
   {
      MoveY0 := -1 * MoveY*2
      MoveX0 := 0
   }
-  if (NumPadButton="NumpadDown" || PadDownDown=1)
+  if (PadDownDown=1 && InStr(buttonsDownList, NumPadButton))
   {
      MoveY1 := MoveY*2
      MoveX1 := 0
   }
-  if (NumPadButton="NumpadLeft" || PadLeftDown=1)
+  if (PadLeftDown=1 && InStr(buttonsDownList, NumPadButton))
   {
      MoveX2 := -1 * MoveX*2
      MoveY2 := 0
   }
-  if (NumPadButton="NumpadRight" || PadRightDown=1)
+  if (PadRightDown=1 && InStr(buttonsDownList, NumPadButton))
   {
      MoveX3 := MoveX*2
      MoveY3 := 0
   }
-  if (NumPadButton="NumpadHome" || PadHomeDown=1)
+  if (PadHomeDown=1 && InStr(buttonsDownList, NumPadButton))
   {
      MoveX4 := -dF * MoveX
      MoveY4 := -dF * MoveY
   }
-  if (NumPadButton="NumpadPgUp" || PadPgUpDown=1)
+  if (PadPgUpDown=1 && InStr(buttonsDownList, NumPadButton))
   {
      MoveY5 := -dF * MoveY
      MoveX5 := MoveX * dF
   }
-  if (NumPadButton="NumpadEnd" || PadEndDown=1)
+  if (PadEndDown=1 && InStr(buttonsDownList, NumPadButton))
   {
      MoveX6 := -dF * MoveX
      MoveY6 := MoveY * dF
   }
-  if (NumPadButton="NumpadPgDn" || PadPgDnDown=1)
+  if (PadPgDnDown=1 && InStr(buttonsDownList, NumPadButton))
   {
      MoveX7 := MoveX * dF
      MoveY7 := MoveY * dF
@@ -475,6 +462,7 @@ MouseMoverTimer() {
   FinMoveX := MoveX0 + MoveX1 + MoveX2 + MoveX3 + MoveX4 + MoveX5 + MoveX6 + MoveX7
   FinMoveY := MoveY0 + MoveY1 + MoveY2 + MoveY3 + MoveY4 + MoveY5 + MoveY6 + MoveY7
   testHighest := Max(Abs(FinMoveX), Abs(FinMoveY))
+
   If (testHighest>MouseMaxSpeed)
   {
      Loop
@@ -485,54 +473,45 @@ MouseMoverTimer() {
      } Until (total<MouseMaxSpeed*dF)
   }
   MouseEventAPI(Ceil(FinMoveX), Ceil(FinMoveY))
-
-  If (PadUpDown=1 || PadDownDown=1 || PadLeftDown=1 || PadRightDown=1
-  || PadHomeDown=1 || PadPgUpDown=1 || PadEndDown=1 || PadPgDnDown=1)
-     SetTimer, MouseMoverTimer, -40
+  If InStr(AllPadsState, "1")
+     SetTimer, MouseMoverTimer, -25
 
   If (MouseKeysWrap=1)
      ScreenWrap()
 }
 
-ReleaseKey() {
-  if (locked=1 || clickHeldDown=1)
-     Return
-  StringReplace, btn2release, A_ThisHotkey, *,
-  StringReplace, btn2release, btn2release, %A_Space%Up,
-  SendInput, {%btn2release% Up}
-  ; ToolTip, %btn2release%
-}
 ;Mouse wheel movement support
 
 ButtonWheels() {
-  Static NumPadButton, lastCalc
+  Static NumPidButton, lastCalc
   StringReplace, NewButton, A_ThisHotkey, *
   reset := 0
-  If (NewButton!=NumPadButton)
+  If (NewButton!=NumPidButton) || (A_TickCount - lastCalc > 200)
+  {
      reset := 1
-  If (NewButton!=NumPadButton) || (A_TickCount - lastCalc > 200)
      showMsg := 1
-  CalculateSpeed(MoveX, MoveY, reset)
-  StringReplace, NumPadButton, A_ThisHotkey, *
+  }
+  CalculateSpeed(MoveX, MoveY, reset, 1)
+  StringReplace, NumPidButton, A_ThisHotkey, *
   MoveX := Round(MoveX/MouseWheelSpeed)
   If (MoveX<1)
      MoveX := 1
-  If (NumPadButton="NumpadDiv")
+  If (NumPidButton="NumpadDiv")
   {
      MouseClick, WheelLeft,,, %MoveX%, 0
      If (showMsg=1)
         MainExe.ahkPostFunction("OnMouseKeysPressed", "Wheel Left")
-  } else if (NumPadButton="NumpadMult")
+  } else if (NumPidButton="NumpadMult")
   {
      MouseClick, WheelRight,,, %MoveX%, 0
      If (showMsg=1)
         MainExe.ahkPostFunction("OnMouseKeysPressed", "Wheel Right")
-  } else if (NumPadButton="NumpadAdd")
+  } else if (NumPidButton="NumpadAdd")
   {
      MouseClick, WheelDown,,, %MoveX%, 0
      If (showMsg=1)
         MainExe.ahkPostFunction("OnMouseKeysPressed", "Wheel Down")
-  } else if (NumPadButton="NumpadSub")
+  } else if (NumPidButton="NumpadSub")
   {
      MouseClick, WheelUp,,, %MoveX%, 0
      If (showMsg=1)
