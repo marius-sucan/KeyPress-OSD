@@ -1,9 +1,14 @@
-﻿; Script by MrRight in 2015.
-; from https://autohotkey.com/boards/viewtopic.php?t=8963
-; Modified by Marius Sucan and Drugwash in 2018. Included in KeyPress OSD.
+﻿; KeypressOSD.ahk - mouse ripples functions file
 ; Latest version at:
 ; https://github.com/marius-sucan/KeyPress-OSD
 ; http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd.ahk
+;
+; Charset for this file must be UTF 8 with BOM.
+; it may not function properly otherwise.
+
+; The script is based on a script by MrRight, from 2015.
+; found on https://autohotkey.com/boards/viewtopic.php?t=8963
+; Considerably modified by Marius Sucan and Drugwash in 2018. Included in KeyPress OSD.
 
 #NoEnv
 #SingleInstance, Force
