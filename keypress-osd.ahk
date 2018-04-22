@@ -2753,46 +2753,6 @@ ST_Delete(string, start=1, length=1) {
 }
 ; -------------------------------------------------  String Things by tidbit
 
-ShellMessage(wParam, lParam) {
-; function used to update parts of the UI based on window changes
-; HSHELL_WINDOWACTIVATED Or HSHELL_RUDEAPPACTIVATED
-   Static timera
-   If !timera
-      timera := 1
-
-   If ((wParam == 4 || wParam == 17 || wParam == 32772) && PrefOpen=0
-      && (A_TickCount - timera > 900) && A_IsSuspended=0)
-   {
-      SetTimer, ShellMessageDummy, -5
-      timera := A_TickCount
-   }
-}
-
-ShellMessageDummy() {
-  If (SecondaryTypingMode=0 && DisableTypingMode=0
-  && (A_TickCount - DoNotRepeatTimer > 2000)
-  && (A_TickCount - LastTypedSince > 1000)
-  && EraseTextWinChange=1 && StrLen(Typed)>1)
-  {
-     If (EnableTypingHistory=1)
-        recordTypedHistory()
-     cleanTypeSlate()
-     HideGUI()
-  }
-
-  WinGetActiveTitle, title
-  If InStr(title, "KeyPressOSDwin")
-     SetTimer, HideGUI, -500
-
-  LEDsIndicatorsManager()
-  If (MouseKeys=1)
-  {
-     If (MouseKeysHalo=1)
-        ToggleMouseKeysHalo()
-     MouseNumpadThread.ahkPostFunction["ToggleNumLock", 0, 1]
-  }
-}
-
 GetDeadKeySymbol(hotkeya) {
    lenghty := InStr(DKnamez, hotkeya)
    lenghty := (lenghty=0) ? 2 : lenghty
@@ -8844,6 +8804,67 @@ DeleteLangFile() {
 ; - Load, verify and save settings
 ;================================================================
 
+WM_WTSSESSION_CHANGE(wParam, lParam, Msg, hWnd){
+; Function by Drugwash and modified by Marius Șucan.
+
+  If (wParam=0x7)       ; lock
+     PrefOpen := 1
+  Else If (wParam=0x8)  ; unlock
+     PrefOpen := 0
+
+  If (wParam=0x7) || (wParam=0x8)
+  {
+     If (Capture2Text=1)
+        ToggleCapture2Text()
+     If (AccTextCaptureActive=1)
+        ToggleAccCaptureText()
+
+     If (AltHook2keysUser=1 && DeadKeys=1 && DisableTypingMode=0)
+        KeyStrokesThread.ahkassign("PrefOpen", PrefOpen)
+
+     If (NoAhkH!=1)
+     {
+        TypingAidThread.ahkassign("PrefOpen", PrefOpen)
+        MouseFuncThread.ahkassign("PrefOpen", PrefOpen)
+        MouseRipplesThread.ahkassign("PrefOpen", PrefOpen)
+        MouseNumpadThread.ahkassign("PrefOpen", PrefOpen)
+        SoundsThread.ahkassign("PrefOpen", PrefOpen)
+     }
+  }
+}
+
+ShellMessageDummy() {
+; Function initially intended to be used with OnMessage
+; hooked to ShellMessage, however it is unreliable.
+; Now, this function is called by checkCurrentWindow()
+; timer from SoundsThread.
+; This function is  used to update parts of the UI based
+; on window changes.
+
+  If (SecondaryTypingMode=0 && DisableTypingMode=0
+  && (A_TickCount - DoNotRepeatTimer > 2000)
+  && (A_TickCount - LastTypedSince > 1000)
+  && EraseTextWinChange=1 && StrLen(Typed)>1)
+  {
+     If (EnableTypingHistory=1)
+        recordTypedHistory()
+     cleanTypeSlate()
+     HideGUI()
+  }
+
+  WinGetActiveTitle, title
+  If InStr(title, "KeyPressOSDwin")
+     SetTimer, HideGUI, -500
+
+  LEDsIndicatorsManager()
+  If (MouseKeys=1)
+  {
+     If (MouseKeysHalo=1)
+        ToggleMouseKeysHalo()
+     MouseNumpadThread.ahkPostFunction["ToggleNumLock", 0, 1]
+  }
+}
+
 miniUpdateChecker() {
    Static execTimes
    If (execTimes>1)
@@ -10371,36 +10392,4 @@ CheckAcc:
   }
 Return
 
-
-
-
-
-WM_WTSSESSION_CHANGE(wParam, lParam, Msg, hWnd){
-; function by Drugwash and modified by Marius Șucan
-
-  If (wParam=0x7)       ; lock
-     PrefOpen := 1
-  Else If (wParam=0x8)  ; unlock
-     PrefOpen := 0
-
-  If (wParam=0x7) || (wParam=0x8)
-  {
-     If (Capture2Text=1)
-        ToggleCapture2Text()
-     If (AccTextCaptureActive=1)
-        ToggleAccCaptureText()
-
-     If (AltHook2keysUser=1 && DeadKeys=1 && DisableTypingMode=0)
-        KeyStrokesThread.ahkassign("PrefOpen", PrefOpen)
-
-     If (NoAhkH!=1)
-     {
-        TypingAidThread.ahkassign("PrefOpen", PrefOpen)
-        MouseFuncThread.ahkassign("PrefOpen", PrefOpen)
-        MouseRipplesThread.ahkassign("PrefOpen", PrefOpen)
-        MouseNumpadThread.ahkassign("PrefOpen", PrefOpen)
-        SoundsThread.ahkassign("PrefOpen", PrefOpen)
-     }
-  }
-}
 
