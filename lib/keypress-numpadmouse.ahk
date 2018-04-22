@@ -59,6 +59,7 @@ Global IsMouseNumpadFile := 1
  , MouseKeysWrap         := 0
  , MouseKeysHalo         := 1
  , MouseWheelSpeed       := 7
+ , DifferModifiers       := 0
 ; others
 , MouseSpeed := 0
 , MouseAccelerationSpeed := 0
@@ -67,25 +68,25 @@ Global IsMouseNumpadFile := 1
 , clickHeldDown := 0
 , locked := 0
 , Monitors := 1
+, LockMode := 0
 , moduleInitialized := 0
 , MainExe := AhkExported()
 , DCT := DllCall("user32\GetDoubleClickTime")
 , bHWrap := 1
 , bVWrap := 1
-, iBorderLeft, bVWrap, iBorderRight, iBorderTop, iBorderBottom
+, iBorderLeft, bVWrap, iBorderRight, iBorderTop, iBorderBottom, PrefOpen := 0
 , buttonsDownList := ""
+, MainModsList := ["LCtrl", "RCtrl", "LAlt", "RAlt", "LShift", "RShift", "LWin", "RWin"]
 
 Return
 
 MouseKeysInit() {
-  ; OnMessage(0x02B1, "WM_WTSSESSION_CHANGE")
-
   Hotkey, ~#l, DeactivateMouseKeys, UseErrorLevel
   Hotkey, ~MButton, ButtonTheClicks, UseErrorLevel
   Hotkey, ~RButton, ButtonTheClicks, UseErrorLevel
   Hotkey, ~LButton, ButtonTheClicks, UseErrorLevel
-  Hotkey, *NumpadIns, ButtonRightClick, UseErrorLevel
   Hotkey, *NumpadClear, ButtonLeftClick, UseErrorLevel
+  Hotkey, *NumpadIns, ButtonRightClick, UseErrorLevel
   Hotkey, *NumpadDel, ButtonMiddleClick, UseErrorLevel
   Hotkey, *NumpadEnter, ButtonEnter, UseErrorLevel
   Hotkey, *NumpadSub, ButtonWheels, UseErrorLevel
@@ -108,20 +109,21 @@ MouseKeysInit() {
 
   Hotkey, ~NumLock Up, ToggleNumLock, UseErrorLevel
   Hotkey, ~CapsLock Up, ToggleCapsLock, UseErrorLevel
-  Hotkey, ~#NumpadSub, dummy, UseErrorLevel
-  Hotkey, ~#NumpadAdd, dummy, UseErrorLevel
+  Hotkey, ~#NumpadSub, WinKeyZoomInOut, UseErrorLevel
+  Hotkey, ~#NumpadAdd, WinKeyZoomInOut, UseErrorLevel
+  Hotkey, ~Esc, CancelLock, UseErrorLevel
+  Hotkey, ~Enter, CancelLock, UseErrorLevel
+  Hotkey, ~ScrollLock, ToggleLockMode, UseErrorLevel
 
   moduleInitialized := 1
   Sleep, 15
-  ToggleNumLock()    ; Initialize based on current numlock state.
-  Sleep, 15
-  ToggleCapsLock()
+  ToggleNumLock(0,1)    ; Initialize based on current numlock state.
 }
 
 DeactivateMouseKeys() {
   SetNumLockState, On
   Sleep, 5
-  ToggleNumLock()
+  ToggleNumLock(0,1)
   MainExe.ahkPostFunction("LEDsIndicatorsManager")
 }
 
@@ -134,13 +136,13 @@ SuspendScript(killNow:=1) {
 
   If (killNow=0)
   {
-     ToggleNumLock(1)
+     ToggleNumLock(1,1)
      Hotkey, ~#l, Off
      Hotkey, ~NumLock Up, Off
      Hotkey, ~CapsLock Up, Off
   } Else
   {
-     ToggleNumLock()
+     ToggleNumLock(0,1)
      Hotkey, ~#l, On
      Hotkey, ~NumLock Up, On
      Hotkey, ~CapsLock Up, On
@@ -174,9 +176,10 @@ HotkeysList(act) {
      Hotkey, ~LButton, %act%
      Hotkey, ~#NumpadSub, %act%
      Hotkey, ~#NumpadAdd, %act%
+     Hotkey, ~ScrollLock, %act%
 }
 
-ToggleNumLock(stopAll:=0) {
+ToggleNumLock(stopAll:=0,silent:=0) {
   Static activated
 
   If (MouseKeys=0 && moduleInitialized=0)
@@ -184,13 +187,14 @@ ToggleNumLock(stopAll:=0) {
   If (moduleInitialized=0)
      MouseKeysInit()
 
-  buttonsDownList := ""
   NumLockState := GetKeyState("NumLock", "T")
   If (NumLockState=0 && MouseKeys=1 && activated!=1)
   {
+     buttonsDownList := ""
      If (MouseKeysWrap=1)
         ScreenInfos()
      HotkeysList("On")
+     ToggleCapsLock(1)
      activated := 1
   }
 
@@ -201,16 +205,37 @@ ToggleNumLock(stopAll:=0) {
      HotkeysList("Off")
      activated := 0
   }
-
+  Sleep, 25
   If (MouseKeysHalo=1 && stopAll=0 && MouseKeys=1)
-     MainExe.ahkPostFunction("ToggleMouseKeysHalo")
+     MainExe.ahkFunction("ToggleMouseKeysHalo")
+
+  If (silent=0)
+  {
+     If (activated=0)
+        ToolTip, Disabled Mouse keys
+     Else If (activated=1)
+        ToolTip, Enabled mouse keys
+     SetTimer, TurnOFFtooltip, -950
+  }
 }
 
-ToggleCapsLock() {
+TurnOFFtooltip() {
+  ToolTip
+}
+
+ToggleLockMode() {
+  ScrLockState := GetKeyState("ScrollLock", "T")
+  If (ScrLockState=0)
+     ToolTip, Enabled Auto-Lock Mode
+  Else
+     ToolTip, Disabled Auto-Lock Mode
+  SetTimer, TurnOFFtooltip, -950
+}
+
+ToggleCapsLock(silent:=0) {
   True2ndSpeed := MouseCapsSpeed/10
   SetTimer, MouseMoverTimer, Off
-
-  buttonsDownList := ""
+  NumLockState := GetKeyState("NumLock", "T")
   CapsLockState := GetKeyState("CapsLock", "T")
   If (CapsLockState=0)
   {
@@ -229,9 +254,23 @@ ToggleCapsLock() {
      If (MouseMaxSpeed<1)
         MouseMaxSpeed := 1
   }
+  If (silent=0)
+  {
+     If (CapsLockState=0 && NumLockState=0 && locked=0)
+        ToolTip, Normal speed
+     Else If (NumLockState=0 && locked=0)
+        ToolTip, Alternate speed
+     If (locked=0)
+        SetTimer, TurnOFFtooltip, -950
+  }
 }
 
 ;Mouse click support
+
+CancelLock() {
+  If (locked=1)
+     ButtonEnter(0)
+}
 
 ButtonTheClicks() {
   ButtonEnter(0)
@@ -296,9 +335,9 @@ ButtonRightClick() {
 }
 
 ButtonEnter(doNotLock:=1) {
-  If !lastClick
+  If (!lastClick || PrefOpen=1)
      Return
-  buttonsDownList := ""
+
   If (locked=1)
   {
      SetTimer, MouseMoverTimer, Off
@@ -319,10 +358,23 @@ ButtonEnter(doNotLock:=1) {
   }
 }
 
+checkModsHeld() {
+  For i, mod in MainModsList
+  {
+      If GetKeyState(mod)
+         modsHeld .= mod "+"
+  }
+  profix := CompactModifiers(modsHeld)
+  Sort, profix, U D+
+  StringReplace, profix, profix, +, %A_Space%+%A_Space%, All
+  Return profix
+}
+
 ButtonClickStart() {
   MouseClick, %lastClick%,,, 1, 0, D
   clickHeldDown := 1
-  MainExe.ahkPostFunction("OnMouseKeysPressed", lastClick " Click")
+  modsHeld := checkModsHeld()
+  MainExe.ahkPostFunction("OnMouseKeysPressed", modsHeld lastClick " Click")
   SetTimer, ButtonClickEnd, 20
 }
 
@@ -331,7 +383,7 @@ ButtonClickEnd() {
   LClickDown := GetKeyState("NumpadClear", "P")
   RClickDown := GetKeyState("NumpadIns", "P")
   MClickDown := GetKeyState("NumpadDel", "P")
-  if (LClickDown=1 || RClickDown=1 || MClickDown=1)
+  if (LClickDown=1 || RClickDown=1 || MClickDown=1 )
      Return
   SetTimer,, Off
   ; MouseClick, %lastClick%,,, 1, 0, U
@@ -384,8 +436,8 @@ CalculateSpeed(ByRef MoveX, ByRef MoveY,reset:=0, wheelMode:=0) {
      CurrentSpeed := MouseMaxSpeed
   MoveX := Round(CurrentSpeed/2)
   MoveY := Round(CurrentSpeed/2)
-  lastCalc := A_TickCount
-;    ToolTip, %currentspeed% - %MouseMaxSpeed% - %MouseSpeed%
+ ; If (CurrentSpeed!=MouseNumpadSpeed1)
+;     ToolTip, %currentspeed% - %repeats%, 500, 500 ; - %MouseMaxSpeed% - %MouseSpeed%
 }
 
 MouseEventAPI(x, y) {
@@ -394,16 +446,19 @@ MouseEventAPI(x, y) {
 }
 
 MouseMover() {
-  SetTimer, MouseMoverTimer, -25
+  If (PrefOpen!=1)
+     SetTimer, MouseMoverTimer, -25
 }
 
 MouseMoverTimer() {
-  Static AllPadsState, dF := 1.25   ; diagonals max-speed scaling factor
-  StringReplace, NumPadButton, A_ThisHotkey, *
+  Static lastCalc, AllPadsState, dF := 1.25   ; diagonals max-speed scaling factor
+  If (A_TickCount - lastCalc > 15000)
+     buttonsDownList := ""
+
+  StringReplace, NumPadButton, A_ThisHotkey, *num
   If !InStr(buttonsDownList, NumPadButton)
      buttonsDownList .= NumPadButton ","
-
-  PadUpDown := PadDownDown := PadLeftDown := PadRightDown := PadPgUpDown := PadHomeDown := PadEndDown := PadPgDnDown := 0
+  ; StringRight, buttonsDownList, buttonsDownList, 20
   PadUpDown := GetKeyState("NumpadUp", "P")
   PadDownDown := GetKeyState("NumpadDown", "P")
   PadLeftDown := GetKeyState("NumpadLeft", "P")
@@ -419,50 +474,51 @@ MouseMoverTimer() {
   MoveX0 := MoveX1 := MoveX2 := MoveX3 := MoveX4 := MoveX5 := MoveX6 := MoveX7 := 0
   MoveY0 := MoveY1 := MoveY2 := MoveY3 := MoveY4 := MoveY5 := MoveY6 := MoveY7 := 0
 
-  If (PadUpDown=1 && InStr(buttonsDownList, NumPadButton))
-  {
-     MoveY0 := -1 * MoveY*2
-     MoveX0 := 0
-  }
-  if (PadDownDown=1 && InStr(buttonsDownList, NumPadButton))
-  {
-     MoveY1 := MoveY*2
-     MoveX1 := 0
-  }
-  if (PadLeftDown=1 && InStr(buttonsDownList, NumPadButton))
-  {
-     MoveX2 := -1 * MoveX*2
-     MoveY2 := 0
-  }
-  if (PadRightDown=1 && InStr(buttonsDownList, NumPadButton))
-  {
-     MoveX3 := MoveX*2
-     MoveY3 := 0
-  }
-  if (PadHomeDown=1 && InStr(buttonsDownList, NumPadButton))
-  {
-     MoveX4 := -dF * MoveX
-     MoveY4 := -dF * MoveY
-  }
-  if (PadPgUpDown=1 && InStr(buttonsDownList, NumPadButton))
-  {
-     MoveY5 := -dF * MoveY
-     MoveX5 := MoveX * dF
-  }
-  if (PadEndDown=1 && InStr(buttonsDownList, NumPadButton))
-  {
-     MoveX6 := -dF * MoveX
-     MoveY6 := MoveY * dF
-  }
-  if (PadPgDnDown=1 && InStr(buttonsDownList, NumPadButton))
-  {
-     MoveX7 := MoveX * dF
-     MoveY7 := MoveY * dF
-  }
+    If (PadUpDown=1) && InStr(buttonsDownList, "PadUp")
+    {
+       MoveY0 := -1 * MoveY*2
+       MoveX0 := 0
+    }
+    if (PadDownDown=1) && InStr(buttonsDownList, "PadDown")
+    {
+       MoveY1 := MoveY*2
+       MoveX1 := 0
+    }
+    if (PadLeftDown=1) && InStr(buttonsDownList, "PadLeft")
+    {
+       MoveX2 := -1 * MoveX*2
+       MoveY2 := 0
+    }
+    if (PadRightDown=1) && InStr(buttonsDownList, "PadRight")
+    {
+       MoveX3 := MoveX*2
+       MoveY3 := 0
+    }
+    if (PadHomeDown=1) && InStr(buttonsDownList, "PadHome")
+    {
+       MoveX4 := -dF * MoveX
+       MoveY4 := -dF * MoveY
+    }
+    if (PadPgUpDown=1) && InStr(buttonsDownList, "PadPgUp")
+    {
+       MoveY5 := -dF * MoveY
+       MoveX5 := MoveX * dF
+    }
+    if (PadEndDown=1) && InStr(buttonsDownList, "PadEnd")
+    {
+       MoveX6 := -dF * MoveX
+       MoveY6 := MoveY * dF
+    }
+    if (PadPgDnDown=1) && InStr(buttonsDownList, "PadPgDn")
+    {
+       MoveX7 := MoveX * dF
+       MoveY7 := MoveY * dF
+    }
+
   FinMoveX := MoveX0 + MoveX1 + MoveX2 + MoveX3 + MoveX4 + MoveX5 + MoveX6 + MoveX7
   FinMoveY := MoveY0 + MoveY1 + MoveY2 + MoveY3 + MoveY4 + MoveY5 + MoveY6 + MoveY7
   testHighest := Max(Abs(FinMoveX), Abs(FinMoveY))
-
+;  ToolTip, %AllPadsState% %FinMoveX% - %FinMoveY% - %NumPadButton% - %buttonsDownList% - %A_ThisHotkey%
   If (testHighest>MouseMaxSpeed)
   {
      Loop
@@ -473,11 +529,24 @@ MouseMoverTimer() {
      } Until (total<MouseMaxSpeed*dF)
   }
   MouseEventAPI(Ceil(FinMoveX), Ceil(FinMoveY))
-  If InStr(AllPadsState, "1")
+  If InStr(AllPadsState, "1") && StrLen(NumPadButton)>2 && testHighest>0
      SetTimer, MouseMoverTimer, -25
 
   If (MouseKeysWrap=1)
      ScreenWrap()
+
+  If (locked=1)
+     SetTimer, ActivateWinUM, -900
+
+  lastCalc := A_TickCount
+}
+
+ActivateWinUM() {
+  If (locked!=1)
+     Return
+  MainExe.ahkPostFunction("genericBeeper")
+  MouseGetPos,,, WinUMID
+  WinActivate, ahk_id %WinUMID%
 }
 
 ;Mouse wheel movement support
@@ -496,29 +565,52 @@ ButtonWheels() {
   MoveX := Round(MoveX/MouseWheelSpeed)
   If (MoveX<1)
      MoveX := 1
+
+  modsHeld := checkModsHeld()
   If (NumPidButton="NumpadDiv")
   {
      MouseClick, WheelLeft,,, %MoveX%, 0
      If (showMsg=1)
-        MainExe.ahkPostFunction("OnMouseKeysPressed", "Wheel Left")
+        MainExe.ahkPostFunction("OnMouseKeysPressed", modsHeld "Wheel Left")
   } else if (NumPidButton="NumpadMult")
   {
      MouseClick, WheelRight,,, %MoveX%, 0
      If (showMsg=1)
-        MainExe.ahkPostFunction("OnMouseKeysPressed", "Wheel Right")
+        MainExe.ahkPostFunction("OnMouseKeysPressed", modsHeld "Wheel Right")
   } else if (NumPidButton="NumpadAdd")
   {
      MouseClick, WheelDown,,, %MoveX%, 0
      If (showMsg=1)
-        MainExe.ahkPostFunction("OnMouseKeysPressed", "Wheel Down")
+        MainExe.ahkPostFunction("OnMouseKeysPressed", modsHeld "Wheel Down")
   } else if (NumPidButton="NumpadSub")
   {
      MouseClick, WheelUp,,, %MoveX%, 0
      If (showMsg=1)
-        MainExe.ahkPostFunction("OnMouseKeysPressed", "Wheel Up")
+        MainExe.ahkPostFunction("OnMouseKeysPressed", modsHeld "Wheel Up")
   }
   lastCalc := A_TickCount
 }
+
+WinKeyZoomInOut() {
+  btn := InStr(A_ThisHotkey, "sub") ? "[ - ]" : "[ + ]"
+  MainExe.ahkPostFunction("OnMouseKeysPressed", "WinKey + " btn)
+  Return
+}
+
+CompactModifiers(ztr) {
+    Static CompactPattern := {"LCtrl":"Ctrl", "RCtrl":"Ctrl", "LShift":"Shift", "RShift":"Shift"
+             , "LAlt":"Alt", "LWin":"WinKey", "RWin":"WinKey", "RAlt":"AltGr"}
+    If (DifferModifiers=0)
+    {
+       StringReplace, ztr, ztr, LCtrl+RAlt, AltGr, All
+       StringReplace, ztr, ztr, AltGr+RAlt, AltGr, All
+       StringReplace, ztr, ztr, AltGr+LCtrl, AltGr, All
+       For k, v in CompactPattern
+           StringReplace, ztr, ztr, %k%, %v%, All
+    }
+    Return ztr
+}
+
 
 ; The following two functions were extracted and modified
 ; from MouseWrapper v1.2 by Paegus (paegus@gmail.com)
@@ -581,18 +673,6 @@ ScreenWrap() {
   }
 }
 
-
-WM_WTSSESSION_CHANGE(wParam, lParam, Msg, hWnd){
-; function by Nextron
-; found on https://autohotkey.com/boards/viewtopic.php?t=8023
-  static init := DllCall("Wtsapi32.dll\WTSRegisterSessionNotification", UInt, A_ScriptHwnd, UInt, 1)
-  
-  If (wParam=0x7)       ; lock
-     SuspendScript(0)
-  Else If (wParam=0x8)  ; unlock
-     SuspendScript(1)
-}
-
 SessionIsLocked() {
   static WTS_CURRENT_SERVER_HANDLE := 0, WTSSessionInfoEx := 25, WTS_SESSIONSTATE_LOCK := 0x00000000, WTS_SESSIONSTATE_UNLOCK := 0x00000001 ;, WTS_SESSIONSTATE_UNKNOWN := 0xFFFFFFFF
   ret := False
@@ -605,10 +685,6 @@ SessionIsLocked() {
     DllCall("wtsapi32\WTSFreeMemory", "Ptr", sesInfo)
   }
   return ret
-}
-
-dummy() {
-  Return
 }
 
 GetPhysicalCursorPos(ByRef mX, ByRef mY) {

@@ -11,8 +11,12 @@ http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip
 
 by Marius Sucan (robodesign.ro)
 
+  v4.30.8 (2018-04-22)
+  - more bug fixes; important bug fixes as well
+
   v4.30.7 (2018-04-19)
   - more bug fixes
+  - more changes to the mouse keys script; drag 'n drop is now possible with 'locked' click... and hopefully, now, mouse movements do not get stuck anymore
 
   v4.30.6 (2018-04-18)
   - various (minor) bug fixes
@@ -29,7 +33,7 @@ by Marius Sucan (robodesign.ro)
   - [new] option at Keyboard > Clipboard Manager, to keep store clipboards even when the OSD is hidden [private mode]. This enable users to still be able to use the clipboard manager when they do not want the OSD.
   - minor bug fixes
 
-  v4.30.0 (2018-04-13)
+  v4.30.0 (2018-04-13) - major release
   - [new] Mouse Keys. Control the mouse cursor with the numpad keys.
     - ability to move in 16 directions
     - toggle Capslock to move at an alternate speed
@@ -119,7 +123,7 @@ by Marius Sucan (robodesign.ro)
   - more work on comments through the code
   - minor bug fixes
 
-  v4.26.5 (2018-03-16)
+  v4.26.5 (2018-03-16) - major release
   - [new] option to set interval for text expansion
   - [new] option to deactivate automatic pasting of clipboard content when selecting a previous clipboard
   - [new] for clipboard history, an option to set a limit for formatted texts; what exceeds this limit, will be stored as raw text.
@@ -166,7 +170,7 @@ by Marius Sucan (robodesign.ro)
   v4.23.1 (2018-03-07)
   - fixed bug that caused crashes on x32
 
-  v4.23 (2018-03-06)
+  v4.23 (2018-03-06) - major release
   - [new] multi-clipboard support; with WinKey + V, previous clipboard contents can be restored; it preserves html and text formatting; from this menu, you can also restore previously written lines in the OSD
   - [improvement] the global shortcuts panel is now able to detect identic keyboard shortcuts
   - bug fixes related to text expand feature
@@ -223,11 +227,12 @@ by Marius Sucan (robodesign.ro)
   v4.20.2 (2018-02-15)
   - [overhaul] the entire Keyboard shortcut customization panel redone from scratch, it should work this time and, should also be user friendly
 
-  v4.20.1 (2018-02-14)
+  v4.20.1 (2018-02-14) - major release
   - [new] option to save and update in real time changes you make at Mouse preferences, this is meant to facilitate configuration
 
   - [new] Shortcuts configuration/customization is now user-friendly; each shortcut is redefined on what you press. With Esc, the shortcut returns to its default, with Delete, you disable it.
   - [new] PayPal button for donations at About window: https://www.paypal.me/MariusSucan/15 .
+
   v4.20 (2018-02-13)
   - [new] Shortcuts configuration/customization is now user-friendly; each shortcut is redefined on what you press. With Esc, the shortcut returns to its default, with Delete, you disable it.
   - [new] PayPal button for donations at About window: https://www.paypal.me/MariusSucan/15 .
@@ -271,7 +276,7 @@ by Marius Sucan (robodesign.ro)
   - re-added option to mediate Left/Right and Delete keys for slow computers
   - improved behavior when the language definitions file is missing; it no longer disables stuff it shouldn't
 
-  v4.18.1 (2018-02-02)
+  v4.18.1 (2018-02-02) - major release
   - [new] mouse text collector [experimental new feature]; with this feature enabled, KeyPress will continously capture text underneath the mouse cursor from applications that implement the Microsoft's Accessibility APIs [MSAA] and allow screen readers. The implementation of this feature makes use of scripts written by nepter(?), Sean and jethrow...
   - [new] option to enable/disable "LEDs" to indicate key states in the OSD. This applies for Alt, Ctrl, Shift, Winkey and Caps / Num / Scroll lock. [inspired by some of the work from Drugwash]
   - [improvement] if the cursor is at the end or beginning of the line, the caret changes into different shapes, corresponding to the following keys: left/right, home/end, up/down, page up/down, bksp/del... this is meant to offer visual feedback to the user when the caret remains still and these keys are pressed [inspired by some of the work from Drugwash]
@@ -309,7 +314,7 @@ by Marius Sucan (robodesign.ro)
   - mediate navigation keys limited now to Home / End only
   - various bug fixes related to Mediated key strokes for caret jumps
 
-  v4.10.0 (2018-01-24)
+  v4.10.0 (2018-01-24) - major release
   - [new] the script will not reload when you go to check different settings windows; it will reload only when settings are changed
   - [new] now you can disable each global keyboard shortcut individually
   - many bug fixes, important ones
@@ -368,7 +373,7 @@ by Marius Sucan (robodesign.ro)
   v3.98.7 (2018-01-15)
   - [bug fixed] the "too many fonts" error is fixed now. AHK is limited to 200 fonts, but using Font Library, I managed to circumvent this problem. This error apeared at Preferences when changing/previewing many fonts.
 
-  v3.98.5 (2018-01-13) - final
+  v3.98.5 (2018-01-13) - major release
   - [new] reorganized Typing mode settings window. Made it more informative and better organized and clean.
   - [new] option to change typing delays required internally to allow host apps to receive dead keys properly.... by changing this multiplier, you can make dead keys work well, even if "Do not bind dead keys" is activated.
   - minor bug fixes
@@ -416,7 +421,7 @@ by Drugwash [from the AHK forums]
   - improved the positioning of visual mouse clicks elements
 
 by Marius Sucan (robodesign.ro)
-  v3.95 (2018-01-05)
+  v3.95 (2018-01-05) - major release
   - [new] option to paste on click the written text when using the alternate typing mode
   - [new] option to immediately change to alternate typing mode, when typing
   - [new] option to deactivate/activate the keyboard shortcut for alternate typing mode
@@ -934,6 +939,7 @@ by tmplinshi from https://autohotkey.com/boards/viewtopic.php?f=6&t=225
 
   v1.00 (2013-10-11) - major release
   - First release by tmplinshi based on RaptorX. Function keys, numpad keys and mouse clicks support. Popups at mouse position.
+
   v0.50 (2010-03-18)
   - Released by RaptorX.
 ---------------------------------------------------------------
@@ -942,6 +948,7 @@ TO-DO:
 Features to implement:
  - afișează shortcuts in meniuri
  - add shortcut to add/remove auto-replace entries
+   - If UserTypedWord="+//+" offer a dialog ?
 
 - compile the thing! include all scripts inside?
   - separate UI settings and tray menu? separate files with include
@@ -956,20 +963,15 @@ Features to implement:
 - integrate Vis2
 
 
-RASPUNDE LA OLANDEZI!!!!!!!!!
-
-
-- it sometimes
- -- crashes on restart
- -- hangs after system unlock
+ - it sometimes crashes on restart
+ - one cannot drag the OSD with Mouse Keys
  - reparații la mouse ripples; wheel up/down frequency mess-up
  - KeyStrokeAider can cause crashes after a long period of running
+ - updater.bat does not work in XP
  - Drugwash: checkWindowKBD() - TO FIX
 
- -- mouse keys directions remain stuck down [is it fixed now ?!?]
- -- fails to recalc visible text field [probably fixed now]
- - [Justice PC] test if mouse ripples can still cause silent crashes [probably fixed now]
- - updater.bat does not work in XP
+- probably fixed
+  -- [Justice PC] test if mouse ripples can still cause silent crashes
 
 
 - auto-correct [with 1,2,3] - long words; visualize first
@@ -1000,8 +1002,6 @@ Glitches to fix or think of possible solutions:
   - use real caret data?
 - OSD is never on top of Start menu in Windows 10
 - support for Bengali, Assamese and other similar scripts is shady
- - shellmessage gets unhooked sometimes [partially fixed]
-   - how to detect if it is still registered?
 
 
 https://regex101.com/r/QKXvg9/1

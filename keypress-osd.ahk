@@ -149,7 +149,7 @@
 ;@Ahk2Exe-SetMainIcon Lib\keypress.ico
 ;@Ahk2Exe-SetName KeyPress OSD v4
 ;@Ahk2Exe-SetDescription KeyPress OSD v4 [mirror keyboard and mouse usage]
-;@Ahk2Exe-SetVersion 4.30.7
+;@Ahk2Exe-SetVersion 4.30.8
 ;@Ahk2Exe-SetCopyright Marius Şucan (2017-2018)
 ;@Ahk2Exe-SetCompanyName ROBODesign.ro
 ;@Ahk2Exe-SetOrigFilename keypress-osd.ahk
@@ -301,7 +301,6 @@
  , MouseIdleColor         := "333333"
  , MouseIdleRadius        := 130
  , MouseIdleFlash         := 1
- , MouseChangeFeedback    := 0
  , HideMhalosMcurHidden   := 1
  , MouseVclickAlpha       := 150   ; from 0 to 255
  , MouseVclickColor       := "555599"
@@ -358,8 +357,8 @@
  , DownloadExternalFiles  := 1
 
 ; Release info
- , Version                := "4.30.7"
- , ReleaseDate            := "2018 / 04 / 19"
+ , Version                := "4.30.8"
+ , ReleaseDate            := "2018 / 04 / 22"
  , hMutex, ScriptInitialized, FirstRun := 1
  , KPregEntry := "HKEY_CURRENT_USER\SOFTWARE\KeyPressOSD\v4"
 
@@ -491,6 +490,7 @@ Global Debug := 0    ; for testing purposes
  , MissingAudios := 0
  , GlobalPrefix := ""
  , LargeUIfontValue := 13
+ , CurrentDPI := A_ScreenDPI
  , InstKBDsWinOpen, CurrentTab, AnyWindowOpen := 0
  , PreviewWindowText := "Preview " Lola "window... " Lola2
  , MainModsList := ["LCtrl", "RCtrl", "LAlt", "RAlt", "LShift", "RShift", "LWin", "RWin"]
@@ -539,26 +539,16 @@ InitializeTray()
 If (ClipMonitor=1 || EnableClipManager=1)
    OnClipboardChange("ClipChanged")
 
-hCursM := DllCall("user32\LoadCursorW", "Ptr", NULL, "Int", 32646, "Ptr")  ; IDC_SIZEALL
-hCursH := DllCall("user32\LoadCursorW", "Ptr", NULL, "Int", 32649, "Ptr")  ; IDC_HAND
-OnMessage(0x200, "MouseMove")    ; WM_MOUSEMOVE
 If (ExpandWords=1 && DisableTypingMode=0)
    InitExpandableWords()
 If (EnableClipManager=1)
    InitClipboardManager()
 
-If (SafeModeExec!=1)
-{
-   info := DllCall("RegisterShellHookWindow", "UInt", hOSD)
-   If (info!=1)
-   {
-      Sleep, 10
-      info := DllCall("RegisterShellHookWindow", "UInt", hOSD)
-   }
-   MsgNum := DllCall("RegisterWindowMessage", "Str","SHELLHOOK")
-   ; ToolTip, %info% - %msgnum%
-   OnMessage(MsgNum, "ShellMessage")
-}
+hCursM := DllCall("user32\LoadCursorW", "Ptr", NULL, "Int", 32646, "Ptr")  ; IDC_SIZEALL
+hCursH := DllCall("user32\LoadCursorW", "Ptr", NULL, "Int", 32649, "Ptr")  ; IDC_HAND
+OnMessage(0x200, "MouseMove")    ; WM_MOUSEMOVE
+If DllCall("wtsapi32\WTSRegisterSessionNotification", "Ptr", hMain, "UInt", 0)
+   OnMessage(0x02B1, "WM_WTSSESSION_CHANGE")
 ModsLEDsIndicatorsManager()
 Sleep, 5
 ScriptInitialized := 1      ; the end of the autoexec section and INIT
@@ -598,7 +588,7 @@ OnMudPressed() {
     {
        SetCapsLockState, off
        If (MouseKeys=1) && (A_TickCount-Tickcount_start2 > 50)
-          MouseNumpadThread.ahkPostFunction["ToggleCapsLock"]
+          MouseNumpadThread.ahkPostFunction["ToggleCapsLock", 1]
        If (OSDshowLEDs=1)
           GuiControl, OSD:, CapsLED, 0
     }
@@ -686,10 +676,9 @@ OnMouseKeysPressed(key) {
           SetTimer, ClicksTimer, 400, 50
        If !(InStr(key, "left click") && StrLen(key)<12 && HideAnnoyingKeys=1)
           ShowHotkey(key)
+       SetTimer, HideGUI, % -DisplayTime
        If StrLen(Typed)>2
           SetTimer, ReturnToTyped, % -DisplayTime/4
-       Else
-          SetTimer, HideGUI, % -DisplayTime
     }
     If (ShowMouseRipples=1)
     {
@@ -1413,6 +1402,8 @@ OnEscPressed() {
    TrueRmDkSymbol := ""
    If (A_TickCount-LastTypedSince < 500) || (A_TickCount-DeadKeyPressed < 500)
       Return
+   If (MouseKeys=1)
+      MouseNumpadThread.ahkPostFunction["CancelLock"]
    If (StrLen(Typed)>1 && DisableTypingMode=0 && SecondaryTypingMode=0
    && (A_TickCount-LastTypedSince < ReturnToTypingDelay))
    {
@@ -2413,9 +2404,9 @@ ReturnToTyped() {
     && (A_TickCount-LastTypedSince < ReturnToTypingDelay)
     && ShowSingleKey=1 && DisableTypingMode=0)
     {
-        CalcVisibleText()
-        ShowHotkey(VisibleTextField)
-        SetTimer, HideGUI, % -DisplayTimeTyping
+       CalcVisibleText()
+       ShowHotkey(VisibleTextField)
+       SetTimer, HideGUI, % -DisplayTimeTyping
     }
 }
 
@@ -2788,6 +2779,7 @@ ShellMessageDummy() {
      cleanTypeSlate()
      HideGUI()
   }
+
   WinGetActiveTitle, title
   If InStr(title, "KeyPressOSDwin")
      SetTimer, HideGUI, -500
@@ -2795,9 +2787,9 @@ ShellMessageDummy() {
   LEDsIndicatorsManager()
   If (MouseKeys=1)
   {
-     ToggleMouseKeysHalo()
-     MouseNumpadThread.ahkPostFunction["ToggleNumLock"]
-     MouseNumpadThread.ahkPostFunction["ToggleCapsLock"]
+     If (MouseKeysHalo=1)
+        ToggleMouseKeysHalo()
+     MouseNumpadThread.ahkPostFunction["ToggleNumLock", 0, 1]
   }
 }
 
@@ -3497,6 +3489,11 @@ modsTimer() {
 
 modHeldDownBeeper() {
    If (SilentMode=0 && BeepFiringKeys=1 && (A_TickCount-Tickcount_start>950))
+      SoundsThread.ahkPostFunction["holdingKeys", ""]
+}
+
+genericBeeper() {
+   If (SilentMode=0)
       SoundsThread.ahkPostFunction["holdingKeys", ""]
 }
 
@@ -7775,7 +7772,6 @@ ShowMouseSettings() {
     Gui, Add, ListView, xs+16 y+15 w60 h25 %CCLVO% Background%MouseHaloColor% vMouseHaloColor hwndhLV4,
     Gui, Add, Slider, x+5 w%sliderWidth% ToolTip NoTicks Line3 gVerifyMouseOptions vMouseHaloAlpha Range20-240, %MouseHaloAlpha%
     Gui, Add, Text, x+5 veditF4, % Round(MouseHaloAlpha / 255 * 100) " % opacity"
-    Gui, Add, Checkbox, xs+16 y+21 gVerifyMouseOptions Checked%MouseChangeFeedback% vMouseChangeFeedback, Audio-visual feedback on cursor changes
 
     Gui, Add, Checkbox, gVerifyMouseOptions xs+0 y+25 Checked%ShowMouseIdle% vShowMouseIdle, Show idle mouse halo
     Gui, Add, Checkbox, gVerifyMouseOptions x+15 yp Checked%MouseIdleFlash% vMouseIdleFlash, Flashing
@@ -7862,7 +7858,6 @@ VerifyMouseOptions(EnableApply:=1) {
     GuiControlGet, MouseRippleFrequency
     GuiControlGet, MouseRippleThickness
     GuiControlGet, MouseRippleMaxSize
-    GuiControlGet, MouseChangeFeedback
     GuiControlGet, HideMhalosMcurHidden
     GuiControlGet, MouseKeys
     GuiControlGet, MouseKeysHalo
@@ -7923,7 +7918,6 @@ VerifyMouseOptions(EnableApply:=1) {
     GuiControl, %action2%, MouseHaloRadius
     GuiControl, %action2%, MouseHaloColor
     GuiControl, %action2%, MouseHaloAlpha
-    GuiControl, %action2%, MouseChangeFeedback
     GuiControl, %action2%, editF3
     GuiControl, %action2%, editF4
     GuiControl, %action2%, editF16
@@ -8023,7 +8017,6 @@ SendVarsMouseAHKthread(initMode) {
    sendMouseVar("MouseHaloColor")
    sendMouseVar("MouseHaloRadius")
    sendMouseVar("HideMhalosMcurHidden")
-   sendMouseVar("MouseChangeFeedback")
    sendMouseVar("MouseIdleAfter")
    sendMouseVar("MouseIdleAlpha")
    sendMouseVar("MouseIdleColor")
@@ -8118,7 +8111,7 @@ ToggleMouseKeysHalo() {
       MouseFuncThread.ahkassign("MouseHaloRadius", MouseKeysHaloRadius)
   }
   Sleep, 25
-  MouseFuncThread.ahkPostFunction["MouseInit"]
+  MouseFuncThread.ahkFunction["MouseInit"]
 }
 
 SendVarsRipplesAHKthread(initMode) {
@@ -8144,6 +8137,7 @@ SendVarsMouseKeysAHKthread(initMode) {
    sendMkeysVar("MouseCapsSpeed")
    sendMkeysVar("MouseKeysHalo")
    sendMkeysVar("MouseKeysWrap")
+   sendMkeysVar("DifferModifiers")
    If (MouseKeys=1 && initMode=1)
       MouseNumpadThread.ahkPostFunction["MouseKeysInit"]
 }
@@ -8163,7 +8157,6 @@ updateRealTimeSettings() {
      MouseRipplesThread.ahkPostFunction["MouseRippleUpdate"]
      Sleep, 5
      SendVarsMouseKeysAHKthread(0)
-     MouseNumpadThread.ahkPostFunction["ToggleCapsLock"]
      Sleep, 5
      MouseNumpadThread.ahkPostFunction["SuspendScript", MouseKeys]
   } Else If (CurrentPrefWindow=1)
@@ -8987,7 +8980,7 @@ updateNow() {
         SuspendScript()
      Sleep, 150
      PrefOpen := 1
-     mainFileBinary := (Is64BitExe(A_ScriptName)=1) ? "keypress-osd-x64.exe" : "keypress-osd-x32.exe"
+     mainFileBinary := (Is64BitExe(A_ScriptFullPath)=1) ? "keypress-osd-x64.exe" : "keypress-osd-x32.exe"
      mainFileTmp := A_IsCompiled ? "new-keypress-osd.exe" : "temp-keypress-osd.ahk"
      mainFile := A_IsCompiled ? mainFileBinary : "keypress-osd.ahk"
      mainFileURL := BaseURL mainFile
@@ -9478,6 +9471,7 @@ INIsettings(a) {
   INIaction(a, "ShowSingleKey", "OSDprefs")
   INIaction(a, "ShowSingleModifierKey", "OSDprefs")
   INIaction(a, "CapsColorHighlight", "OSDprefs")
+  INIaction(a, "CurrentDPI", "OSDprefs")
   INIaction(a, "DisplayTimeUser", "OSDprefs")
   INIaction(a, "DragOSDmode", "OSDprefs")
   INIaction(a, "FontName", "OSDprefs")
@@ -9526,7 +9520,6 @@ INIsettings(a) {
   INIaction(a, "ShowMouseVclick", "Mouse")
   INIaction(a, "ShowMouseRipples", "Mouse")
   INIaction(a, "ShowCaretHalo", "Mouse")
-  INIaction(a, "MouseChangeFeedback", "Mouse")
   INIaction(a, "MouseHaloAlpha", "Mouse")
   INIaction(a, "MouseHaloColor", "Mouse")
   INIaction(a, "MouseHaloRadius", "Mouse")
@@ -9669,7 +9662,6 @@ CheckSettings() {
     BinaryVar(ShowMouseButton, 1)
     BinaryVar(ShowMouseHalo, 0)
     BinaryVar(ShowMouseIdle, 0)
-    BinaryVar(MouseChangeFeedback, 0)
     BinaryVar(HideMhalosMcurHidden, 1)
     BinaryVar(ShowMouseRipples, 0)
     BinaryVar(ShowMouseVclick, 0)
@@ -9726,6 +9718,12 @@ CheckSettings() {
 
     If (AutoDetectKBD=0)
        ConstantAutoDetect := 0
+
+    If (CurrentDPI!=A_ScreenDPI)
+    {
+       CurrentDPI := A_ScreenDPI
+       OSDsizingFactor := calcOSDresizeFactor()
+    }
 
 ; verify numeric values: min, max and default values
     MinMaxVar(MouseNumpadTopSpeed1, 5, 250, 35)
@@ -10003,14 +10001,14 @@ InitAHKhThreads() {
           }
       }
       Sleep, 10
-      If IsMouseNumpadFile
-         SendVarsMouseKeysAHKthread(1)
-      Sleep, 10
       If IsRipplesFile
          SendVarsRipplesAHKthread(1)
       Sleep, 10
       If IsMouseFile
          SendVarsMouseAHKthread(1)
+      Sleep, 10
+      If IsMouseNumpadFile
+         SendVarsMouseKeysAHKthread(1)
       Sleep, 10
       If IsSoundsFile
          SendVarsSoundsAHKthread()
@@ -10022,6 +10020,7 @@ Cleanup() {
     OnMessage(0x200, "")
     OnMessage(0x102, "")
     OnMessage(0x103, "")
+    DllCall("wtsapi32\WTSUnRegisterSessionNotification", "Ptr", hMain)
     func2exec := "ahkThread_Free"
     If (NoAhkH!=1 || SafeModeExec!=1)
     {
@@ -10371,4 +10370,37 @@ CheckAcc:
      ahkThread_Free(deleteME)   ; comment/delete this line to execute this script with AHK_L
   }
 Return
+
+
+
+
+
+WM_WTSSESSION_CHANGE(wParam, lParam, Msg, hWnd){
+; function by Drugwash and modified by Marius Șucan
+
+  If (wParam=0x7)       ; lock
+     PrefOpen := 1
+  Else If (wParam=0x8)  ; unlock
+     PrefOpen := 0
+
+  If (wParam=0x7) || (wParam=0x8)
+  {
+     If (Capture2Text=1)
+        ToggleCapture2Text()
+     If (AccTextCaptureActive=1)
+        ToggleAccCaptureText()
+
+     If (AltHook2keysUser=1 && DeadKeys=1 && DisableTypingMode=0)
+        KeyStrokesThread.ahkassign("PrefOpen", PrefOpen)
+
+     If (NoAhkH!=1)
+     {
+        TypingAidThread.ahkassign("PrefOpen", PrefOpen)
+        MouseFuncThread.ahkassign("PrefOpen", PrefOpen)
+        MouseRipplesThread.ahkassign("PrefOpen", PrefOpen)
+        MouseNumpadThread.ahkassign("PrefOpen", PrefOpen)
+        SoundsThread.ahkassign("PrefOpen", PrefOpen)
+     }
+  }
+}
 

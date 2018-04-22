@@ -38,7 +38,7 @@ Global IniFile           := "keypress-osd.ini"
  , WinMouseRipples := "KeyPress OSD: Mouse click ripples"
  , MButtons := "LButton|MButton|RButton|WheelDown|WheelUp|WheelLeft|WheelRight"
  , MainMouseRippleThickness
- , Period, PointDir, tf
+ , Period, PointDir, tf, PrefOpen
  , isRipplesFile := 1
  , style1        := "GdipDrawEllipse"
  , style2        := "GdipDrawRectangle"
@@ -153,7 +153,7 @@ MouseRippleUpdate() {
 ShowRipple(_color, _style, _interval:=10, _dir:="") {
     Global
     Static lastStyle, lastEvent, lastClk := A_TickCount
-    If (ScriptelSuspendel="Y")
+    If (ScriptelSuspendel="Y" || PrefOpen=1)
        Return
 
     Sleep, 60

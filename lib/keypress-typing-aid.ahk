@@ -38,7 +38,7 @@ Global IsTypingAidFile    := 1
 , DKshift_list
 , AllDKsList := ""
 , moduleInitialized := 0
-, ScriptelSuspendel
+, ScriptelSuspendel, PrefOpen := 0
 , MainExe := AhkExported()
 
 Return
@@ -139,6 +139,7 @@ TypingKeysInit() {
        Hotkey, ~^vk58, dummy, useErrorLevel
        Hotkey, ~^vk5A, dummy, useErrorLevel
     }
+    MainExe.ahkPostFunction("genericBeeper")
 }
 
 GetKeyChar(key) {
@@ -181,22 +182,22 @@ GetKeyChar(key) {
 }
 
 OnLetterPressed() {
-  If (ScriptelSuspendel!="Y")
+  If (ScriptelSuspendel!="Y" || PrefOpen!=1)
      MainExe.ahkPostFunction("OnLetterPressed", 0, A_ThisHotkey)
 }
 
 OnLetterUp() {
-  If (ScriptelSuspendel!="Y")
+  If (ScriptelSuspendel!="Y" || PrefOpen!=1)
      MainExe.ahkPostFunction("OnLetterUp", A_ThisHotkey, A_PriorKey)
 }
 
 OnAltGrDeadKeyPressed() {
-  If (ScriptelSuspendel!="Y")
+  If (ScriptelSuspendel!="Y" || PrefOpen!=1)
      MainExe.ahkPostFunction("OnAltGrDeadKeyPressed", A_ThisHotkey)
 }
 
 OnDeadKeyPressed() {
-  If (ScriptelSuspendel!="Y")
+  If (ScriptelSuspendel!="Y" || PrefOpen!=1)
      MainExe.ahkPostFunction("OnDeadKeyPressed", A_ThisHotkey)
 }
 
