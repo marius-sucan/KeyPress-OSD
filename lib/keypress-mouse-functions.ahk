@@ -220,6 +220,8 @@ MouseHalo(killNow:=0) {
        If (!mX || !mY)
           Return
 
+       If (HideMhalosMcurHidden=1)
+          mouseCursorVisible := checkMcursorState(hpCursor)
        If (mouseCursorVisible=0 && HideMhalosMcurHidden=1)
        {
           MouseHalo(1)
