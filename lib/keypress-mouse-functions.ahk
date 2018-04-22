@@ -39,7 +39,6 @@ Global IniFile           := "keypress-osd.ini"
  , MouseIdleFlash        := 1     ; some may find it disturbing
  , MouseVclickAlpha      := 150   ; from 0 to 255
  , MouseVclickColor      := "555599"
- , MouseChangeFeedback   := 0
  , HideMhalosMcurHidden  := 1
  , CaretHaloAlpha        := 128   ; from 0 to 255
  , CaretHaloColor        := "BBAA99"  ; HEX format also accepted
@@ -57,6 +56,7 @@ Global IniFile           := "keypress-osd.ini"
  , SilentMode := 0
  , ScriptelSuspendel := 0
  , MouseClickCounter := 0
+ , PrefOpen := 0
  , MouseVclickScale := MouseVclickScaleUser/10
  , WinMouseHalo := "KeyPress OSD: Mouse halo"
  , WinMouseIdle := "KeyPress OSD: Mouse idle"
@@ -106,12 +106,14 @@ MouseClose() {
 
 ShowMouseIdleLocation() {
     Static
-
+    If (PrefOpen=1)
+       Return
     If (ShowMouseIdle=1 && (A_TimeIdle > MouseIdleAfter*1000) && ScriptelSuspendel!="Y")
     {
        MouseClickCounter := !MouseClickCounter
        AlphaVariator := MouseIdleFlash ? MouseIdleAlpha*MouseClickCounter : MouseIdleAlpha
-       mouseCursorVisible := checkMcursorState(hpCursor)
+       If (HideMhalosMcurHidden=1)
+          mouseCursorVisible := checkMcursorState(hpCursor)
        If (mouseCursorVisible=0 && HideMhalosMcurHidden=1)
        {
           idleOn := 0
@@ -167,12 +169,22 @@ ShowMouseIdleLocation() {
 
 checkMcursorState(ByRef hpCursor) {
 ; thanks to Drugwash
+    Static lastCalc, lastCalc2, h
+    If (lastCalc > 1)
+    {
+       If (lastCalc2 > 10)
+          lastCalc2 := lastCalc := 0
+       lastCalc2++
+       ; SoundBeep
+       Return h
+    }
     VarSetCapacity(CI, sz:=16+A_PtrSize, 0), z := NumPut(sz, CI, 0, "UInt")
     r := DllCall("user32\GetCursorInfo", "Ptr", &CI) ; get cursor info
     h := NumGet(CI, 4, "UInt"), hpCursor := NumGet(CI, 8, "Ptr")
     If (StrLen(hpCursor)>8 || hpCursor<100 || !InStr(hpCursor, "655"))
        h := 0
 ;    ToolTip, %h% - %hpCursor% - %r% - %z%
+    lastCalc++
     Return h
 }
 
@@ -183,6 +195,9 @@ mouseBleep() {
 
 MouseHalo(killNow:=0) {
     Static
+    If (PrefOpen=1)
+       Return
+
     If (ShowMouseHalo=0 || killNow=1
     || (HideMhalosMcurHidden=1 && A_TimeIdlePhysical>125000)
     || (A_TimeIdle > MouseIdleAfter*1000))
@@ -205,21 +220,10 @@ MouseHalo(killNow:=0) {
        If (!mX || !mY)
           Return
 
-       If (HideMhalosMcurHidden=1 || MouseChangeFeedback=1)
+       If (mouseCursorVisible=0 && HideMhalosMcurHidden=1)
        {
-          mouseCursorVisible := checkMcursorState(hpCursor)
-          If (hpCursor!=oldhpCursor && MouseChangeFeedback=1)
-          {
-             WinSet, Transparent, % MouseHaloAlpha/2, %WinMouseHalo%
-             SetTimer, mouseBleep, -1
-             WinSet, Transparent, %MouseHaloAlpha%, %WinMouseHalo%
-          }
-          oldhpCursor := hpCursor
-          If (mouseCursorVisible=0 && HideMhalosMcurHidden=1)
-          {
-             MouseHalo(1)
-             Return
-          }
+          MouseHalo(1)
+          Return
        }
 
        If (!IsHaloGui || (LastAlpha != MouseHaloAlpha)
@@ -245,6 +249,9 @@ MouseHalo(killNow:=0) {
 }
 
 OnMousePressed() {
+    If (PrefOpen=1)
+       Return
+
     If (ShowMouseVclick=1 && ScriptelSuspendel!="Y")
     {
        mkey := SubStr(A_ThisHotkey, 3)
@@ -253,6 +260,9 @@ OnMousePressed() {
 }
 
 OnKeyPressed() {
+    If (PrefOpen=1)
+       Return
+
     If (ShowMouseVclick=1 && ScriptelSuspendel!="Y")
     {
        mkey := SubStr(A_ThisHotkey, 3)
@@ -388,6 +398,8 @@ CaretHalo(restartNow:=0) {
     Static
     Static lastFlash := A_TickCount
          , CaretHaloW := CaretHaloH := mX := mY := 1
+    If (PrefOpen=1)
+       Return
 
     If (restartNow=1)
     {
@@ -498,7 +510,7 @@ ToggleMouseTimerz(force:=0) {
 GetFocusedCtrl(ByRef hCtrl) {
   Static sz := 24+6*A_PtrSize
   hcActive := WinExist("A")
-  if (hcActive=hMain)
+  if (hcActive=hMain || PrefOpen=1)
      Return -1337
   tID := DllCall("user32\GetWindowThreadProcessId", "Ptr", hcActive, "Ptr", 0)
   VarSetCapacity(GTI, sz, 0) ; GUITHREADINFO struct
@@ -513,7 +525,6 @@ GetFocusedCtrl(ByRef hCtrl) {
   Sleep, 5
   Return CaretH ? CaretH : 0
 }
-
 
 HaloRegion1(hwnd, x:=0, y:=0, w:=0, h:=0, t:=0) {
   hR1 := DllCall("gdi32\CreateEllipticRgn", "Int", x, "Int", y, "Int", w, "Int", h, "Ptr")

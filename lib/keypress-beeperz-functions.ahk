@@ -41,12 +41,23 @@ Global IniFile           := "keypress-osd.ini"
  , IsSoundsFile := 1
  , beepFromRes := 0       ; 1 if compiled and  it looks for the sound files inside the binary
  , ScriptelSuspendel := 0
- , moduleInitialized
- , ActiveSillySoundHack
+ , moduleInitialized, ActiveSillySoundHack, PrefOpen := 0
+ , MainExe := AhkExported()
 
 checkTeamViewerTimer()
-
+SetTimer, checkCurrentWindow, 900
 Return
+
+checkCurrentWindow() {
+  Static oldCurrWin
+  If (ScriptelSuspendel="Y" || PrefOpen=1)
+     Return
+
+  currWin := WinExist("A")
+  If (currWin!=oldCurrWin)
+     MainExe.ahkPostFunction("ShellMessageDummy")
+  oldCurrWin := currWin
+}
 
 CreateHotkey() {
     If (ToggleKeysBeeper=0 && CapslockBeeper=0 && KeyBeeper=0
@@ -506,8 +517,9 @@ checkInit() {
 ; function by Drugwash:
 ; ===============================
 SndPlay(snd:=0, wait:=0, noSentry:=0) {
-  If (ScriptelSuspendel="Y" || SilentMode=1)
+  If (ScriptelSuspendel="Y" || SilentMode=1 || PrefOpen=1)
      Return
+
   If !snd
   {
      If (ActiveSillySoundHack=1)
@@ -533,7 +545,8 @@ SndPlay(snd:=0, wait:=0, noSentry:=0) {
     hMod:=hM, flags := f|w|0x40004     ; +SND_RESOURCE
 	} Else
 	{
-	  hMod := 0, flags := f|w|0x20000        ; +SND_FILENAME
+	  hMod := 0
+    flags := f|w|0x20000        ; +SND_FILENAME
 	}
   SetTimer, sillySoundHack, -990, 90
   SetTimer, checkTeamViewerTimer, -5000, 90
@@ -549,6 +562,9 @@ sillySoundHack() {   ; this helps mitigate issues caused by apps like Team Viewe
 }
 
 checkTeamViewerTimer() {
+  If (ScriptelSuspendel="Y" || PrefOpen=1)
+     Return
+
   lol := WinGetAll()
   If InStr(lol, "teamviewer")
      ActiveSillySoundHack := 1
