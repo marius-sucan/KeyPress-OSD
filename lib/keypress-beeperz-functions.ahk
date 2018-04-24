@@ -45,13 +45,16 @@ Global IniFile           := "keypress-osd.ini"
  , MainExe := AhkExported()
 
 checkTeamViewerTimer()
-SetTimer, checkCurrentWindow, 900
+SetTimer, checkCurrentWindow, 1500
 Return
 
 checkCurrentWindow() {
   Static oldCurrWin
   If (ScriptelSuspendel="Y" || PrefOpen=1)
+  {
+     oldCurrWin := ""
      Return
+  }
 
   currWin := WinExist("A")
   If (currWin!=oldCurrWin)

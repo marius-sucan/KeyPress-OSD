@@ -3,23 +3,18 @@ Code created by other people, not by Marius Șucan, included in KeyPress OSD v4 
 -= LIBRARIES/CLASSES/SCRIPTS =-
 
 by MRight:
-- Mouse Ripples       ; (modified) from https://autohotkey.com/boards/viewtopic.php?t=8963
-
-by Sean and jethrow:
-- Accessible Info Viewer  ; (modified) from  http://www.autohotkey.com/board/topic/77888-accessible-info-viewer-alpha-release-2012-09-20/
-              ; https://dl.dropbox.com/u/47573473/Accessible%20Info%20Viewer/AccViewer%20Source.ahk
-- UI Automation Interface ; from http://www.autohotkey.com/board/topic/94619-ahk-l-screen-reader-a-tool-to-get-text-anywhere/
+- Mouse Ripples         ; (modified) from https://autohotkey.com/boards/viewtopic.php?t=8963
 
 -= FUNCTIONS =-
 
 by Alguimist:
-- font list generator
+- Font list generator [@ OSD preferences]
 
 by Drugwash:
 - CheckWindowKBD()
 - Cleanup()
 - FindIMEname()
-- FindRes()         ; based on AHK_H ResGet.ahk script and MSDN info
+- FindRes()             ; based on AHK_H ResGet.ahk script and MSDN info
 - FormatMessage()
 - GetDeadKeys()
 - GetFocusedCtrl()      ; in keypress-mouse-functions.ahk
@@ -30,9 +25,9 @@ by Drugwash:
 - GetLayoutsInfo()
 - GetLocaleInfo()
 - GetLocaleTextDir()    ; inspired by Michael S. Kaplan http://archives.miloush.net/michkap/archive/2006/03/03/542963.html
-- GetRes()          ; based on AHK_H ResGet.ahk script and MSDN info
+- GetRes()              ; based on AHK_H ResGet.ahk script and MSDN info
 - GetVolume()
-- HaloRegion1/2/3/4/5()   ; in keypress-mouse-functions.ahk
+- HaloRegion1/2/3/4/5() ; in keypress-mouse-functions.ahk
 - HasIME()
 - Hex2Str()
 - InitAHKhThreads()     ; (modified)
@@ -42,11 +37,11 @@ by Drugwash:
 - SetColors()
 - SetVolume()
 - SHLoadIndirectString()
-- SndPlay()       ; in keypress-beeperz-functions.ahk
+- SndPlay()             ; in keypress-beeperz-functions.ahk
 - TrackMouseDragging()
 
 by errorseven:
-- TrimArray()       ; from https://stackoverflow.com/questions/46432447/how-do-i-remove-duplicates-from-an-autohotkey-array
+- TrimArray()           ; from https://stackoverflow.com/questions/46432447/how-do-i-remove-duplicates-from-an-autohotkey-array
 
 by Helgef:
 - ToUnicodeExtended()   ; (modified) from https://autohotkey.com/boards/viewtopic.php?f=5&t=41065&p=187582#p187582
@@ -57,25 +52,25 @@ by jballi:
 - Fnt_EnumFontFamExProc() ; as above
 - Fnt_GetFontName()     ; as above
 - Fnt_GetFontSize()     ; as above
-- Fnt_GetListOfFonts()    ; as above
-- Fnt_SetFont()       ; as above (modified)
+- Fnt_GetListOfFonts()  ; as above
+- Fnt_SetFont()         ; as above (modified)
 
 by Jess Harpur:
 - Extract2Folder()      ; (modified) from https://autohotkey.com/board/topic/60706-native-zip-and-unzip-xpvista7-ahk-l/page-2
-              ; based on code by shajul; backup option by Drugwash
+                        ; based on code by shajul; backup option by Drugwash
 
 by Lexikos:
-- GetKeyChar()        ; (modified) from https://autohotkey.com/board/topic/110808-getkeyname-for-other-languages/#entry682236
+- GetKeyChar()          ; (modified) from https://autohotkey.com/board/topic/110808-getkeyname-for-other-languages/#entry682236
 
 by Maestrith:
-- Dlg_Color()       ; (modified) from Font and Color Dialogs https://autohotkey.com/board/topic/94083-ahk-11-font-and-color-dialogs/
+- Dlg_Color()           ; (modified) from Font and Color Dialogs https://autohotkey.com/board/topic/94083-ahk-11-font-and-color-dialogs/
 
 by Sean:
-- GetTextExtentPoint()    ; (modified) from https://autohotkey.com/board/topic/16414-hexview-31-for-stdlib/#entry107363
+- GetTextExtentPoint()  ; (modified) from https://autohotkey.com/board/topic/16414-hexview-31-for-stdlib/#entry107363
 
 by SKAN:
-- VarMD5()          ; from https://autohotkey.com/board/topic/59576-filecrc32-filesha1-filemd5-and-md5/
-              ; www.autohotkey.com/forum/viewtopic.php?p=275910#275910
+- VarMD5()              ; from https://autohotkey.com/board/topic/59576-filecrc32-filesha1-filemd5-and-md5/
+                        ; www.autohotkey.com/forum/viewtopic.php?p=275910#275910
 
 by Stealzy:
 - ChangeKBD()       ; from [CLASS] Lyt https://autohotkey.com/boards/viewtopic.php?t=28258
@@ -104,5 +99,4 @@ by jNizM
 - GetPhysicalCursorPos()   ; (modified)
 ; function from: https://github.com/jNizM/AHK_DllCall_WinAPI/blob/master/src/Cursor%20Functions/GetPhysicalCursorPos.ahk
 
-
-For Mouse Keys features, inspired by deguix's Mouse Numpad script 
+For the Mouse Keys features, I was inspired by Deguix's Mouse Numpad script.
