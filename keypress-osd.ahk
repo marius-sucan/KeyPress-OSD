@@ -8,7 +8,7 @@
 ;
 ; Script written for AHK_H / AHK_L v1.1.28 Unicode.
 ; For compatibility with AHK_L remove the call to
-; the function addScript().
+; the function addScript() or ahkThread_Free().
 ;--------------------------------------------------------------------------------------------------------------------------
 ;
 ; Change log file:
@@ -80,12 +80,10 @@
 ; When alternative hooks are enabled, a different thread 
 ; runs with a Loop for an Input command limited to one 
 ; character. The Input command is able to capture dead keys 
-; combinations (accented letters). For each key pressed, I 
-; use SendMessage directed to the main thread of the 
-; script, which uses OnMessage for WM_COPYDATA. The 
-; function KeyStrokeReceiver() associated, processes the incoming
-; messages / keys. What this secondary thread sends is used
-; only after a dead key was pressed. Therefore,
+; combinations (accented letters). For each key pressed, the
+; resulted character is assigned to the main thread in the
+; ExternalKeyStrokeRecvd variable. What this secondary thread
+; sends is used only after a dead key was pressed. Therefore,
 ; the script still relies on the Hotkey commands and 
 ; ToUnicodeEx(). When the layout is supported, but it has 
 ; no dead keys, this secondary thread is never initialized.
@@ -149,7 +147,7 @@
 ;@Ahk2Exe-SetMainIcon Lib\keypress.ico
 ;@Ahk2Exe-SetName KeyPress OSD v4
 ;@Ahk2Exe-SetDescription KeyPress OSD v4 [mirror keyboard and mouse usage]
-;@Ahk2Exe-SetVersion 4.30.8
+;@Ahk2Exe-SetVersion 4.31
 ;@Ahk2Exe-SetCopyright Marius Şucan (2017-2018)
 ;@Ahk2Exe-SetCompanyName ROBODesign.ro
 ;@Ahk2Exe-SetOrigFilename keypress-osd.ahk
@@ -357,8 +355,8 @@
  , DownloadExternalFiles  := 1
 
 ; Release info
- , Version                := "4.30.8"
- , ReleaseDate            := "2018 / 04 / 22"
+ , Version                := "4.31"
+ , ReleaseDate            := "2018 / 04 / 24"
  , hMutex, ScriptInitialized, FirstRun := 1
  , KPregEntry := "HKEY_CURRENT_USER\SOFTWARE\KeyPressOSD\v4"
 
@@ -434,8 +432,6 @@ Global Debug := 0    ; for testing purposes
  , MaxAllowedGuiWidth := (OSDautosize=1) ? MaxGuiWidth : GuiWidth
  , OSDvisible := 0
  , OSDcontentOutput := ""
- , Capture2Text := 0
- , AccTextCaptureActive := 0
  , Prefixed := 0                      ; hack used to determine if last keypress had a modifier
  , KeyCount := 0
  , lastClickTimer := 0
@@ -511,7 +507,7 @@ Global Debug := 0    ; for testing purposes
     |💏|💓|💕|💖|💗|💞|💤|💯|😀|😁|😂|😃|😄|😆|😇|😈|😉|😊|😋|😌|😍|😎|😐|😓|😔|😕|😗
     |😘|😙|😚|😛|😜|😝|😞|😡|😢|😥|😩|😫|😭|😮|😲|😳|😴|😶|🙁|🙂|🙃|🙈|🙊|🙏|🤔|🤢)"
  , MouseFuncThread, MouseNumpadThread, MouseRipplesThread, SoundsThread, KeyStrokesThread, TypingAidThread
- , IsMouseFile, IsMouseNumpadFile, IsRipplesFile, IsSoundsFile, IsKeystrokesFile, IsTypingAidFile, IsAcc1File, IsAcc2File, NoAhkH
+ , IsMouseFile, IsMouseNumpadFile, IsRipplesFile, IsSoundsFile, IsKeystrokesFile, IsTypingAidFile, NoAhkH
  , ClipDataMD5s, CurrentClippyCount := 0
  , BaseURL := "http://marius.sucan.ro/media/files/blog/ahk-scripts/"
  , hWinMM := DllCall("kernel32\LoadLibraryW", "Str", "winmm.dll", "Ptr")
@@ -524,10 +520,9 @@ Global Debug := 0    ; for testing purposes
 CreateOSDGUI()
 VerifyNonCrucialFiles()
 Sleep, 5
-GoSub CheckAcc
-Sleep, 5
 If (SafeModeExec!=1)
 {
+   GoSub, CheckThis
    InitAHKhThreads()
    SetMyVolume()
 }
@@ -1163,10 +1158,6 @@ OnPGupDnPressed() {
 
 OnSpacePressed() {
     Try {
-          If (DoNotBindDeadKeys=1 && AlternativeHook2keys=1 && DeadKeys=1
-          && SecondaryTypingMode=0 && DisableTypingMode=0)
-             Sleep, 35
-
           key := GetKeyStr()
           If ((A_TickCount-LastTypedSince < ReturnToTypingDelay)
           && StrLen(Typed)>0 && DisableTypingMode=0 && ShowSingleKey=1)
@@ -1178,10 +1169,6 @@ OnSpacePressed() {
              {
                 If TrueRmDkSymbol
                    InsertChar2caret(TrueRmDkSymbol)
-                Else If (ExternalKeyStrokeRecvd && DeadKeys=1
-                     && DoNotBindDeadKeys=1 && AlternativeHook2keys=1
-                     && SecondaryTypingMode=0 && DisableTypingMode=0)
-                   InsertChar2caret(ExternalKeyStrokeRecvd)
                 Else InsertChar2caret(" ")
              }
 
@@ -1232,12 +1219,13 @@ OnSpacePressed() {
 OnBspPressed() {
     Try {
         key := GetKeyStr()
-        If (TrueRmDkSymbol && AlternativeHook2keys=1 && SecondaryTypingMode=0 && DisableTypingMode=0)
-        || (OnMSGdeadChar && SecondaryTypingMode=1 && DisableTypingMode=0)
-        || (TrueRmDkSymbol && AlternativeHook2keys=0 && SecondaryTypingMode=0 && DisableTypingMode=0 && ShowDeadKeys=0)
+        If (TrueRmDkSymbol && AlternativeHook2keys=1 && SecondaryTypingMode=0)
+        || (OnMSGdeadChar && SecondaryTypingMode=1)
+        || (TrueRmDkSymbol && AlternativeHook2keys=0 && SecondaryTypingMode=0 && ShowDeadKeys=0)
         {
            TrueRmDkSymbol := OnMSGdeadChar := ""
-           Return
+           If (DisableTypingMode=0)
+              Return
         } Else If ((Typed ~= REx1) && TrueRmDkSymbol && DisableTypingMode=0
                && AlternativeHook2keys=0 && SecondaryTypingMode=0)
         {
@@ -1453,8 +1441,7 @@ OnKeyPressed() {
                DontReturn := 1
 
             BackTypdUndo := Typed
-            BackTypeCtrl := ""
-            ExternalKeyStrokeRecvd := ""
+            BackTypeCtrl := ExternalKeyStrokeRecvd := ""
             If (key ~= "i)(esc)")
                Global LastTypedSince := A_TickCount - ReturnToTypingDelay
 
@@ -2172,61 +2159,31 @@ TypedLetter(key,onLatterUp:=0) {
       If (EnableAltGr=1 && (InStr(key, "^!") || InStr(key, "<^>")))
          AltGrPressed := 1
 
-      If (AlternativeHook2keys=1 && DeadKeys=0)
-         Sleep, 30
-
       vk := "0x0" SubStr(key, InStr(key, "vk", 0, 0)+2)
       sc := "0x0" GetKeySc("vk" vk)
       key := toUnicodeExtended(vk, sc, shiftPressed, AltGrPressed,0,onLatterUp)
 
-      If (AlternativeHook2keys=1
-      && ((TrueRmDkSymbol && (A_TickCount-deadKeyPressed < 9000))
-          || (DeadKeys=0 && (A_TickCount-DeadKeyPressed < 9000))
-          || (DoNotBindDeadKeys=1 && (A_TickCount - LastTypedSince > 200))))
-      {
-         Sleep, 30
-         If (ExternalKeyStrokeRecvd=TrueRmDkSymbol && DoNotBindDeadKeys=0)
+      If (AlternativeHook2keys=1 && TrueRmDkSymbol && DoNotBindDeadKeys=0
+      && (A_TickCount-deadKeyPressed < 9000))
+      { 
+         Sleep, 5
+         If (ExternalKeyStrokeRecvd=TrueRmDkSymbol)
             ExternalKeyStrokeRecvd .= key
-         Typed := (ExternalKeyStrokeRecvd && AlternativeHook2keys=1)
+         Typed := ExternalKeyStrokeRecvd
                 ? InsertChar2caret(ExternalKeyStrokeRecvd) : InsertChar2caret(key)
          If (!ExternalKeyStrokeRecvd && IsKeystrokesFile && NeverDisplayOSD=0)
          {
-            Static KeyStrokesRestarts
-            If (KeyStrokesRestarts>6)
-               skipIt := 1
-            If (KeyStrokesRestarts<1 && skipIt!=1)
-            {
-               KeyStrokesThread.ahkassign("AlternativeHook2keys", AlternativeHook2keys)
-               KeyStrokesThread.ahkPostFunction["MainLoop"]
-               KeyStrokesRestarts++
-            }
-            If (KeyStrokesRestarts>=1 && skipIt!=1)
-            {
-               KeyStrokesThread.ahkReload[]
-               Sleep, 50
-               KeyStrokesThread.ahkassign("AlternativeHook2keys", AlternativeHook2keys)
-               KeyStrokesRestarts++
-            }
+            KeyStrokesThread.ahkReload[]
+            Sleep, 50
+            KeyStrokesThread.ahkassign("AlternativeHook2keys", AlternativeHook2keys)
          }
          ExternalKeyStrokeRecvd := ""
-         If (DeadKeys=0) && (A_TickCount-DeadKeyPressed > 1000)
-            Global DeadKeyPressed := 15000
       } Else (Typed := InsertChar2caret(key))
 
       ExternalKeyStrokeRecvd := TrueRmDkSymbol := ""
       Global LastTypedSince := A_TickCount
    }
    Return Typed
-}
-
-StartKeystrokesThread() {
-   Static hasInit
-   If (hasInit=1 || !IsKeystrokesFile || NeverDisplayOSD=1)
-      Return
-   AlternativeHook2keys := (AltHook2keysUser=1) ? 1 : 0
-   KeyStrokesThread.ahkassign("AlternativeHook2keys", AlternativeHook2keys)
-   KeyStrokesThread.ahkPostFunction["MainLoop"]
-   hasInit := 1
 }
 
 toUnicodeExtended(uVirtKey,uScanCode,shiftPressed:=0,AltGrPressed:=0,wFlags:=0,onLatterUp:=0) {
@@ -2239,15 +2196,13 @@ toUnicodeExtended(uVirtKey,uScanCode,shiftPressed:=0,AltGrPressed:=0,wFlags:=0,o
 
   If (nsa<=0 && DeadKeys=0 && SecondaryTypingMode=0)
   {
-     StartKeystrokesThread()
      Global DeadKeyPressed := A_TickCount
      If (DeadKeyBeeper=1 && ShowSingleKey=1)
         SoundsThread.ahkPostFunction["OnDeathKeyPressed", ""]
 
      StringReplace, VisibleTextField, VisibleTextField, %Lola%, %CSx3%
      ShowHotkey(VisibleTextField)
-     If (AlternativeHook2keys=0)
-        Sleep, % 250 * TypingDelaysScale
+     Sleep, % 250 * TypingDelaysScale
 
      If (StrLen(Typed)<2)
      {
@@ -3123,7 +3078,7 @@ ShowHotkey(HotkeyStr) {
         GuiControl, OSD: Move, HotkeyText, w%Text_width% Left
     }
     If (JumpHover=1 && PrefOpen=0)
-       SetTimer, checkMousePresence, 950, -15
+       SetTimer, checkMousePresence, 900, -15
     If (OSDalignment>1)
        Gui, OSDghost: Show, NoActivate Hide x%dGuiX% y%GuiY% w%Text_width%, KeyPressOSDghost
     Gui, OSD: Show, NoActivate x%dGuiX% y%GuiY% h%GuiHeight% w%Text_width%, KeyPressOSDwin
@@ -3217,13 +3172,15 @@ GuiGetSize(ByRef W, ByRef H, vindov) {
 }
 
 checkMousePresence() {
-    If (A_TickCount - LastTypedSince < 1500) || (A_TickCount - DeadKeyPressed < 2000)
+    If ((A_TickCount - LastTypedSince < 1000)
+    || (A_TickCount - DeadKeyPressed < 2000)
+    || A_IsSuspended || PrefOpen=1)
        Return
 
     Thread, Priority, -20
     Critical, off
 
-    If (JumpHover=1 && !A_IsSuspended && DragOSDmode=0 && PrefOpen=0)
+    If (JumpHover=1 && DragOSDmode=0)
     {
         MouseGetPos, , , id, control
         WinGetTitle, title, ahk_id %id%
@@ -4808,11 +4765,6 @@ createTypingWindow() {
 }
 
 SwitchSecondaryTypingMode() {
-   If (Capture2Text=1 || PrefOpen=1)
-   {
-      SoundBeep, 300, 900
-      Return
-   }
    Static o_ShowDeadKeys, o_ShowSingleKey, o_EnterErasesLine, o_EnableTypingHistory, o_OnlyTypingMode, o_DisableTypingMode, o_NeverDisplayOSD, o_PrioritizeBeepers
    BindTypeHotKeys()
    Sleep, 10
@@ -4933,22 +4885,6 @@ deadCharMSG(wParam, lParam) {
      SoundsThread.ahkPostFunction["OnDeathKeyPressed", ""]
   CaretSymbolChangeIndicator(OnMSGdeadChar, 950, 1)
   Global DeadKeyPressed := A_TickCount
-}
-
-KeyStrokeReceiver(wParam, lParam) {
-    If (NeverDisplayOSD=1 || SecondaryTypingMode=1 || PrefOpen=1)
-       Return True
-
-    If (TrueRmDkSymbol && (A_TickCount-DeadKeyPressed < 9000)
-    || DeadKeys=0 && (A_TickCount-DeadKeyPressed < 9000)
-    || DoNotBindDeadKeys=1)
-    {
-       StringAddress := NumGet(lParam + 2*A_PtrSize)  ; Retrieves the CopyDataStruct's lpData member.
-       testKey := StrGet(StringAddress)  ; Copy the string out of the structure.
-       If RegExMatch(testKey, "[\p{L}\p{M}\p{N}\p{P}\p{S}]")
-          ExternalKeyStrokeRecvd := testKey
-    }
-    Return True
 }
 
 ;================================================================
@@ -5357,8 +5293,6 @@ CreateGlobalShortcuts() {
        If (AutoDetectKBD=0 || ConstantAutoDetect=0)
           KBDidLangNow := RegisterGlobalShortcuts(KBDidLangNow,"DetectLangNow", "!+^F11")
        KBDReload := RegisterGlobalShortcuts(KBDReload,"ReloadScriptNow", "!+^F12")
-       If (IsAcc1File=1 && IsAcc2File=1 && A_OSVersion!="WIN_XP")
-          KBDCapText := RegisterGlobalShortcuts(KBDCapText,"AccCaptureTextNow", "Disabled")
     }
 }
 
@@ -5545,10 +5479,6 @@ SuspendScript(partially:=0) {
       Return
    }
  
-   If (Capture2Text=1)
-      ToggleCapture2Text()
-   If (AccTextCaptureActive=1)
-      ToggleAccCaptureText()
    SetTimer, ModsLEDsIndicatorsManager, Off
    Sleep, 50
    Menu, Tray, UseErrorLevel
@@ -5599,16 +5529,26 @@ ToggleNeverDisplay() {
 
    cleanTypeSlate()
    If (AltHook2keysUser=1 && DeadKeys=1
-      && OutputOSDtoToolTip=0 && DisableTypingMode=0)
+   && OutputOSDtoToolTip=0 && DisableTypingMode=0)
    {
       KeyStrokesThread.ahkassign("AlternativeHook2keys", NeverDisplayOSD)
       KeyStrokesThread.ahkPostFunction("MainLoop")
    }
    NeverDisplayOSD := !NeverDisplayOSD
    INIaction(1, "NeverDisplayOSD", "OSDprefs")
-   Menu, Tray, % (NeverDisplayOSD=0 ? "Uncheck" : "Check"), &Do not show the OSD
+   Menu, Tray, % (NeverDisplayOSD=0 ? "Uncheck" : "Check"), &Hide OSD
+   Menu, Tray, % (NeverDisplayOSD=1 ? "Disable" : "Enable"), &Toggle OSD positions
+   Menu, Tray, % (NeverDisplayOSD=1 ? "Disable" : "Enable"), &Allow OSD drag
    ShowLongMsg("Hide OSD = " NeverDisplayOSD)
-   SetTimer, HideGUI, % -DisplayTime/2
+   If (NeverDisplayOSD=0)
+   {
+      LEDsIndicatorsManager()
+      SetTimer, HideGUI, % -DisplayTime/2
+   } Else
+   {
+      Sleep, % DisplayTime/2
+      HideGUI()
+   }
 }
 
 TogglePosition() {
@@ -5631,19 +5571,9 @@ TogglePosition() {
     Sleep, 20
     CreateOSDGUI()
     Sleep, 20
-
-    If (Capture2Text!=1)
-    {
-       INIaction(1, "GUIposition", "OSDprefs")
-       ShowLongMsg("OSD position: " niceNaming )
-       Sleep, 450
-       ShowLongMsg("OSD position: " niceNaming )
-       SetTimer, HideGUI, % -DisplayTime
-       Gui, OSD: Destroy
-       Sleep, 20
-       CreateOSDGUI()
-       Sleep, 20 
-    }
+    INIaction(1, "GUIposition", "OSDprefs")
+    ShowLongMsg("OSD position: " niceNaming )
+    SetTimer, HideGUI, % -DisplayTime
 }
 
 ToggleSilence() {
@@ -5653,25 +5583,9 @@ ToggleSilence() {
     SoundsThread.ahkassign("SilentMode", SilentMode)
     MouseFuncThread.ahkassign("SilentMode", SilentMode)
     SoundsThread.ahkPostFunction["CheckInit", ""]
-    Menu, PrefsMenu, % (SilentMode=0 ? "Uncheck" : "Check"), S&ilent mode
+    Menu, Tray, % (SilentMode=0 ? "Uncheck" : "Check"), S&ilent mode
     ShowLongMsg("Silent mode = " SilentMode)
     SetTimer, HideGUI, % -DisplayTime
-}
-
-AccCaptureTextNow() {
-    If (!IsFunc("Acc_Init") OR !IsFunc("UIA_Interface")) ; keypress-acc-viewer-functions.ahk / UIA_Interface.ahk
-    {
-       ShowLongMsg("ERROR: Missing files...")
-       SoundBeep, 300, 900
-       SetTimer, HideGUI, % -DisplayTime
-       Return
-    }
-    gay := "GetAccInfo"
-    If IsFunc(gay)
-    {
-       Global DoNotRepeatTimer := A_TickCount
-       %gay%(1)
-    } Else SoundBeep, 300, 900
 }
 
 DetectLangNow() {
@@ -5787,7 +5701,6 @@ InitializeTray() {
     Menu, PrefsMenu, Add, &OSD appearance, ShowOSDsettings
     Menu, PrefsMenu, Add, &Global shortcuts, ShowShortCutsSettings
     Menu, PrefsMenu, Add
-    Menu, PrefsMenu, Add, S&ilent mode, ToggleSilence
     Menu, PrefsMenu, Add, L&arge UI fonts, ToggleLargeFonts
     Menu, PrefsMenu, Add, Sta&rt at boot, SetStartUp
     Menu, PrefsMenu, Add, R&un in Admin Mode, RunAdminMode
@@ -5809,17 +5722,9 @@ InitializeTray() {
     If StrLen(currentReg)>5
        Menu, PrefsMenu, Check, Sta&rt at boot
 
-    If (SilentMode=1)
-       Menu, PrefsMenu, Check, S&ilent mode
-
     If (PrefsLargeFonts=1)
        Menu, PrefsMenu, Check, L&arge UI fonts
 
-    If (!IsSoundsFile || MissingAudios=1 || SafeModeExec=1)     ; keypress-beeperz-functions.ahk
-    {
-       Menu, PrefsMenu, Disable, S&ilent mode
-       Menu, PrefsMenu, Disable, &Sounds
-    }
     If (!IsMouseFile || SafeModeExec=1) ; keypress-mouse-functions.ahk
        Menu, PrefsMenu, Disable, &Mouse
 
@@ -5837,11 +5742,10 @@ InitializeTray() {
     Menu, Tray, Add, &Quick start presets, PresetsWindow
     Menu, Tray, Add, &Preferences, :PrefsMenu
     Menu, Tray, Add
+    Menu, Tray, Add, &Hide OSD, ToggleNeverDisplay
     Menu, Tray, Add, &Toggle OSD positions, TogglePosition
-    Menu, Tray, Add, &Do not show the OSD, ToggleNeverDisplay
-    Menu, Tray, Add
-    Menu, Tray, Add, &Capture2Text mode (OCR), ToggleCapture2Text
-    Menu, Tray, Add, Mouse text collector, ToggleAccCaptureText
+    Menu, Tray, Add, &Allow OSD drag, ToggleOSDdragMode
+    Menu, Tray, Add, S&ilent mode, ToggleSilence
     Menu, Tray, Add
     Menu, Tray, Add, &KeyPress activated, SuspendScriptNow
     Menu, Tray, Check, &KeyPress activated
@@ -5857,15 +5761,25 @@ InitializeTray() {
     Menu, Tray, Tip, KeyPress OSD v%Version%%RunType%
 
     If (NeverDisplayOSD=1)
-       Menu, Tray, Check, &Do not show the OSD
+    {
+       Menu, Tray, Check, &Hide OSD
+       Menu, Tray, Disable, &Toggle OSD positions
+       Menu, Tray, Disable, &Allow OSD drag
+    }
 
-    If (IsAcc1File!=1 || IsAcc2File!=1 || A_OSVersion="WIN_XP") ; keypress-acc-viewer-functions.ahk
-       Menu, Tray, Disable, Mouse text collector
+    If (MouseOSDbehavior=3)
+       Menu, Tray, Check, &Allow OSD drag
+
+    If (SilentMode=1)
+       Menu, Tray, Check, S&ilent mode
 
     If (SafeModeExec=1)
-    {
        Menu, PrefsMenu, Check, Ru&n in Safe Mode
-       Menu, Tray, Disable, &Capture2Text mode (OCR)
+
+    If (!IsSoundsFile || MissingAudios=1 || SafeModeExec=1)     ; keypress-beeperz-functions.ahk
+    {
+       Menu, Tray, Disable, S&ilent mode
+       Menu, PrefsMenu, Disable, &Sounds
     }
 
     faqHtml := "Lib\help\presentation.html"
@@ -5935,29 +5849,8 @@ SetStartUp() {
   } Else
   {
      RegDelete, HKCU, SOFTWARE\Microsoft\Windows\CurrentVersion\Run, KeyPressOSD
-     Menu, PrefsMenu, unCheck, Sta&rt at boot
+     Menu, PrefsMenu, Uncheck, Sta&rt at boot
   }
-}
-
-ToggleAccCaptureText() {
-    If (!IsFunc("Acc_Init") OR !IsFunc("UIA_Interface")) ; keypress-acc-viewer-functions.ahk / UIA_Interface.ahk
-    {
-      ShowLongMsg("ERROR: Missing files...")
-      SoundBeep, 300, 900
-      SetTimer, HideGUI, % -DisplayTime
-      Return
-    }
-    AccTextCaptureActive := !AccTextCaptureActive
-    Menu, Tray, % (AccTextCaptureActive=0 ? "Uncheck" : "Check"), Mouse text collector
-    gay := "GetAccInfo"
-    If IsFunc(gay)
-    {
-        If (AccTextCaptureActive=1)
-          SetTimer, %gay%, 120, 50
-        Else
-          SetTimer, %gay%, off
-    }
-    Sleep, 400
 }
 
 ToggleLargeFonts() {
@@ -5989,6 +5882,7 @@ ToggleOSDdragMode() {
     Sleep, 10
     CreateOSDGUI()
     INIaction(1, "MouseOSDbehavior", "OSDprefs")
+    Menu, Tray, % (MouseOSDbehavior=3 ? "Check" : "Uncheck"), &Allow OSD drag
 }
 
 QuickToggleLargeFonts() {
@@ -6038,90 +5932,6 @@ ReloadScript(silent:=1) {
         } Else (Sleep, 500)
         ExitApp
     }
-}
-
-capture2textTimer() {
-    Critical, off
-    Thread, Priority, -50
-    If (A_TimeIdlePhysical<3000 && !A_IsSuspended && (A_TickCount-LastTypedSince > 1500))
-       SendInput, {ScrollLock}             ; set here the keyboard shortcut configured in Capture2Text
-    Sleep, 1
-}
-
-ToggleCapture2Text() {
-    If (A_IsSuspended=1 || NeverDisplayOSD=1 || SecondaryTypingMode=1)
-    {
-       SoundBeep, 300, 900
-       Return
-    }
-    Critical, off
-    Thread, Priority, -20
-    featureValidated := 1
-    IfWinNotExist, Capture2Text
-    {
-        If (Capture2Text!=1)
-        {
-            SoundBeep, 300, 900
-            MsgBox, 4,, Capture2Text was not detected. Do you want to continue? `nThis is an external application. `nPlease see Help for more details.
-            IfMsgBox, Yes
-                featureValidated := 1
-            Else
-                featureValidated := 0
-        }
-    }
-
-    If (featureValidated=1)
-    {
-        Menu, Tray, Check, &Capture2Text mode (OCR)
-        Sleep, 300
-        Capture2Text := !Capture2Text
-    }
-
-    If (Capture2Text=1 && featureValidated=1)
-    {
-        JumpHover := 1
-        If (ClipMonitor=0)
-        {
-           ClipMonitor := 1
-           OnClipboardChange("ClipChanged")
-        }
-        EnableClipManager := 0
-        DragOSDmode := 0
-        SetTimer, capture2textTimer, 1500, -20
-        ToggleMouseThings(0)
-        ShowLongMsg("Enabled automatic Capture 2 Text")
-        SetTimer, HideGUI, % -DisplayTime
-    } Else If (featureValidated=1)
-    {
-        Capture2Text := !Capture2Text
-        INIaction(0, "GUIposition", "OSDprefs")
-        INIaction(0, "JumpHover", "OSDprefs")
-        INIaction(0, "DragOSDmode", "OSDprefs")
-        INIaction(0, "EnableClipManager", "ClipboardManager")
-        INIaction(0, "ClipMonitor", "ClipboardManager")
-        GuiX := (GUIposition=1) ? GuiXa : GuiXb
-        GuiY := (GUIposition=1) ? GuiYa : GuiYb
-        Gui, OSD: Destroy
-        Sleep, 50
-        CreateOSDGUI()
-        Sleep, 50
-        Menu, Tray, Uncheck, &Capture2Text mode (OCR)
-        ToggleMouseThings()
-        SetTimer, capture2textTimer, off
-        Capture2Text := !Capture2Text
-        ShowLongMsg("Disabled automatic Capture 2 Text")
-        SetTimer, HideGUI, % -DisplayTime
-    }
-    Sleep, 10
-}
-
-ToggleMouseThings(on:=1) {
-; timers on/off, hotkeys on/off
-    act := on=0 ? "Y" : 0
-    MouseFuncThread.ahkassign("ScriptelSuspendel", act)
-    MouseFuncThread.ahkPostFunction["ToggleMouseTimerz", act]
-    MouseRipplesThread.ahkassign("ScriptelSuspendel", act)
-    MouseRipplesThread.ahkPostFunction["ToggleMouseRipples", act]
 }
 
 KeyHistoryWindow() {
@@ -6200,7 +6010,7 @@ SettingsGUI() {
 }
 
 initSettingsWindow() {
-    Global ApplySettingsBTN
+    Global ApplySettingsBTN, CancelSettBTN
     If (PrefOpen=1)
     {
         SoundBeep, 300, 900
@@ -6327,6 +6137,9 @@ OpenLastWindow() {
 
 ApplySettings() {
     Gui, SettingsGUIA: Submit, NoHide
+    GuiControl, Disable, ApplySettingsBTN
+    GuiControl, Disable, CancelSettBTN
+    GuiControl, Disable, CurrentPrefWindow
     CheckSettings()
     PrefOpen := 0
     RegWrite, REG_SZ, %KPregEntry%, PrefOpen, %PrefOpen%
@@ -6538,7 +6351,7 @@ ShowTypeSettings() {
     }
 
     Gui, Add, Button, xm+0 y+10 w70 h30 Default gApplySettings vApplySettingsBTN, A&pply
-    Gui, Add, Button, x+8 wp hp gCloseSettings, C&ancel
+    Gui, Add, Button, x+8 wp hp gCloseSettings vCancelSettBTN, C&ancel
     Gui, Add, Button, x+8 wp hp gOpenTypeSetHelp, &Help
     Gui, Add, DropDownList, x+8 AltSubmit gSwitchPreferences choose%CurrentPrefWindow% vCurrentPrefWindow , Keyboard|Typing mode|Sounds|Mouse|Appearance|Shortcuts
     Gui, Show, AutoSize, Typing mode settings: KeyPress OSD
@@ -6703,9 +6516,14 @@ VerifyTypeOptions(enableApply:=1) {
        GuiControl, Disable, EnterErasesLine
     
     If (DoNotBindDeadKeys=1)
+    {
        GuiControl, Disable, ShowDeadKeys
-    Else If (DisableTypingMode=0 && ShowSingleKey!=0)
+       GuiControl, Disable, AltHook2keysUser
+    } Else If (DisableTypingMode=0 && ShowSingleKey!=0)
+    {
+       GuiControl, Enable, AltHook2keysUser
        GuiControl, Enable, ShowDeadKeys
+    }
 
     If (AltHook2keysUser=1)
        GuiControl, Disable, ShowDeadKeys
@@ -6760,8 +6578,15 @@ VerifyTypeOptions(enableApply:=1) {
    GuiControl, %action1%, OpenWordPairsBTN
    GuiControl, %action1%, ExpandWordsListEdit
 
-   If (enableApply=0)
-      GuiControl, Disable, SaveWordPairsBTN
+   If (NeverDisplayOSD=1)
+   {
+      GuiControl, Disable, AltHook2keysUser
+      GuiControl, , AltHook2keysUser, 0
+   }
+
+   If (!IsSoundsFile || MissingAudios=1
+   || SafeModeExec=1 || NoAhkH=1)
+      GuiControl, Disable, EraseTextWinChange
 }
 
 AddKBDmods(HotKate, HotKateRaw) {
@@ -7073,7 +6898,7 @@ PresetsWindow() {
        Gui, Add, Checkbox, y+7 gVerifyPresetOptions Checked%EnableBeeperzPresets% vEnableBeeperzPresets, Sounds on key presses
     Gui, Add, Checkbox, y+7 gVerifyPresetOptions Checked%MediateKeysFeatures% vMediateKeysFeatures, Mediate navigation keys when typing `n[this helps to enforce consistency across applications]`n(strongly recommended)
     Gui, Add, Button, y+20 w70 h30 Default gApplySettings vApplySettingsBTN, A&pply
-    Gui, Add, Button, x+8 wp hp gCloseSettings, C&ancel
+    Gui, Add, Button, x+8 wp hp gCloseSettings vCancelSettBTN, C&ancel
     Gui, Add, Button, x+35 w150 hp gDeleteSettings, Restore de&faults
     Gui, Show, AutoSize, Quick start presets: KeyPress OSD
     VerifyPresetOptions(0)
@@ -7319,7 +7144,7 @@ ShowSoundsSettings() {
        Gui, Font, Normal
     }
     Gui, Add, Button, xs+0 y+20 w70 h30 Default gApplySettings vApplySettingsBTN, A&pply
-    Gui, Add, Button, x+8 wp hp gCloseSettings, C&ancel
+    Gui, Add, Button, x+8 wp hp gCloseSettings vCancelSettBTN, C&ancel
     Gui, Add, DropDownList, x+8 AltSubmit gSwitchPreferences choose%CurrentPrefWindow% vCurrentPrefWindow , Keyboard|Typing mode|Sounds|Mouse|Appearance|Shortcuts
     Gui, Show, AutoSize, Sounds settings: KeyPress OSD
     verifySettingsWindowSize()
@@ -7549,7 +7374,7 @@ ShowKBDsettings() {
 
     Gui, Tab
     Gui, Add, Button, xm+0 y+10 w70 h30 Default gApplySettings vApplySettingsBTN, A&pply
-    Gui, Add, Button, x+8 wp hp gCloseSettings, C&ancel
+    Gui, Add, Button, x+8 wp hp gCloseSettings vCancelSettBTN, C&ancel
     Gui, Add, DropDownList, x+8 AltSubmit gSwitchPreferences choose%CurrentPrefWindow% vCurrentPrefWindow , Keyboard|Typing mode|Sounds|Mouse|Appearance|Shortcuts
     Gui, Show, AutoSize, Keyboard settings: KeyPress OSD
     ColorPickerHandles := hLV12
@@ -7724,8 +7549,7 @@ ShowMouseSettings() {
     Gui, Add, ListView, x+5 wp hp %CCLVO% Background%MouseRippleWbtnColor% vMouseRippleWbtnColor hwndhLV11,
 
     Gui, Tab, 2 ; location
-    Gui, Add, Checkbox, x+15 y+15 gVerifyMouseOptions Checked%HideMhalosMcurHidden% vHideMhalosMcurHidden, Hide halos when the mouse cursor is hidden
-    Gui, Add, Checkbox, y+15 Section gVerifyMouseOptions Checked%ShowMouseHalo% vShowMouseHalo, Mouse halo / highlight
+    Gui, Add, Checkbox, x+15 y+15 Section gVerifyMouseOptions Checked%ShowMouseHalo% vShowMouseHalo, Mouse halo / highlight
     Gui, Add, Edit, xs+16 y+15 w60 geditsMouseWin r1 limit3 -multi number -wantCtrlA -wantReturn -wantTab -wrap veditF3, %MouseHaloRadius%
     Gui, Add, UpDown, vMouseHaloRadius gVerifyMouseOptions Range25-950, %MouseHaloRadius%
     Gui, Add, Text, x+5 hp +0x200 veditF16, diameter
@@ -7744,6 +7568,7 @@ ShowMouseSettings() {
     Gui, Add, ListView, xs+16 y+15 w60 h25 %CCLVO% Background%MouseIdleColor% vMouseIdleColor hwndhLV7,
     Gui, Add, Slider, x+5 w%sliderWidth% ToolTip NoTicks Line3 gVerifyMouseOptions vMouseIdleAlpha Range20-240, %MouseIdleAlpha%
     Gui, Add, Text, x+5 veditF7, % Round(MouseIdleAlpha / 255 * 100) " % opacity"
+    Gui, Add, Checkbox, xs+0 y+25 gVerifyMouseOptions Checked%HideMhalosMcurHidden% vHideMhalosMcurHidden, Hide halos when the mouse cursor is hidden
 
     Gui, Tab, 3 ; mouse keys
     Gui, Add, Checkbox, x+15 y+15 Section gVerifyMouseOptions Checked%MouseKeys% vMouseKeys, Activate Mouse Keys when NumLock is OFF
@@ -7792,7 +7617,7 @@ ShowMouseSettings() {
     }
 
     Gui, Add, Button, xm+0 y+15 w70 h30 Default gApplySettings vApplySettingsBTN, A&pply
-    Gui, Add, Button, x+8 wp hp gCloseSettings, C&ancel
+    Gui, Add, Button, x+8 wp hp gCloseSettings vCancelSettBTN, C&ancel
     Gui, Add, DropDownList, x+8 AltSubmit gSwitchPreferences choose%CurrentPrefWindow% vCurrentPrefWindow , Keyboard|Typing mode|Sounds|Mouse|Appearance|Shortcuts
 
     Gui, Show, AutoSize, Mouse settings: KeyPress OSD
@@ -8054,7 +7879,8 @@ SendVarsSoundsAHKthread() {
    SendSndVar("ToggleKeysBeeper")
    SendSndVar("TypingBeepers")
    SendSndVar("MouseKeys")
-   SoundsThread.ahkPostFunction["CreateHotkey"] 
+   If (MissingAudios=0)
+      SoundsThread.ahkPostFunction["CreateHotkey"] 
 }
 
 ToggleMouseKeysHalo() {
@@ -8330,7 +8156,7 @@ ShowOSDsettings() {
     Gui, Font, Normal
 
     Gui, Add, Button, xm+0 y+10 w70 h30 Default gApplySettings vApplySettingsBTN, A&pply
-    Gui, Add, Button, x+8 wp hp gCloseSettings, C&ancel
+    Gui, Add, Button, x+8 wp hp gCloseSettings vCancelSettBTN, C&ancel
     Gui, Add, DropDownList, x+8 AltSubmit gSwitchPreferences choose%CurrentPrefWindow% vCurrentPrefWindow , Keyboard|Typing mode|Sounds|Mouse|Appearance|Shortcuts
     Gui, Show, AutoSize, OSD appearance: KeyPress OSD
     verifySettingsWindowSize()
@@ -8814,11 +8640,6 @@ WM_WTSSESSION_CHANGE(wParam, lParam, Msg, hWnd){
 
   If (wParam=0x7) || (wParam=0x8)
   {
-     If (Capture2Text=1)
-        ToggleCapture2Text()
-     If (AccTextCaptureActive=1)
-        ToggleAccCaptureText()
-
      If (AltHook2keysUser=1 && DeadKeys=1 && DisableTypingMode=0)
         KeyStrokesThread.ahkassign("PrefOpen", PrefOpen)
 
@@ -8840,6 +8661,8 @@ ShellMessageDummy() {
 ; timer from SoundsThread.
 ; This function is  used to update parts of the UI based
 ; on window changes.
+  If (ShowCaretHalo=1 && PrefOpen=0)
+     DllCall("oleacc\AccessibleObjectFromPoint", "Int64", x==""||y==""?0*DllCall("user32\GetCursorPos","Int64*",pt)+pt:x&0xFFFFFFFF|y<<32, "Ptr*", pacc, "Ptr", VarSetCapacity(varChild,8+2*A_PtrSize,0)*0+&varChild)=0
 
   If (SecondaryTypingMode=0 && DisableTypingMode=0
   && (A_TickCount - DoNotRepeatTimer > 2000)
@@ -9001,7 +8824,7 @@ updateNow() {
         SuspendScript()
      Sleep, 150
      PrefOpen := 1
-     mainFileBinary := (Is64BitExe(A_ScriptFullPath)=1) ? "keypress-osd-x64.exe" : "keypress-osd-x32.exe"
+     mainFileBinary := (A_PtrSize=8) ? "keypress-osd-x64.exe" : "keypress-osd-x32.exe"
      mainFileTmp := A_IsCompiled ? "new-keypress-osd.exe" : "temp-keypress-osd.ahk"
      mainFile := A_IsCompiled ? mainFileBinary : "keypress-osd.ahk"
      mainFileURL := BaseURL mainFile
@@ -9149,7 +8972,9 @@ checkSndFiles() {
       If !FileExist(soundFile%A_Index%)
       {
          dlPackNow := 1
-         MissingAudios := 1
+         countMissing++
+         If (countMissing>5)
+            MissingAudios := 1
       }
     } Until (MissingAudios=1)
     Return dlPackNow
@@ -9248,8 +9073,8 @@ VerifyNonCrucialFiles() {
 
     If (timeNow>25)
     {
-      checkFilesRan := 2
-      IniWrite, %checkFilesRan%, %IniFile%, TempSettings, checkFilesRan
+       checkFilesRan := 2
+       IniWrite, %checkFilesRan%, %IniFile%, TempSettings, checkFilesRan
     }
 
     If (downloadPackNow=1 && checkFilesRan>2)
@@ -9346,11 +9171,6 @@ VerifyNonCrucialFiles() {
     }
     If !A_isCompiled
        finalTest := checkSndFiles()
-}
-
-Is64BitExe(path) {
-    DllCall("kernel32\GetBinaryTypeW", "Str", "\\?\" path, "UInt*", type)
-    Return (6 = type)
 }
 
 MoveFilesAndFolders(SourcePattern, DestinationFolder, DoOverwrite = true) {
@@ -9740,6 +9560,9 @@ CheckSettings() {
     If (AutoDetectKBD=0)
        ConstantAutoDetect := 0
 
+    If (DoNotBindDeadKeys=1)
+       AltHook2keysUser := 0
+
     If (CurrentDPI!=A_ScreenDPI)
     {
        CurrentDPI := A_ScreenDPI
@@ -9991,13 +9814,12 @@ InitAHKhThreads() {
             If FindRes(0, "KEYPRESS-KEYSTROKES-HELPER.AHK", "LIB")
             {
               IsKeystrokesFile := 1
-              If AlternativeHook2keys=1
+              If (AlternativeHook2keys=1)
               {
                   GetRes(data, 0, "KEYPRESS-KEYSTROKES-HELPER.AHK", "LIB")
                   KeyStrokesThread := %func2exec%(StrGet(&data))
                   While !IsKeystrokesFile := KeyStrokesThread.ahkgetvar.IsKeystrokesFile
                         Sleep, 10
-                  OnMessage(0x4a, "KeyStrokeReceiver")  ; 0x4a is WM_COPYDATA
               }
             }
          }
@@ -10016,10 +9838,7 @@ InitAHKhThreads() {
           MouseRipplesThread := %func2exec%(" #Include *i Lib\keypress-mouse-ripples-functions.ahk ")
           SoundsThread := %func2exec%(" #Include *i Lib\keypress-beeperz-functions.ahk ")
           If (AlternativeHook2keys=1 && DisableTypingMode=0 && ShowSingleKey=1 && IsKeystrokesFile)
-          {
-              KeyStrokesThread := %func2exec%(" #Include *i Lib\keypress-keystrokes-helper.ahk ")
-              OnMessage(0x4a, "KeyStrokeReceiver")  ; 0x4a is WM_COPYDATA
-          }
+             KeyStrokesThread := %func2exec%(" #Include *i Lib\keypress-keystrokes-helper.ahk ")
       }
       Sleep, 10
       If IsRipplesFile
@@ -10037,7 +9856,6 @@ InitAHKhThreads() {
 }
 
 Cleanup() {
-    OnMessage(0x4a, "")
     OnMessage(0x200, "")
     OnMessage(0x102, "")
     OnMessage(0x103, "")
@@ -10080,9 +9898,6 @@ Cleanup() {
        }
     }
     Sleep, 10
-    a := "Acc_Init"
-    If IsFunc(a)
-       %a%(1)
     If (SafeModeExec!=1)
        SetVolume(VolL, VolR)
 
@@ -10381,15 +10196,7 @@ dummy() {
     Return
 }
 
-CheckAcc:
-  #Include *i %A_ScriptDir%\Lib\keypress-acc-viewer-functions.ahk
-  #Include *i %A_ScriptDir%\Lib\UIA_Interface.ahk
-  If (SafeModeExec!=1)
-  {
-     Sleep, 1
- ;    addScript("ahkThread_Free(deleteME)",0)   ; comment/delete this line to execute this script with AHK_L
+CheckThis:
+;    addScript("ahkThread_Free(deleteME)",0)   ; comment/delete this line to execute this script with AHK_L
      ahkThread_Free(deleteME)   ; comment/delete this line to execute this script with AHK_L
-  }
 Return
-
-

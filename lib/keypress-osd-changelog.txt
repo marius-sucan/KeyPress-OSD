@@ -11,8 +11,16 @@ http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip
 
 by Marius Sucan (robodesign.ro)
 
+  v4.31 (2018-04-24)
+  - removed integration of the ACC viewer and UIA Interface libraries [the feature was introduced in v4.18.1]
+  - removed integration with Capture2Text, because it was unreliably functioning; this feature was introduced in v3.01;
+  - changes to the main menu [the tray menu]
+  - underlying changes to dead keys related thread; it no longer uses SendMessage to communicate with the main thread, but ahkAssign variable [from AHK_H]
+  - various bug fixes
+
   v4.30.8 (2018-04-22)
   - more bug fixes; important bug fixes as well
+  - removed option to offer audio-visual feedback on mouse cursor changes [it was introduced in v4.28.3], because it was not reliably working
 
   v4.30.7 (2018-04-19)
   - more bug fixes
@@ -251,7 +259,7 @@ by Marius Sucan (robodesign.ro)
   - [new] partial support for Right-to-Left writing, for Arabic languages [thanks to drugwash for the RTL detection]
   - [new] a window to list the currently installed keyboard layouts, instead of the Tray menu list
   - further improved support for Indic writing systems
-  - removed the option to force a specific keyboard layout; there's nothing hard-coded, so this option/feature made no sense anymore
+  - removed the option to force a specific keyboard layout; there's nothing hard-coded, so this option/feature made no sense anymore; this feature was introduced in v3.10;
 
   v4.19.2 (2018-02-07)
   - improved support for Bengali, Assamese, Devanagari, Hindi and other related writing scripts
@@ -384,7 +392,7 @@ by Marius Sucan (robodesign.ro)
   v3.98.0.7 (2018-01-11) - release candidate
   - many bug fixes; as always, too many too list here; i would waste time keeping track of them
   - removed useless options from typing settings: 
-    -- immediately change to alternate typing mode, when typing [because it's too unreliable]
+    -- immediately change to alternate typing mode, when typing [because it's too unreliable]; this was introduced in v3.95.
     -- do not treat dead keys as a different char [the recent changes made it useless]
 
   v3.98.0.5 (2018-01-10) - beta
@@ -947,8 +955,6 @@ by tmplinshi from https://autohotkey.com/boards/viewtopic.php?f=6&t=225
 TO-DO:
 Features to implement:
  - afișează shortcuts in meniuri
- - add shortcut to add/remove auto-replace entries
-   - If UserTypedWord="+//+" offer a dialog ?
 
 - compile the thing! include all scripts inside?
   - separate UI settings and tray menu? separate files with include
@@ -960,18 +966,19 @@ Features to implement:
 
 - Kill switch. On click exit. Force exit. 
 - elimină iniWrite for clipboard manager? then make ID per install
-- integrate Vis2
+- integrate Vis2?
 
+-use the input hook for mouse keys?
 
  - it sometimes crashes on restart
  - one cannot drag the OSD with Mouse Keys
  - reparații la mouse ripples; wheel up/down frequency mess-up
- - KeyStrokeAider can cause crashes after a long period of running
  - updater.bat does not work in XP
  - Drugwash: checkWindowKBD() - TO FIX
 
 - probably fixed
   -- [Justice PC] test if mouse ripples can still cause silent crashes
+  -- KeyStrokeAider can cause crashes after a long period of running
 
 
 - auto-correct [with 1,2,3] - long words; visualize first
