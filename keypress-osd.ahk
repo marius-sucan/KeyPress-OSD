@@ -147,7 +147,7 @@
 ;@Ahk2Exe-SetMainIcon Lib\keypress.ico
 ;@Ahk2Exe-SetName KeyPress OSD v4
 ;@Ahk2Exe-SetDescription KeyPress OSD v4 [mirror keyboard and mouse usage]
-;@Ahk2Exe-SetVersion 4.31
+;@Ahk2Exe-SetVersion 4.31.1
 ;@Ahk2Exe-SetCopyright Marius Şucan (2017-2018)
 ;@Ahk2Exe-SetCompanyName ROBODesign.ro
 ;@Ahk2Exe-SetOrigFilename keypress-osd.ahk
@@ -345,7 +345,6 @@
  , KBDTglSilence          := "!+^F10"
  , KBDidLangNow           := "!+^F11"
  , KBDReload              := "!+^F12"
- , KBDCapText             := "(Disabled)"
  , KBDclippyMenu          := "#v"
 
  , DoBackup               := 0     ; if enabled, each update will backup previous files to a separate folder
@@ -355,8 +354,8 @@
  , DownloadExternalFiles  := 1
 
 ; Release info
- , Version                := "4.31"
- , ReleaseDate            := "2018 / 04 / 24"
+ , Version                := "4.31.1"
+ , ReleaseDate            := "2018 / 04 / 25"
  , hMutex, ScriptInitialized, FirstRun := 1
  , KPregEntry := "HKEY_CURRENT_USER\SOFTWARE\KeyPressOSD\v4"
 
@@ -491,7 +490,7 @@ Global Debug := 0    ; for testing purposes
  , PreviewWindowText := "Preview " Lola "window... " Lola2
  , MainModsList := ["LCtrl", "RCtrl", "LAlt", "RAlt", "LShift", "RShift", "LWin", "RWin"]
  , GlobalKBDsList := "KBDaltTypeMode,KBDpasteOSDcnt1,KBDpasteOSDcnt2,KBDsynchApp1,KBDsynchApp2
-    ,KBDTglNeverOSD,KBDTglPosition,KBDTglSilence,KBDidLangNow,KBDCapText,KBDReload,KBDsuspend,KBDclippyMenu"
+    ,KBDTglNeverOSD,KBDTglPosition,KBDTglSilence,KBDidLangNow,KBDReload,KBDsuspend,KBDclippyMenu"
  , KeysComboList := "(Disabled)|(Restore Default)|[[ 0-9 / Digits ]]|[[ Letters ]]|Right|Left|Up|Down|Home|End
     |Page_Down|Page_Up|Backspace|Space|Tab|Delete|Enter|Escape|Insert|CapsLock|NumLock|ScrollLock|L_Click
     |M_Click|R_Click|PrintScreen|Pause|Break|CtrlBreak|AppsKey|F1|F2|F3|F4|F5|F6|F7|F8|F9|F10|F11|F12
@@ -2966,7 +2965,8 @@ CreateOSDGUI() {
        Gui, OSD: Font, c%OSDtextColor%, -wrap
 
     textAlign := "left"
-    widtha := A_ScreenWidth - 50
+    SysGet, VirtualWidth, 78
+    widtha := VirtualWidth - 50
     positionText := smallLEDheight + 2
 
     If (OSDalignment>1)
@@ -4632,7 +4632,7 @@ checkInstalledLangs() {
 }
 
 listIMEs() {
-    If (A_OSVersion ~= "i)(WIN_XP|WIN_2000)")
+    If (A_OSVersion="WIN_XP")
        Return
 
     IniRead, KBDsDetected, %LangFile%, Options, KBDsDetected, -
@@ -5647,8 +5647,9 @@ QuickSettingsMenu() {
     If !A_IsSuspended
        Menu, QuickMenu, Check, &KeyPress activated
 
+    FileTest := A_StartupCommon "\Admin Mode - KeyPress OSD.lnk"
     RegRead, currentReg, HKCU, SOFTWARE\Microsoft\Windows\CurrentVersion\Run, KeyPressOSD
-    If StrLen(currentReg)>5
+    If (StrLen(currentReg)>5 || FileExist(FileTest))
        Menu, QuickMenu, Check, Sta&rt at boot
 
     If (SilentMode=1)
@@ -5718,8 +5719,9 @@ InitializeTray() {
        Menu, PrefsMenu, Disable, R&un in Admin Mode
     }
 
+    FileTest := A_StartupCommon "\Admin Mode - KeyPress OSD.lnk"
     RegRead, currentReg, HKCU, SOFTWARE\Microsoft\Windows\CurrentVersion\Run, KeyPressOSD
-    If StrLen(currentReg)>5
+    If (StrLen(currentReg)>5 || FileExist(FileTest))
        Menu, PrefsMenu, Check, Sta&rt at boot
 
     If (PrefsLargeFonts=1)
@@ -5836,6 +5838,13 @@ ToggleRunSafeMode(quickMode:=0) {
 }
 
 SetStartUp() {
+  If (A_OSVersion!="WIN_XP")
+  {
+     RegDelete, HKCU, SOFTWARE\Microsoft\Windows\CurrentVersion\Run, KeyPressOSD
+     RunAsTask()
+     Return
+  }
+
   regEntry := """" A_ScriptFullPath """"
   StringReplace, regEntry, regEntry, .ahk", .exe"
   RegRead, currentReg, HKCU, SOFTWARE\Microsoft\Windows\CurrentVersion\Run, KeyPressOSD
@@ -5844,13 +5853,16 @@ SetStartUp() {
      StringReplace, TestThisFile, ThisFile, .ahk, .exe
      If !FileExist(TestThisFile)
         MsgBox, This option works only in the compiled edition of this script.
-     Menu, PrefsMenu, Check, Sta&rt at boot
      RegWrite, REG_SZ, HKCU, SOFTWARE\Microsoft\Windows\CurrentVersion\Run, KeyPressOSD, %regEntry%
+     Menu, PrefsMenu, Check, Sta&rt at boot
+     ShowLongMsg("Enabled Start at Boot")
   } Else
   {
      RegDelete, HKCU, SOFTWARE\Microsoft\Windows\CurrentVersion\Run, KeyPressOSD
      Menu, PrefsMenu, Uncheck, Sta&rt at boot
+     ShowLongMsg("Disabled Start at Boot")
   }
+  SetTimer, HideGUI, % -DisplayTime
 }
 
 ToggleLargeFonts() {
@@ -6667,10 +6679,6 @@ ShowShortCutsSettings() {
     AddKBDcombo("KBDidLangNow", KBDidLangNow)
     AddKBDmods("KBDidLangNow", KBDidLangNow)
 
-    Gui, Add, Text, xs+0 y+1 w%col1width%, Capture text underneath the mouse
-    AddKBDcombo("KBDCapText", KBDCapText)
-    AddKBDmods("KBDCapText", KBDCapText)
-
     Gui, Add, Text, xs+0 y+1 w%col1width%, Restart / reload KeyPress OSD
     AddKBDcombo("KBDReload", KBDReload)
     AddKBDmods("KBDReload", KBDReload)
@@ -6718,7 +6726,7 @@ GenerateHotkeyStrS(enableApply:=1) {
   }
 
   keywords := "i)(disa|resto)"
-  KBDsTestDuplicate := KBDaltTypeMode "&" KBDpasteOSDcnt1 "&" KBDpasteOSDcnt2 "&" KBDsynchApp1 "&" KBDsynchApp2 "&" KBDTglNeverOSD "&" KBDTglPosition "&" KBDTglSilence "&" KBDidLangNow "&" KBDCapText "&" KBDReload "&" KBDsuspend "&" KBDclippyMenu
+  KBDsTestDuplicate := KBDaltTypeMode "&" KBDpasteOSDcnt1 "&" KBDpasteOSDcnt2 "&" KBDsynchApp1 "&" KBDsynchApp2 "&" KBDTglNeverOSD "&" KBDTglPosition "&" KBDTglSilence "&" KBDidLangNow "&" KBDReload "&" KBDsuspend "&" KBDclippyMenu
   For each, kbd2test in StrSplit(KBDsTestDuplicate, "&")
   {
       countDuplicate := 0
@@ -6840,7 +6848,6 @@ VerifyShortcutOptions(enableApply:=1) {
         SwitchStateKBDbtn("KBDTglSilence", 0)
         SwitchStateKBDbtn("KBDidLangNow", 0)
         SwitchStateKBDbtn("KBDReload", 0)
-        SwitchStateKBDbtn("KBDCapText", 0)
     } Else
     {
         If (DisableTypingMode=0)
@@ -6855,7 +6862,6 @@ VerifyShortcutOptions(enableApply:=1) {
         SwitchStateKBDbtn("KBDTglSilence", 1)
         SwitchStateKBDbtn("KBDidLangNow", 1)
         SwitchStateKBDbtn("KBDReload", 1)
-        SwitchStateKBDbtn("KBDCapText", 1)
     }
 
     If (DisableTypingMode=1)
@@ -6872,8 +6878,6 @@ VerifyShortcutOptions(enableApply:=1) {
     If (MissingAudios=1 || SafeModeExec=1 || NoAhkH=1)
        SwitchStateKBDbtn("KBDTglSilence", 0)
 
-    If (A_OSVersion="WIN_XP")
-       SwitchStateKBDbtn("KBDCapText", 0)
     ProcessComboKBD()
 }
 
@@ -9406,7 +9410,6 @@ INIsettings(a) {
   INIaction(a, "KBDpasteOSDcnt2", "Hotkeys")
   INIaction(a, "KBDsynchApp1", "Hotkeys")
   INIaction(a, "KBDsynchApp2", "Hotkeys")
-  INIaction(a, "KBDCapText", "Hotkeys")
   INIaction(a, "KBDsuspend", "Hotkeys")
   INIaction(a, "KBDTglNeverOSD", "Hotkeys")
   INIaction(a, "KBDTglSilence", "Hotkeys")
@@ -9676,13 +9679,112 @@ CheckIfRunning(ForceIT:=0) {
 GetPhysicalCursorPos(ByRef mX, ByRef mY) {
 ; function from: https://github.com/jNizM/AHK_DllCall_WinAPI/blob/master/src/Cursor%20Functions/GetPhysicalCursorPos.ahk
 ; by jNizM, modified by Marius Șucan
+    If (A_OSVersion="WIN_XP")
+    {
+       MouseGetPos, mX, mY
+       Return
+    }
+
     Static POINT, init := VarSetCapacity(POINT, 8, 0) && NumPut(8, POINT, "Int")
     If !(DllCall("user32.dll\GetPhysicalCursorPos", "Ptr", &POINT))
-       Return MouseGetPos, mX, mY
+    {
+       MouseGetPos, mX, mY
+       Return
 ;       Return DllCall("kernel32.dll\GetLastError")
+    }
     mX := NumGet(POINT, 0, "Int")
     mY := NumGet(POINT, 4, "Int")
     Return
+}
+
+RunAsTask() {
+; Auto-elevates script without UAC prompt
+; from http://ahkscript.org/boards/viewtopic.php?t=4334
+; By SKAN, CD:19/Aug/2014 | MD:22/Aug/2014
+; modified by Marius Șucan in 25 / 04 / 2018
+
+  Local CmdLine, TaskName, TaskExists, XML, TaskSchd, TaskRoot, RunAsTask
+  Local TASK_CREATE := 0x2,  TASK_LOGON_INTERACTIVE_TOKEN := 3 
+
+  If (!A_IsAdmin)
+  {
+     MsgBox, 4,, The application must run in Admin mode to toggle Start at Boot. `nWould you like to restart it in Admin mode now ?
+     IfMsgBox, Yes
+       RunAdminMode()
+     Return
+  }
+
+  TheName := "Admin Mode - KeyPress OSD"
+  Try TaskSchd  := ComObjCreate( "Schedule.Service" ),    TaskSchd.Connect()
+    , TaskRoot  := TaskSchd.GetFolder( "\" )
+  Catch
+      Return "", ErrorLevel := 1    
+
+  CmdLine       := (A_IsCompiled ? "" : """"  A_AhkPath """" )  A_Space  ( """" A_ScriptFullpath """"  )
+  TaskName      := TheName ; " @" SubStr( "000000000"  DllCall( "NTDLL\RtlComputeCrc32"
+;                , "Int",0, "WStr",CmdLine, "UInt",StrLen( CmdLine ) * 2, "UInt" ), -9 )
+
+  Try RunAsTask := TaskRoot.GetTask( TaskName )
+  TaskExists    := !A_LastError 
+
+  If (A_IsAdmin)
+  {
+    If TaskExists
+    {
+       For task in TaskRoot.GetTasks(0)
+       {
+         ; MsgBox % task.Name
+         brr := task.Name
+         If InStr(brr, "KeyPress")
+            TaskRoot.DeleteTask(task.Name, 0)
+       }
+       ShowLongMsg("Disabled Start at Boot")
+       SetTimer, HideGUI, % -DisplayTime
+       RunAsTask_CreateShortcut(TaskName, A_StartupCommon, TaskName, 1)
+       Menu, PrefsMenu, Uncheck, Sta&rt at boot
+
+       Return 0
+    }
+    XML := "
+    (LTrim Join
+      <?xml version=""1.0"" ?><Task xmlns=""http://schemas.microsoft.com/windows/2004/02/mit/task"">
+      <RegistrationInfo /><Triggers> <LogonTrigger><Enabled>false</Enabled><Delay>PT20S</Delay>
+      </LogonTrigger></Triggers><Principals><Principal id=""Author""><LogonType>InteractiveToken
+      </LogonType><RunLevel>HighestAvailable</RunLevel></Principal></Principals><Settings>
+      <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy><DisallowStartIfOnBatteries>false
+      </DisallowStartIfOnBatteries><StopIfGoingOnBatteries>false</StopIfGoingOnBatteries><AllowHardTerminate>
+      true</AllowHardTerminate><StartWhenAvailable>false</StartWhenAvailable><RunOnlyIfNetworkAvailable>
+      false</RunOnlyIfNetworkAvailable><IdleSettings><StopOnIdleEnd>true</StopOnIdleEnd><RestartOnIdle>false
+      </RestartOnIdle></IdleSettings><AllowStartOnDemand>true</AllowStartOnDemand><Enabled>true</Enabled>
+      <Hidden>false</Hidden><RunOnlyIfIdle>false</RunOnlyIfIdle><DisallowStartOnRemoteAppSession>false
+      </DisallowStartOnRemoteAppSession><UseUnifiedSchedulingEngine>false</UseUnifiedSchedulingEngine>
+      <WakeToRun>false</WakeToRun><ExecutionTimeLimit>PT0S</ExecutionTimeLimit><Priority>5</Priority>
+      </Settings><Actions Context=""Author""><Exec>
+      <Command>" ( A_IsCompiled ? A_ScriptFullpath : A_AhkPath ) "</Command>
+      <Arguments>" ( !A_IsCompiled ? """" A_ScriptFullpath  """" : "" ) "</Arguments>
+      <WorkingDirectory>" A_ScriptDir "</WorkingDirectory></Exec></Actions></Task>
+    )"
+    TaskRoot.RegisterTask(TaskName, XML, TASK_CREATE, "", "", TASK_LOGON_INTERACTIVE_TOKEN)
+    ErrorLevel := 0
+    Menu, PrefsMenu, Check, Sta&rt at boot
+    ShowLongMsg("Enabled Start at Boot")
+    SetTimer, HideGUI, % -DisplayTime
+    RunAsTask_CreateShortcut(TaskName, A_StartupCommon, TaskName, 0)
+    Return 1
+  }
+}
+
+RunAsTask_CreateShortcut(TaskName := "",Folder := "",ShcName := "", delete:=0) { ; by SKAN, http://goo.gl/yG6A1F
+  Local LINK, Description
+  If !TaskName
+     Return 
+
+  lnkFile := (FileExist(Folder) ? Folder : A_ScriptDir) "\" (ShcName ? ShcName : A_ScriptName) ".lnk"
+  If (delete=0)
+     FileCreateShortcut, schtasks.exe, %lnkFile%, %A_WorkingDir%,/run /tn "%TaskName%", %TaskName%,,,, 7
+  Sleep, 50
+  If (delete=1)
+     FileDelete, % A_StartupCommon "\Admin Mode - KeyPress OSD.lnk"
 }
 
 ;================================================================

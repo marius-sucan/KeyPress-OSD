@@ -11,6 +11,10 @@ http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip
 
 by Marius Sucan (robodesign.ro)
 
+  v4.31.1 (2018-04-25)
+  - [new] on newer versions of Windows [7, 8 or 10], KeyPress OSD sets itself at start-up in admin mode, using the Task Scheduler; the user should not get any prompts from UAC at every system boot;
+  - bug fixes related to Windows XP and the mouse features;
+
   v4.31 (2018-04-24)
   - removed integration of the ACC viewer and UIA Interface libraries [the feature was introduced in v4.18.1]
   - removed integration with Capture2Text, because it was unreliably functioning; this feature was introduced in v3.01;
@@ -955,9 +959,12 @@ by tmplinshi from https://autohotkey.com/boards/viewtopic.php?f=6&t=225
 TO-DO:
 Features to implement:
  - afișează shortcuts in meniuri
+ - identify when user switches to admin apps
+   - always start in admin mode?
 
 - compile the thing! include all scripts inside?
   - separate UI settings and tray menu? separate files with include
+https://www.facebook.com/iulia.zgripcea/videos/
 
 - test compiled version on different systems; crashes?
 - test update, binary, changelog and help files update?
@@ -981,6 +988,31 @@ Features to implement:
   -- KeyStrokeAider can cause crashes after a long period of running
 
 
+- Go through older posts. Check what's done. 
+- update help; separate FAQs into sections
+- test different DPIs
+- test on different computers - slow computers...
+
+Glitches to fix or think of possible solutions:
+- caret gets out of synch in FF, multi-line fields
+  - use real caret data?
+- OSD is never on top of Start menu in Windows 10
+- support for Bengali, Assamese and other similar scripts is shady
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 - auto-correct [with 1,2,3] - long words; visualize first
 - https://autohotkey.com/board/topic/54987-sift3-super-fast-and-accurate-string-distance-algorithm/
 - https://github.com/first20hours/google-10000-english
@@ -999,17 +1031,3 @@ https://autohotkey.com/board/topic/53672-get-the-text-content-of-a-tool-tip-wind
   https://autohotkey.com/board/topic/57431-get-text-under-mouse-cursor/
   https://blogs.msdn.microsoft.com/oldnewthing/20130408-00/?p=4733
 
-- Go through older posts. Check what's done. 
-- update help; separate FAQs into sections
-- test different DPIs
-- test on different computers - slow computers...
-
-Glitches to fix or think of possible solutions:
-- caret gets out of synch in FF, multi-line fields
-  - use real caret data?
-- OSD is never on top of Start menu in Windows 10
-- support for Bengali, Assamese and other similar scripts is shady
-
-
-https://regex101.com/r/QKXvg9/1
-https://www.regular-expressions.info/posixbrackets.html
