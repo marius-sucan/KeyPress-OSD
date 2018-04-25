@@ -329,10 +329,19 @@ Return
 GetPhysicalCursorPos(ByRef mX, ByRef mY) {
 ; function from: https://github.com/jNizM/AHK_DllCall_WinAPI/blob/master/src/Cursor%20Functions/GetPhysicalCursorPos.ahk
 ; by jNizM, modified by Marius Șucan
+    If (A_OSVersion="WIN_XP")
+    {
+       MouseGetPos, mX, mY
+       Return
+    }
+
     Static POINT, init := VarSetCapacity(POINT, 8, 0) && NumPut(8, POINT, "Int")
     If !(DllCall("user32.dll\GetPhysicalCursorPos", "Ptr", &POINT))
-       Return MouseGetPos, mX, mY
+    {
+       MouseGetPos, mX, mY
+       Return
 ;       Return DllCall("kernel32.dll\GetLastError")
+    }
     mX := NumGet(POINT, 0, "Int")
     mY := NumGet(POINT, 4, "Int")
     Return
