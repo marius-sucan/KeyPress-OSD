@@ -34,8 +34,11 @@ Global IniFile := "keypress-osd.ini"
  , MainExe := AhkExported()
  , DoNotBindDeadKeys := MainExe.ahkgetvar.DoNotBindDeadKeys
  , AltHook2keysUser := MainExe.ahkgetvar.AltHook2keysUser
+ , DisableTypingMode := MainExe.ahkgetvar.DisableTypingMode
+ , ShowSingleKey := MainExe.ahkgetvar.ShowSingleKey
 
-If (DoNotBindDeadKeys=0 && AltHook2keysUser=1)
+If (DoNotBindDeadKeys=0 && AltHook2keysUser=1
+&& ShowSingleKey=1 && DisableTypingMode=0)
    MainLoop()
 Return
 
@@ -46,7 +49,7 @@ MainLoop() {
       EndKey := ErrorLevel
 ;      SoundBeep
       If (AlternativeHook2keys=0 || AltHook2keysUser=0
-      || DoNotBindDeadKeys=1)
+      || DoNotBindDeadKeys=1 || DisableTypingMode=1)
       {
          hasEnded := 1
          Break

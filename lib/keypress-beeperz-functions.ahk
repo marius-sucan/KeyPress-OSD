@@ -43,6 +43,8 @@ Global IniFile           := "keypress-osd.ini"
  , ScriptelSuspendel := 0
  , moduleInitialized, ActiveSillySoundHack, PrefOpen := 0
  , MainExe := AhkExported()
+ , hMain := MainExe.ahkgetvar.hMain
+ , hOSD := MainExe.ahkgetvar.hOSD
 
 checkTeamViewerTimer()
 SetTimer, checkCurrentWindow, 1500
@@ -57,6 +59,8 @@ checkCurrentWindow() {
   }
 
   currWin := WinExist("A")
+;  If DllCall("IsHungAppWindow", "UInt", currWin)
+;     MainExe.ahkPostFunction("ShowLongMsg", "App hung...")
   If (currWin!=oldCurrWin)
      MainExe.ahkPostFunction("ShellMessageDummy")
   oldCurrWin := currWin

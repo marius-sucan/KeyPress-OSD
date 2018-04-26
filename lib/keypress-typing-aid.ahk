@@ -190,7 +190,7 @@ OnLetterPressed() {
 OnLetterUp() {
   If (ScriptelSuspendel="Y" || PrefOpen=1)
      Return
-  MainExe.ahkPostFunction("OnLetterUp", A_ThisHotkey, A_PriorKey)
+  MainExe.ahkPostFunction("OnLetterUp", A_ThisHotkey, A_PriorHotkey)
 }
 
 OnAltGrDeadKeyPressed() {

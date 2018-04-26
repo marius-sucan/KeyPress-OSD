@@ -11,6 +11,9 @@ http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip
 
 by Marius Sucan (robodesign.ro)
 
+  v4.31.2 (2018-04-26)
+  - more bug fixes
+  
   v4.31.1 (2018-04-25)
   - [new] on newer versions of Windows [7, 8 or 10], KeyPress OSD sets itself at start-up in admin mode, using the Task Scheduler; the user should not get any prompts from UAC at every system boot;
   - bug fixes related to Windows XP and the mouse features;
@@ -960,7 +963,6 @@ TO-DO:
 Features to implement:
  - afișează shortcuts in meniuri
  - identify when user switches to admin apps
-   - always start in admin mode?
 
 - compile the thing! include all scripts inside?
   - separate UI settings and tray menu? separate files with include
@@ -977,6 +979,7 @@ https://www.facebook.com/iulia.zgripcea/videos/
 
 -use the input hook for mouse keys?
 
+  -- [Justice PC] test if mouse ripples can still cause silent crashes
  - it sometimes crashes on restart
  - one cannot drag the OSD with Mouse Keys
  - reparații la mouse ripples; wheel up/down frequency mess-up
@@ -984,7 +987,6 @@ https://www.facebook.com/iulia.zgripcea/videos/
  - Drugwash: checkWindowKBD() - TO FIX
 
 - probably fixed
-  -- [Justice PC] test if mouse ripples can still cause silent crashes
   -- KeyStrokeAider can cause crashes after a long period of running
 
 

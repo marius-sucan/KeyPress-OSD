@@ -205,7 +205,7 @@ ToggleNumLock(stopAll:=0,silent:=0) {
      HotkeysList("Off")
      activated := 0
   }
-  Sleep, 25
+  Sleep, 5
   If (MouseKeysHalo=1 && stopAll=0 && MouseKeys=1)
      MainExe.ahkFunction("ToggleMouseKeysHalo")
 
