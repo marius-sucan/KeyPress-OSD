@@ -147,7 +147,7 @@
 ;@Ahk2Exe-SetMainIcon Lib\keypress.ico
 ;@Ahk2Exe-SetName KeyPress OSD v4
 ;@Ahk2Exe-SetDescription KeyPress OSD v4 [mirror keyboard and mouse usage]
-;@Ahk2Exe-SetVersion 4.31.1
+;@Ahk2Exe-SetVersion 4.31.2
 ;@Ahk2Exe-SetCopyright Marius Şucan (2017-2018)
 ;@Ahk2Exe-SetCompanyName ROBODesign.ro
 ;@Ahk2Exe-SetOrigFilename keypress-osd.ahk
@@ -354,8 +354,8 @@
  , DownloadExternalFiles  := 1
 
 ; Release info
- , Version                := "4.31.1"
- , ReleaseDate            := "2018 / 04 / 25"
+ , Version                := "4.31.2"
+ , ReleaseDate            := "2018 / 04 / 26"
  , hMutex, ScriptInitialized, FirstRun := 1
  , KPregEntry := "HKEY_CURRENT_USER\SOFTWARE\KeyPressOSD\v4"
 
@@ -1490,13 +1490,15 @@ OnLetterPressed(onLatterUp:=0,externKey:=0) {
        InsertChar2caret(" ")
 
     Try {
-        If (DeadKeys=1 && (A_TickCount-DeadKeyPressed < 1100))      ; these delays help with dead keys
-           Sleep, % 70 * TypingDelaysScale
-        Else If (Typed && DeadKeys=1)
-           Sleep, % 20 * TypingDelaysScale
-
-        If (Typed && DeadKeys=1 && DoNotBindDeadKeys=1)
-           Sleep, % 20 * TypingDelaysScale
+        If (DeadKeys=1 && DoNotBindDeadKeys=0)
+        {
+           If (A_TickCount-DeadKeyPressed < 1500)      ; these delays help with dead keys
+              Sleep, % 70 * TypingDelaysScale
+           Else If (Typed && (A_TickCount-DeadKeyPressed < 5000))
+              Sleep, % 20 * TypingDelaysScale
+        }
+        If (DeadKeys=1 && DoNotBindDeadKeys=1)
+           Sleep, % 45 * TypingDelaysScale
 
         AltGrMatcher := "i)^((AltGr|.?Alt \+ .?Ctrl|.?Ctrl \+ .?Alt) \+ (.?shift \+ )?((.)$|(.)[\r\n \,]))"
         ShiftMatcher := "i)^(.?Shift \+ ((.)$|(.)[\r\n \,]))"
@@ -2090,10 +2092,10 @@ OnKeyUp() {
 OnLetterUp(externKey:=0,priorExternKey:=0) {
     LastMatchedExpandPair := ""
     a1 := externKey ? externKey : A_ThisHotkey
-    StringReplace, a2, A_ThisHotkey, %A_Space%up
+    StringReplace, a2, a1, %A_Space%up
     StringRight, a2, a2, 4
     b1 := priorExternKey ? priorExternKey : A_PriorHotKey
-
+    ; ToolTip, %a1% - %b1%
     If (PressKeyRecorded=0 && DisableTypingMode=0
     && SecondaryTypingMode=0 && InStr(b1, "vk")
     && (A_TickCount-DeadKeyPressed>400)
@@ -2102,7 +2104,7 @@ OnLetterUp(externKey:=0,priorExternKey:=0) {
        If !InStr(TypedKeysHistory, a2)
        {
           TypedKeysHistory := 0
-          OnLetterPressed(1)
+          OnLetterPressed(1, externKey)
        }
     }
 
@@ -2160,12 +2162,12 @@ TypedLetter(key,onLatterUp:=0) {
 
       vk := "0x0" SubStr(key, InStr(key, "vk", 0, 0)+2)
       sc := "0x0" GetKeySc("vk" vk)
-      key := toUnicodeExtended(vk, sc, shiftPressed, AltGrPressed,0,onLatterUp)
+      key := toUnicodeExtended(vk, sc, shiftPressed, AltGrPressed, 0)
 
       If (AlternativeHook2keys=1 && TrueRmDkSymbol && DoNotBindDeadKeys=0
       && (A_TickCount-deadKeyPressed < 9000))
       { 
-         Sleep, 5
+         Sleep, 35
          If (ExternalKeyStrokeRecvd=TrueRmDkSymbol)
             ExternalKeyStrokeRecvd .= key
          Typed := ExternalKeyStrokeRecvd
@@ -2185,7 +2187,7 @@ TypedLetter(key,onLatterUp:=0) {
    Return Typed
 }
 
-toUnicodeExtended(uVirtKey,uScanCode,shiftPressed:=0,AltGrPressed:=0,wFlags:=0,onLatterUp:=0) {
+toUnicodeExtended(uVirtKey,uScanCode,shiftPressed:=0,AltGrPressed:=0,wFlags:=0) {
 ; Many thanks to Helgef for helping me with this function:
 ; https://autohotkey.com/boards/viewtopic.php?f=5&t=41065&p=187582#p187582
   PressKeyRecorded := 1
@@ -2216,12 +2218,6 @@ toUnicodeExtended(uVirtKey,uScanCode,shiftPressed:=0,AltGrPressed:=0,wFlags:=0,o
   cchBuff := 3            ; number of characters the buffer can hold
   VarSetCapacity(lpKeyState,256,0)
   VarSetCapacity(pwszBuff, (cchBuff+1)*2, 0) ; this will hold cchBuff (3) characters and the null terminator.
-
-  If (onLatterUp=1)
-  {
-     For modifier, vk in {Shift:0x10, Control:0x11, Alt:0x12}
-         NumPut(128*(GetKeyState("L" modifier) || GetKeyState("R" modifier)) , lpKeyState, vk, "Uchar")
-  }
 
   If (shiftPressed=1)
      NumPut(128, lpKeyState, 0x10, "UChar")
@@ -3736,6 +3732,15 @@ BindTypeHotKeys() {
     Hotkey, ~^vk56, OnCtrlV, useErrorLevel
     Hotkey, ~^vk58, OnCtrlX, useErrorLevel
     Hotkey, ~^vk5A, OnCtrlZ, useErrorLevel
+    If (DisableTypingMode=1)
+    {
+       Hotkey, ~^BackSpace, OnCtrlDelBack, useErrorLevel
+       Hotkey, ~^Del, OnCtrlDelBack, useErrorLevel
+       Hotkey, ~^Left, OnCtrlRLeft, useErrorLevel
+       Hotkey, ~^Right, OnCtrlRLeft, useErrorLevel
+       Hotkey, ~+^Left, OnCtrlRLeft, useErrorLevel
+       Hotkey, ~+^Right, OnCtrlRLeft, useErrorLevel
+    }
     keysHaveBound := 1
 }
 
@@ -3759,7 +3764,7 @@ CreateHotkey() {
     If (DisableTypingMode=0)
     {
        BindTypeHotKeys()
-       If (MediateNavKeys=1 && DisableTypingMode=0)
+       If (MediateNavKeys=1)
        {
           Hotkey, Home, OnHomeEndPressed, useErrorLevel
           Hotkey, +Home, OnHomeEndPressed, useErrorLevel
@@ -3767,7 +3772,7 @@ CreateHotkey() {
           Hotkey, +End, OnHomeEndPressed, useErrorLevel
        }
 
-       If (SendJumpKeys=0 && IsLangRTL=0)
+       If (SendJumpKeys=0)
        {
           Hotkey, ~^BackSpace, OnCtrlDelBack, useErrorLevel
           Hotkey, ~^Del, OnCtrlDelBack, useErrorLevel
@@ -6025,10 +6030,10 @@ initSettingsWindow() {
     Global ApplySettingsBTN, CancelSettBTN
     If (PrefOpen=1)
     {
-        SoundBeep, 300, 900
-        WinActivate, KeyPress OSD
-        doNotOpen := 1
-        Return doNotOpen
+       SoundBeep, 300, 900
+       WinActivate, KeyPress OSD
+       doNotOpen := 1
+       Return doNotOpen
     }
 
     If (A_IsSuspended!=1)
@@ -6052,13 +6057,13 @@ verifySettingsWindowSize() {
        MsgBox, 4,, The option "Large UI fonts" is enabled. The window seems to exceed your screen resolution. `nDo you want to disable Large UI fonts?
        IfMsgBox, Yes
        {
-           ToggleLargeFonts()
-           If (PrefOpen=1)
-              SwitchPreferences(1)
-           Else If (AnyWindowOpen=1)
-              AboutWindow()
-           Else If (AnyWindowOpen=2)
-              InstalledKBDsWindow()
+          ToggleLargeFonts()
+          If (PrefOpen=1)
+             SwitchPreferences(1)
+          Else If (AnyWindowOpen=1)
+             AboutWindow()
+          Else If (AnyWindowOpen=2)
+             InstalledKBDsWindow()
        }
     }
 }
@@ -6140,10 +6145,10 @@ OpenLastWindow() {
        ShowShortCutsSettings()
     Else
     {
-      InstKBDsWinOpen := 0
-      Menu, QuickPrefsMenu, Delete
-      QuickMenuPrefPanels()
-      Menu, QuickPrefsMenu, Show
+       InstKBDsWinOpen := 0
+       Menu, QuickPrefsMenu, Delete
+       QuickMenuPrefPanels()
+       Menu, QuickPrefsMenu, Show
     }
 }
 
@@ -6343,12 +6348,12 @@ ShowTypeSettings() {
     Gui, Add, Edit, y+10 r7 w%editWid% gwordPairsEditing vExpandWordsListEdit, %ExpandWordsListEdit%
     If (PrefsLargeFonts=1)
     {
-       Gui, Add, Button, xp+0 y+15 w90 h30 gSaveWordPairsNow vSaveWordPairsBTN, Save li&st
+       Gui, Add, Button, xp+0 y+15 w90 h30 gSaveWordPairsNow vSaveWordPairsBTN Disabled, Save li&st
        Gui, Add, Button, x+10 yp+0 w110 hp gOpenExpandableWordsFile vOpenWordPairsBTN, Open &file
        Gui, Add, Button, x+10 yp+0 w150 hp gRestoreExpandableWordsFile vDefaultWordPairsBTN, Restore d&efaults
     } Else
     {
-       Gui, Add, Button, xp+0 y+15 w70 h30 gSaveWordPairsNow vSaveWordPairsBTN, Save li&st
+       Gui, Add, Button, xp+0 y+15 w70 h30 gSaveWordPairsNow vSaveWordPairsBTN Disabled, Save li&st
        Gui, Add, Button, x+10 yp+0 w80 hp gOpenExpandableWordsFile vOpenWordPairsBTN, Open &file
        Gui, Add, Button, x+10 yp+0 w120 hp gRestoreExpandableWordsFile vDefaultWordPairsBTN, Restore d&efaults
     }
@@ -6629,6 +6634,7 @@ ShowShortCutsSettings() {
     If (doNotOpen=1)
        Return
 
+    DoNotRepeatTimer := A_TickCount
     CurrentPrefWindow := 6
     col1width := 290
     If (PrefsLargeFonts=1)
@@ -6751,7 +6757,9 @@ GenerateHotkeyStrS(enableApply:=1) {
      SetTimer, DupeHotkeysToolTipDummy, -1500
   } Else
   {
-     GuiControl, % (!enableApply ? "Disable" : "Enable"), ApplySettingsBTN
+
+     If (A_TickCount-DoNotRepeatTimer>1000)
+        GuiControl, % (!enableApply ? "Disable" : "Enable"), ApplySettingsBTN
      GuiControl, Enable, CurrentPrefWindow
      GuiControl, Enable, CancelBTN
   }
@@ -6779,8 +6787,9 @@ ProcessComboKBD(enableApply:=1) {
      SwitchStateKBDbtn(activeCtrl, 0, 0)
   Else
      SwitchStateKBDbtn(activeCtrl, 1, 0)
-  
-  GuiControl, % (!enableApply ? "Disable" : "Enable"), ApplySettingsBTN
+
+  If (A_TickCount-DoNotRepeatTimer>1000)
+     GuiControl, % (!enableApply ? "Disable" : "Enable"), ApplySettingsBTN
   GenerateHotkeyStrS(enableApply)
 }
 
@@ -7139,7 +7148,7 @@ ShowSoundsSettings() {
     Gui, Add, Slider, x+5 hp ToolTip NoTicks gVolSlider w200 vBeepsVolume Range5-99, %BeepsVolume%
     Gui, Add, Checkbox, x+5 hp +0x1000 gVerifySoundsOptions Checked%SilentMode% vSilentMode, Silent
     If (DisableTypingMode=1)
-       Gui, Add, Text, xs+0 y+15 w%txtWid%, Some options are disabled, because typing mode is not activated.
+       Gui, Add, Text, xs+0 y+15 w%txtWid%, NOTE: CapsLock beeps work only when typing mode is activated.
 
     If (MissingAudios=1)
     {
@@ -7186,9 +7195,6 @@ VerifySoundsOptions(EnableApply:=1) {
 
     If (AutoDetectKBD=0 || DoNotBindDeadKeys=1)
        GuiControl, Disable, DeadKeyBeeper
-
-    If (DisableTypingMode=1)
-       GuiControl, Disable, CapslockBeeper
 }
 
 Switch2KBDsList() {
@@ -9911,19 +9917,11 @@ InitAHKhThreads() {
             SoundsThread.ahkassign("beepFromRes", A_IsCompiled ? "Y" : 0)
          }
 
-         If (DisableTypingMode=0 && ShowSingleKey=1)
+         If GetRes(data, 0, "KEYPRESS-KEYSTROKES-HELPER.AHK", "LIB")
          {
-            If FindRes(0, "KEYPRESS-KEYSTROKES-HELPER.AHK", "LIB")
-            {
-              IsKeystrokesFile := 1
-              If (AlternativeHook2keys=1)
-              {
-                  GetRes(data, 0, "KEYPRESS-KEYSTROKES-HELPER.AHK", "LIB")
-                  KeyStrokesThread := %func2exec%(StrGet(&data))
-                  While !IsKeystrokesFile := KeyStrokesThread.ahkgetvar.IsKeystrokesFile
-                        Sleep, 10
-              }
-            }
+            KeyStrokesThread := %func2exec%(StrGet(&data))
+            While !IsKeystrokesFile := KeyStrokesThread.ahkgetvar.IsKeystrokesFile
+                  Sleep, 10
          }
          VarSetCapacity(data, 0)
       } Else
@@ -9939,8 +9937,7 @@ InitAHKhThreads() {
           TypingAidThread := %func2exec%(" #Include *i Lib\keypress-typing-aid.ahk ")
           MouseRipplesThread := %func2exec%(" #Include *i Lib\keypress-mouse-ripples-functions.ahk ")
           SoundsThread := %func2exec%(" #Include *i Lib\keypress-beeperz-functions.ahk ")
-          If (AlternativeHook2keys=1 && DisableTypingMode=0 && ShowSingleKey=1 && IsKeystrokesFile)
-             KeyStrokesThread := %func2exec%(" #Include *i Lib\keypress-keystrokes-helper.ahk ")
+          KeyStrokesThread := %func2exec%(" #Include *i Lib\keypress-keystrokes-helper.ahk ")
       }
       Sleep, 10
       If IsRipplesFile
