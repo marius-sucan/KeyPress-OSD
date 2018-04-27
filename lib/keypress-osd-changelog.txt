@@ -961,6 +961,7 @@ by tmplinshi from https://autohotkey.com/boards/viewtopic.php?f=6&t=225
 
 TO-DO:
 Features to implement:
+
  - afișează shortcuts in meniuri
  - identify when user switches to admin apps
 

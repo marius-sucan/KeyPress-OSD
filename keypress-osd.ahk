@@ -4746,7 +4746,6 @@ ConstantKBDtimer() {
              IdentifyKBDlayout()
              Sleep, 25
              TypingAidThread.ahkReload[]
-             Sleep, 90
              SendVarsTypingAHKthread()
              If StrLen(Typed)>2
                 SetTimer, CalcVisibleTextFieldDummy, -50
@@ -7836,6 +7835,11 @@ SendVarsMouseAHKthread(initMode) {
 }
 
 SendVarsTypingAHKthread(initMode:=0) {
+   If (IsTypingAidFile && NoAhkH!=1)
+   {
+      While !moduleLoaded := TypingAidThread.ahkgetvar.moduleLoaded
+            Sleep, 10
+   }
    sendTypingVar("IgnoreAdditionalKeys")
    sendTypingVar("IgnorekeysList")
    sendTypingVar("DoNotBindDeadKeys")
@@ -7848,7 +7852,7 @@ SendVarsTypingAHKthread(initMode:=0) {
    sendTypingVar("DKnotShifted_list")
    sendTypingVar("DKshift_list")
    sendTypingVar("DisableTypingMode")
-   TypingAidThread.ahkPostFunction["TypingKeysInit"] 
+   TypingAidThread.ahkFunction["TypingKeysInit"] 
 }
 
 sendTypingVar(var) {

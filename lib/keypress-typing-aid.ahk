@@ -40,6 +40,7 @@ Global IsTypingAidFile    := 1
 , moduleInitialized := 0
 , ScriptelSuspendel, PrefOpen := 0
 , MainExe := AhkExported()
+, moduleLoaded := 1
 
 Return
 
@@ -140,6 +141,7 @@ TypingKeysInit() {
        Hotkey, ~^vk5A, dummy, useErrorLevel
     }
     MainExe.ahkPostFunction("genericBeeper")
+    moduleInitialized := 1
 }
 
 GetKeyChar(key) {
