@@ -795,13 +795,13 @@ OnRLeftPressed() {
 
     If (EnforceSluggishSynch=1 && SecondaryTypingMode=0)
     {
-       If (A_ThisHotkey="Left")
+       If (A_ThisHotkey="$Left")
           SendInput, {Left}
-       If (A_ThisHotkey="Right")
+       If (A_ThisHotkey="$Right")
           SendInput, {Right}
-       If (A_ThisHotkey="+Left")
+       If (A_ThisHotkey="$+Left")
           SendInput, +{Left}
-       If (A_ThisHotkey="+Right")
+       If (A_ThisHotkey="$+Right")
           SendInput, +{Right}
     }
 }
@@ -991,10 +991,10 @@ OnHomeEndPressed() {
       }
       If (exKaretPosSelly2<0 && exKaretPosSelly>=0)
       {
-         If (A_ThisHotkey="End")
+         If (A_ThisHotkey="$End")
             times2pressKey := (exKaretPosSelly > exKaretPos)
                     ? (exKaretPos2 - exKaretPosSelly + 2) : (exKaretPos2 - exKaretPos + 2)
-         If (A_ThisHotkey="Home")
+         If (A_ThisHotkey="$Home")
             times2pressKey := (exKaretPosSelly > exKaretPos)
                     ? (exKaretPos - exKaretPos2 + 1) : (exKaretPosSelly - exKaretPos2 + 1)
          managedMode := (exKaretPos=exKaretPos2) || (times2pressKey<1) ? 0 : 1
@@ -1011,29 +1011,29 @@ OnHomeEndPressed() {
 
       If (managedMode=1)
       {
-         If (A_ThisHotkey="Home")
+         If (A_ThisHotkey="$Home")
             SendInput, {Left %times2pressKey% }
 
-         If (A_ThisHotkey="End")
+         If (A_ThisHotkey="$End")
             SendInput, {Right %times2pressKey% }
 
-         If (A_ThisHotkey="+Home") || (key ~= "i)^(.?Shift \+ Home)")
+         If (A_ThisHotkey="$+Home") || (key ~= "i)^(.?Shift \+ Home)")
             SendInput, {Shift Down}{Left %times2pressKey% }{Shift up}
 
-         If (A_ThisHotkey="+End") || (key ~= "i)^(.?Shift \+ End)")
+         If (A_ThisHotkey="$+End") || (key ~= "i)^(.?Shift \+ End)")
             SendInput, {Shift Down}{Right %times2pressKey% }{Shift up}
       }
     }
 
     If (MediateNavKeys=1 && managedMode!=1) 
     {
-       If (A_ThisHotkey="Home")
+       If (A_ThisHotkey="$Home")
           SendInput, {Home}
-       If (A_ThisHotkey="End")
+       If (A_ThisHotkey="$End")
           SendInput, {End}
-       If (A_ThisHotkey="~+Home") || (key ~= "i)^(.?Shift \+ Home)")
+       If InStr(A_ThisHotkey, "+Home") ; || (key ~= "i)^(.?Shift \+ Home)")
           SendInput, +{Home}
-       If (A_ThisHotkey="~+End") || (key ~= "i)^(.?Shift \+ End)")
+       If InStr(A_ThisHotkey, "+End") ; || (key ~= "i)^(.?Shift \+ End)")
           SendInput, +{End}
     }
 }
@@ -1217,6 +1217,9 @@ OnSpacePressed() {
 }
 
 OnBspPressed() {
+    If (EnforceSluggishSynch=1 && SecondaryTypingMode=0 && A_ThisHotkey="$BackSpace")
+       SendInput, {BackSpace}
+
     Try {
         key := GetKeyStr()
         If (TrueRmDkSymbol && AlternativeHook2keys=1 && SecondaryTypingMode=0)
@@ -1330,7 +1333,7 @@ OnBspPressed() {
 }
 
 OnDelPressed() {
-    If (EnforceSluggishSynch=1 && SecondaryTypingMode=0 && A_ThisHotkey="Del")
+    If (EnforceSluggishSynch=1 && SecondaryTypingMode=0 && A_ThisHotkey="$Del")
        SendInput, {Del}
     LastMatchedExpandPair := ""
     Try {
@@ -1398,7 +1401,7 @@ OnEscPressed() {
       OnKeyPressed()
    } Else
    {
-      Send, {Esc}
+      SendInput, {Esc}
       OnKeyPressed()
       WinGetTitle, activeWindow, A
       If (InStr(activeWindow, "KeyPress OSD") && AnyWindowOpen>0)
@@ -1799,7 +1802,7 @@ OnCtrlRLeft() {
       {
          times2pressKey := (exKaretPosSelly > exKaretPos2)
                          ? (exKaretPosSelly - exKaretPos2 - 1) : (exKaretPos2 - exKaretPosSelly)
-         If (A_ThisHotkey="^Right") || (A_ThisHotkey="^Left")
+         If (A_ThisHotkey="$^Right") || (A_ThisHotkey="$^Left")
             times2pressKey := times2pressKey + 2
          managedMode := (exKaretPosSelly=exKaretPosSelly2) || (times2pressKey<1) ? 0 : 1
       }
@@ -1812,36 +1815,36 @@ OnCtrlRLeft() {
 
       If (managedMode=1)
       {
-         If (A_ThisHotkey="^Left")
+         If (A_ThisHotkey="$^Left")
             SendInput, {Left %times2pressKey% }
 
-         If (A_ThisHotkey="^Right")
+         If (A_ThisHotkey="$^Right")
             SendInput, {Right %times2pressKey% }
 
-         If (A_ThisHotkey="+^Left")
+         If (A_ThisHotkey="$+^Left")
             SendInput, {Shift Down}{Left %times2pressKey% }{Shift up}
 
-         If (A_ThisHotkey="+^Right")
+         If (A_ThisHotkey="$+^Right")
             SendInput, {Shift Down}{Right %times2pressKey% }{Shift up}
       }
   } Else If (droppedSelection=1)
   {
-      If (A_ThisHotkey="^Left")
+      If (A_ThisHotkey="$^Left")
          SendInput, {Right}
-      If (A_ThisHotkey="^Right")
+      If (A_ThisHotkey="$^Right")
          SendInput, {Left}
       managedMode := 1
   }
 
   If (SendJumpKeys=1 && managedMode!=1) ;  && (mustSendJumpKeys=1) || (SendJumpKeys=1) && (KeyCount>10) && (OnlyTypingMode=1)
   {
-     If (A_ThisHotkey="^Left")
+     If (A_ThisHotkey="$^Left")
         SendInput, ^{Left}
-     If (A_ThisHotkey="^Right")
+     If (A_ThisHotkey="$^Right")
         SendInput, ^{Right}
-     If (A_ThisHotkey="+^Left")
+     If (A_ThisHotkey="$+^Left")
         SendInput, +^{Left}
-     If (A_ThisHotkey="+^Right")
+     If (A_ThisHotkey="$+^Right")
         SendInput, +^{Right}
   }
 }
@@ -1939,9 +1942,9 @@ OnCtrlDelBack() {
 
   If (SendJumpKeys=1 && times2pressKey<=0 && DroppedSelection!=1)
   {
-      If (A_ThisHotkey="^BackSpace")
+      If (A_ThisHotkey="$^BackSpace")
          SendInput, ^{BackSpace}
-      If (A_ThisHotkey="^Del")
+      If (A_ThisHotkey="$^Del")
          SendInput, ^{Del}
   }
 }
@@ -3767,10 +3770,10 @@ CreateHotkey() {
        BindTypeHotKeys()
        If (MediateNavKeys=1)
        {
-          Hotkey, Home, OnHomeEndPressed, useErrorLevel
-          Hotkey, +Home, OnHomeEndPressed, useErrorLevel
-          Hotkey, End, OnHomeEndPressed, useErrorLevel
-          Hotkey, +End, OnHomeEndPressed, useErrorLevel
+          Hotkey, $Home, OnHomeEndPressed, useErrorLevel
+          Hotkey, $+Home, OnHomeEndPressed, useErrorLevel
+          Hotkey, $End, OnHomeEndPressed, useErrorLevel
+          Hotkey, $+End, OnHomeEndPressed, useErrorLevel
        }
 
        If (SendJumpKeys=0)
@@ -3783,21 +3786,22 @@ CreateHotkey() {
           Hotkey, ~+^Right, OnCtrlRLeft, useErrorLevel
        } Else
        {
-          Hotkey, ^BackSpace, OnCtrlDelBack, useErrorLevel
-          Hotkey, ^Del, OnCtrlDelBack, useErrorLevel
-          Hotkey, ^Left, OnCtrlRLeft, useErrorLevel
-          Hotkey, ^Right, OnCtrlRLeft, useErrorLevel
-          Hotkey, +^Left, OnCtrlRLeft, useErrorLevel
-          Hotkey, +^Right, OnCtrlRLeft, useErrorLevel
+          Hotkey, $^BackSpace, OnCtrlDelBack, useErrorLevel
+          Hotkey, $^Del, OnCtrlDelBack, useErrorLevel
+          Hotkey, $^Left, OnCtrlRLeft, useErrorLevel
+          Hotkey, $^Right, OnCtrlRLeft, useErrorLevel
+          Hotkey, $+^Left, OnCtrlRLeft, useErrorLevel
+          Hotkey, $+^Right, OnCtrlRLeft, useErrorLevel
        }
 
        If (EnforceSluggishSynch=1)
        {
-          Hotkey, Del, OnDelPressed, useErrorLevel
-          Hotkey, Left, OnRLeftPressed, useErrorLevel
-          Hotkey, Right, OnRLeftPressed, useErrorLevel
-          Hotkey, +Left, OnRLeftPressed, useErrorLevel
-          Hotkey, +Right, OnRLeftPressed, useErrorLevel
+          Hotkey, $BackSpace, OnBspPressed, useErrorLevel
+          Hotkey, $Del, OnDelPressed, useErrorLevel
+          Hotkey, $Left, OnRLeftPressed, useErrorLevel
+          Hotkey, $Right, OnRLeftPressed, useErrorLevel
+          Hotkey, $+Left, OnRLeftPressed, useErrorLevel
+          Hotkey, $+Right, OnRLeftPressed, useErrorLevel
        }
     }
 
@@ -3932,7 +3936,7 @@ CreateHotkey() {
     }
 
     If (DisableTypingMode=0 && (SendJumpKeys=1 || MediateNavKeys=1))
-       Hotkey, Esc, OnEscPressed, useErrorLevel
+       Hotkey, $Esc, OnEscPressed, useErrorLevel
 
     If (ShowMouseButton=1 || ShowMouseVclick=1)
     {
