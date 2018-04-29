@@ -186,25 +186,25 @@ GetKeyChar(key) {
 OnLetterPressed() {
   If (ScriptelSuspendel="Y" || PrefOpen=1)
      Return
-  MainExe.ahkPostFunction("OnLetterPressed", 0, A_ThisHotkey)
+  MainExe.ahkFunction("OnLetterPressed", 0, A_ThisHotkey)
 }
 
 OnLetterUp() {
   If (ScriptelSuspendel="Y" || PrefOpen=1)
      Return
-  MainExe.ahkPostFunction("OnLetterUp", A_ThisHotkey, A_PriorHotkey)
+  MainExe.ahkFunction("OnLetterUp", A_ThisHotkey, A_PriorHotkey)
 }
 
 OnAltGrDeadKeyPressed() {
   If (ScriptelSuspendel="Y" || PrefOpen=1)
      Return
-  MainExe.ahkPostFunction("OnAltGrDeadKeyPressed", A_ThisHotkey)
+  MainExe.ahkFunction("OnAltGrDeadKeyPressed", A_ThisHotkey)
 }
 
 OnDeadKeyPressed() {
   If (ScriptelSuspendel="Y" || PrefOpen=1)
      Return
-  MainExe.ahkPostFunction("OnDeadKeyPressed", A_ThisHotkey)
+  MainExe.ahkFunction("OnDeadKeyPressed", A_ThisHotkey)
 }
 
 dummy() {

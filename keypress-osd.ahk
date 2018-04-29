@@ -147,7 +147,7 @@
 ;@Ahk2Exe-SetMainIcon Lib\keypress.ico
 ;@Ahk2Exe-SetName KeyPress OSD v4
 ;@Ahk2Exe-SetDescription KeyPress OSD v4 [mirror keyboard and mouse usage]
-;@Ahk2Exe-SetVersion 4.31.2
+;@Ahk2Exe-SetVersion 4.31.3
 ;@Ahk2Exe-SetCopyright Marius Şucan (2017-2018)
 ;@Ahk2Exe-SetCompanyName ROBODesign.ro
 ;@Ahk2Exe-SetOrigFilename keypress-osd.ahk
@@ -174,7 +174,7 @@
  ListLines, Off
  SetWorkingDir, %A_ScriptDir%
  Critical, On
-
+ ToolTip, Initializing...
  Menu, Tray, UseErrorLevel
  Menu, Tray, NoStandard
  Menu, Tray, Add, E&xit, KillScript
@@ -354,8 +354,8 @@
  , DownloadExternalFiles  := 1
 
 ; Release info
- , Version                := "4.31.2"
- , ReleaseDate            := "2018 / 04 / 26"
+ , Version                := "4.31.3"
+ , ReleaseDate            := "2018 / 04 / 29"
  , hMutex, ScriptInitialized, FirstRun := 1
  , KPregEntry := "HKEY_CURRENT_USER\SOFTWARE\KeyPressOSD\v4"
 
@@ -547,6 +547,7 @@ ModsLEDsIndicatorsManager()
 Sleep, 5
 ScriptInitialized := 1      ; the end of the autoexec section and INIT
 RegWrite, REG_SZ, %KPregEntry%, Initializing, No
+ToolTip
 Return
 
 ;================================================================
@@ -5511,15 +5512,21 @@ SuspendScript(partially:=0) {
 
    If (NoAhkH!=1 && partially=0)
    {
-      MouseFuncThread.ahkassign("ScriptelSuspendel", ScriptelSuspendel)
-      Sleep, 5
-      MouseFuncThread.ahkFunction["ToggleMouseTimerz", ScriptelSuspendel]
-      SoundsThread.ahkassign("ScriptelSuspendel", ScriptelSuspendel)
-      MouseRipplesThread.ahkassign("ScriptelSuspendel", ScriptelSuspendel)
-      Sleep, 5
-      If (ShowMouseRipples=1)
+      If IsMouseFile
+      {
+         MouseFuncThread.ahkassign("ScriptelSuspendel", ScriptelSuspendel)
+         Sleep, 5
+         MouseFuncThread.ahkFunction["ToggleMouseTimerz", ScriptelSuspendel]
+      }
+      If IsSoundsFile
+         SoundsThread.ahkassign("ScriptelSuspendel", ScriptelSuspendel)
+      If (ShowMouseRipples=1 && IsRipplesFile)
+      {
+         MouseRipplesThread.ahkassign("ScriptelSuspendel", ScriptelSuspendel)
+         Sleep, 5
          MouseRipplesThread.ahkFunction["ToggleMouseRipples", ScriptelSuspendel]
-      If (MouseKeys=1)
+      }
+      If (MouseKeys=1 && IsMouseNumpadFile)
          MouseNumpadThread.ahkFunction["SuspendScript", A_IsSuspended]
    }
    Sleep, 50
@@ -5691,10 +5698,10 @@ QuickMenuPrefPanels() {
     Menu, QuickPrefsMenu, Add, &OSD appearance, ShowOSDsettings
     Menu, QuickPrefsMenu, Add, &Global shortcuts, ShowShortCutsSettings
 
-    If (!IsSoundsFile || MissingAudios=1 || SafeModeExec=1)     ; keypress-beeperz-functions.ahk
+    If (NoAhkH=1 || !IsSoundsFile || MissingAudios=1 || SafeModeExec=1)     ; keypress-beeperz-functions.ahk
        Menu, QuickPrefsMenu, Delete, &Sounds
 
-    If (!IsMouseFile || SafeModeExec=1) ; keypress-mouse-functions.ahk
+    If (NoAhkH=1 || SafeModeExec=1) ; keypress-mouse-functions.ahk
        Menu, QuickPrefsMenu, Delete, &Mouse
 }
 
@@ -5731,7 +5738,7 @@ InitializeTray() {
     If (PrefsLargeFonts=1)
        Menu, PrefsMenu, Check, L&arge UI fonts
 
-    If (!IsMouseFile || SafeModeExec=1) ; keypress-mouse-functions.ahk
+    If (NoAhkH=1 || SafeModeExec=1) ; keypress-mouse-functions.ahk
        Menu, PrefsMenu, Disable, &Mouse
 
     RunType := A_IsCompiled ? "" : " [script]"
@@ -5782,7 +5789,7 @@ InitializeTray() {
     If (SafeModeExec=1)
        Menu, PrefsMenu, Check, Ru&n in Safe Mode
 
-    If (!IsSoundsFile || MissingAudios=1 || SafeModeExec=1)     ; keypress-beeperz-functions.ahk
+    If (NoAhkH=1 || !IsSoundsFile || MissingAudios=1 || SafeModeExec=1)     ; keypress-beeperz-functions.ahk
     {
        Menu, Tray, Disable, S&ilent mode
        Menu, PrefsMenu, Disable, &Sounds
@@ -6081,7 +6088,7 @@ SwitchPreferences(forceReopenSame:=0) {
       Return
     }
     If ((!IsSoundsFile || MissingAudios=1 || NoAhkH=1) && CurrentPrefWindow=3)
-    || ((!IsMouseFile || NoAhkH=1) && CurrentPrefWindow=4) ; keypress-beeperz-functions.ahk / keypress-mouse-functions.ahk
+    || (NoAhkH=1 && CurrentPrefWindow=4) ; keypress-beeperz-functions.ahk / keypress-mouse-functions.ahk
     {
       If (SafeModeExec!=1)
          ShowLongMsg("ERROR: Missing files...")
@@ -6266,7 +6273,6 @@ ShowTypeSettings() {
     deadKstatus := (DeadKeys=1 && AutoDetectKBD=1) ? "Dead keys present." : "No dead keys detected."
     deadKstatus := (AutoDetectKBD=1) ? deadKstatus : ""
     Global CurrentPrefWindow := 2
-    Global DoNotRepeatTimer := A_TickCount
     Global txt1, txt2, txt3, txt4, txt5, txt6, editF1, editF2, editF3
          , editF4, SaveWordPairsBTN, DefaultWordPairsBTN, OpenWordPairsBTN
     txtWid := 350
@@ -6372,6 +6378,9 @@ ShowTypeSettings() {
     Gui, Add, DropDownList, x+8 AltSubmit gSwitchPreferences choose%CurrentPrefWindow% vCurrentPrefWindow , Keyboard|Typing mode|Sounds|Mouse|Appearance|Shortcuts
     Gui, Show, AutoSize, Typing mode settings: KeyPress OSD
     verifySettingsWindowSize()
+    Sleep, 15
+    Global DoNotRepeatTimer := A_TickCount
+    Sleep, 15
     VerifyTypeOptions(0)
 }
 
@@ -6633,7 +6642,6 @@ ShowShortCutsSettings() {
     If (doNotOpen=1)
        Return
 
-    DoNotRepeatTimer := A_TickCount
     CurrentPrefWindow := 6
     col1width := 290
     If (PrefsLargeFonts=1)
@@ -6698,6 +6706,9 @@ ShowShortCutsSettings() {
     Gui, Add, Checkbox, x+8 gVerifyShortcutOptions Checked%GlobalKBDsNoIntercept% vGlobalKBDsNoIntercept, Allow other apps to use the same shortcuts
     Gui, Show, AutoSize, Global shortcuts: KeyPress OSD
     verifySettingsWindowSize()
+    Sleep, 15
+    DoNotRepeatTimer := A_TickCount
+    Sleep, 15
     VerifyShortcutOptions(0)
     ProcessComboKBD(0)
 }
@@ -7272,7 +7283,6 @@ ShowKBDsettings() {
        Return
 
     Global RealTimeUpdates := 0
-    Global DoNotRepeatTimer := A_TickCount
     Global CurrentPrefWindow := 1
     Global EditF22, EditF23, EditF24, EditF25, EditF26, EditF27, EditF28, EditF29
          , EditF30, EditF31, EditF32, EditF33, EditF34, DeleteAllClippyBTN
@@ -7332,6 +7342,8 @@ ShowKBDsettings() {
     Gui, Add, Checkbox, xs+0 y+2 gVerifyKeybdOptions Checked%ShiftDisableCaps% vShiftDisableCaps, Shift turns off Caps Lock
     Gui, Add, Checkbox, y+7 gVerifyKeybdOptions Checked%OSDshowLEDs% vOSDshowLEDs, Show LEDs to indicate key states
     Gui, Add, Text, xp+15 y+5 w%txtWid% vEditF26, This applies for Alt, Ctrl, Shift, Winkey and `nCaps / Num / Scroll lock.
+    If (NoAhkH=1 || SafeModeExec=1)
+       Gui, Add, Checkbox, xs+0 y+5 Checked%ShowMouseButton% vShowMouseButton, Show mouse clicks in the OSD
 
     If (OnlyTypingMode=1)
     {
@@ -7388,6 +7400,9 @@ ShowKBDsettings() {
     Gui, Show, AutoSize, Keyboard settings: KeyPress OSD
     ColorPickerHandles := hLV12
     verifySettingsWindowSize()
+    Sleep, 15
+    Global DoNotRepeatTimer := A_TickCount
+    Sleep, 15
     VerifyKeybdOptions(0)
 }
 
@@ -7514,7 +7529,6 @@ ShowMouseSettings() {
 
     Global RealTimeUpdates := 0
     Global CurrentPrefWindow := 4
-    Global DoNotRepeatTimer := A_TickCount
     Global editF1, editF2, editF3, editF4, editF5, editF6, editF7, editF8, editF9, editF10, editF11
          , editF12, editF13, editF14, editF15, editF16, editF17, editF18, txt1, txt2, txt3, txt4
          , txt5, txt6, txt7, txt8, txt9, txt10, txt11, ShowHelpBTN
@@ -7630,9 +7644,12 @@ ShowMouseSettings() {
     Gui, Add, DropDownList, x+8 AltSubmit gSwitchPreferences choose%CurrentPrefWindow% vCurrentPrefWindow , Keyboard|Typing mode|Sounds|Mouse|Appearance|Shortcuts
 
     Gui, Show, AutoSize, Mouse settings: KeyPress OSD
-    verifySettingsWindowSize()
-    VerifyMouseOptions(0)
     ColorPickerHandles := hLV4 "," hLV6 "," hLV7 "," hLV8 "," hLV9 "," hLV10 "," hLV11 "," hLV12
+    verifySettingsWindowSize()
+    Sleep, 15
+    Global DoNotRepeatTimer := A_TickCount
+    Sleep, 15
+    VerifyMouseOptions(0)
 }
 
 VerifyMouseOptions(EnableApply:=1) {
@@ -7830,8 +7847,11 @@ SendVarsMouseAHKthread(initMode) {
    sendMouseVar("CaretHaloFlash")
    sendMouseVar("CaretHaloThick")
    sendMouseVar("SilentMode")
-   If (initMode=1)
-      MouseFuncThread.ahkPostFunction["MouseInit"] 
+   If (initMode=1 && IsMouseFile)
+   {
+      Sleep, 10
+      MouseFuncThread.ahkFunction["MouseInit"] 
+   }
 }
 
 SendVarsTypingAHKthread(initMode:=0) {
@@ -7852,7 +7872,9 @@ SendVarsTypingAHKthread(initMode:=0) {
    sendTypingVar("DKnotShifted_list")
    sendTypingVar("DKshift_list")
    sendTypingVar("DisableTypingMode")
-   TypingAidThread.ahkFunction["TypingKeysInit"] 
+   Sleep, 10
+   If IsTypingAidFile
+      TypingAidThread.ahkFunction["TypingKeysInit"] 
 }
 
 sendTypingVar(var) {
@@ -7893,11 +7915,16 @@ SendVarsSoundsAHKthread() {
    SendSndVar("ToggleKeysBeeper")
    SendSndVar("TypingBeepers")
    SendSndVar("MouseKeys")
-   If (MissingAudios=0)
-      SoundsThread.ahkPostFunction["CreateHotkey"] 
+   If (MissingAudios=0 && IsSoundsFile)
+   {
+      Sleep, 10
+      SoundsThread.ahkFunction["CreateHotkey"] 
+   }
 }
 
 ToggleMouseKeysHalo() {
+  If !IsMouseFile
+     Return
   NumLockState := GetKeyState("NumLock", "T")
   If (NumLockState=1)
   {
@@ -7924,8 +7951,11 @@ SendVarsRipplesAHKthread(initMode) {
    sendRiplVar("MouseRippleRbtnColor")
    sendRiplVar("MouseRippleMbtnColor")
    sendRiplVar("MouseRippleWbtnColor")
-   If (ShowMouseRipples=1 && initMode=1)
-      MouseRipplesThread.ahkPostFunction["MouseRippleSetup"]
+   If (ShowMouseRipples=1 && initMode=1 && IsRipplesFile)
+   {
+      Sleep, 10
+      MouseRipplesThread.ahkFunction["MouseRippleSetup"]
+   }
 }
 
 SendVarsMouseKeysAHKthread(initMode) {
@@ -7939,32 +7969,56 @@ SendVarsMouseKeysAHKthread(initMode) {
    sendMkeysVar("MouseKeysWrap")
    sendMkeysVar("DifferModifiers")
    If (MouseKeys=1 && initMode=1)
+   {
+      Sleep, 10
       MouseNumpadThread.ahkPostFunction["MouseKeysInit"]
+   }
 }
 
 updateRealTimeSettings() {
+  If (SafeModeExec=1 || NoAhkH=1)
+     Return
   Gui, Submit, NoHide
   CheckSettings()
   Sleep, 20
   If (CurrentPrefWindow=4)
   {
      MouseVclickScale := MouseVclickScaleUser/10
-     SendVarsMouseAHKthread(0)
-     If ShowMouseVclick
-        MouseFuncThread.ahkPostFunction["ShowMouseClick", "0", "1"]
-     Sleep, 5
-     SendVarsRipplesAHKthread(0)
-     MouseRipplesThread.ahkPostFunction["MouseRippleUpdate"]
-     Sleep, 5
-     SendVarsMouseKeysAHKthread(0)
-     Sleep, 5
-     MouseNumpadThread.ahkPostFunction["SuspendScript", MouseKeys]
+     If IsMouseFile
+        SendVarsMouseAHKthread(0)
+     Sleep, 15
+     If (ShowMouseVclick=1 && IsMouseFile)
+        MouseFuncThread.ahkFunction["ShowMouseClick", "0", "1"]
+     Sleep, 15
+     If IsRipplesFile
+     {
+        SendVarsRipplesAHKthread(0)
+        Sleep, 15
+        MouseRipplesThread.ahkFunction["MouseRippleUpdate"]
+     }
+     Sleep, 15
+     If IsMouseNumpadFile
+     {
+        SendVarsMouseKeysAHKthread(0)
+        Sleep, 15
+        MouseNumpadThread.ahkFunction["SuspendScript", MouseKeys]
+     }
+     If (MouseKeys=1)
+        MouseNumpadThread.ahkPostFunction["ToggleCapsLock", 1]
+     Sleep, 15
+     If IsMouseFile
+        MouseFuncThread.ahkFunction["MouseInit"]
   } Else If (CurrentPrefWindow=1)
   {
-     SendVarsMouseAHKthread(0)
-     MouseFuncThread.ahkPostFunction["CaretHalo", "1"]
+     If IsMouseFile
+        SendVarsMouseAHKthread(0)
+     Sleep, 15
+     If IsMouseFile
+        MouseFuncThread.ahkFunction["CaretHalo", "1"]
+     Sleep, 15
+     If (MouseKeys=1 && MouseKeysHalo=1)
+        ToggleMouseKeysHalo()
   }
-  MouseFuncThread.ahkPostFunction["MouseInit"]
 }
 
 hexRGB(c) {
@@ -8075,7 +8129,6 @@ ShowOSDsettings() {
     If ShowPreview             ; If OSD is already visible don't hide/show it,
        SetTimer, HideGUI, Off  ; just update the text (avoids the flicker)
     Global CurrentPrefWindow := 5
-    Global DoNotRepeatTimer := A_TickCount
     Global positionB, editF1, editF2, editF3, editF4, editF5, editF6, Btn1
          , editF7, editF8, editF9, editF10, editF35, editF36, editF37, Btn2
     GUIposition := GUIposition + 1
@@ -8174,6 +8227,9 @@ ShowOSDsettings() {
     Gui, Add, DropDownList, x+8 AltSubmit gSwitchPreferences choose%CurrentPrefWindow% vCurrentPrefWindow , Keyboard|Typing mode|Sounds|Mouse|Appearance|Shortcuts
     Gui, Show, AutoSize, OSD appearance: KeyPress OSD
     verifySettingsWindowSize()
+    Sleep, 15
+    Global DoNotRepeatTimer := A_TickCount
+    Sleep, 15
     VerifyOsdOptions(0)
     ColorPickerHandles := hLV1 "," hLV2 "," hLV3 "," hLV5 "," hTXT
 }
@@ -8645,7 +8701,6 @@ DeleteLangFile() {
 ;================================================================
 
 WM_WTSSESSION_CHANGE(wParam, lParam, Msg, hWnd){
-; Function by Drugwash and modified by Marius Șucan.
 
   If (wParam=0x7)       ; lock
      PrefOpen := 1
@@ -8675,6 +8730,7 @@ ShellMessageDummy() {
 ; timer from SoundsThread.
 ; This function is  used to update parts of the UI based
 ; on window changes.
+
   If (ShowCaretHalo=1 && PrefOpen=0)
      DllCall("oleacc\AccessibleObjectFromPoint", "Int64", x==""||y==""?0*DllCall("user32\GetCursorPos","Int64*",pt)+pt:x&0xFFFFFFFF|y<<32, "Ptr*", pacc, "Ptr", VarSetCapacity(varChild,8+2*A_PtrSize,0)*0+&varChild)=0
 
@@ -8753,14 +8809,14 @@ checkUpdateExistsAbout() {
   StringReplace, ReleaseDate2, ReleaseDate, %A_Space%/%A_Space%,, All
   If (checkVersion="ERROR")
   {
-      Return 0
+     Return 0
   } Else If (Version!=checkVersion && newDate2>ReleaseDate2)
   {
-      msgReturn := "Version available online: "checkVersion ". Released: " newDate
-      Return msgReturn
+     msgReturn := "Version available online: "checkVersion ". Released: " newDate
+     Return msgReturn
   } Else If (Version=checkVersion)
   {
-      Return 0
+     Return 0
   } Else Return 0
 }
 
@@ -8835,8 +8891,8 @@ updateNow() {
        Return
      }
      If (A_IsSuspended!=1)
-        SuspendScript()
-     Sleep, 150
+        SuspendScript(1)
+     Sleep, 50
      PrefOpen := 1
      mainFileBinary := (A_PtrSize=8) ? "keypress-osd-x64.exe" : "keypress-osd-x32.exe"
      mainFileTmp := A_IsCompiled ? "new-keypress-osd.exe" : "temp-keypress-osd.ahk"
@@ -8998,8 +9054,9 @@ VerifyNonCrucialFiles() {
      If (A_IsSuspended!=1)
      {
         GetTextExtentPoint("Initializing", FontName, FontSize, 1)
-        ShowLongMsg("Initializing...")
+        ShowLongMsg("Initializing")
         SetTimer, HideGUI, % -DisplayTime/2
+        ToolTip
      }
 
      bckpDlExtFiles := DownloadExternalFiles
@@ -9689,6 +9746,7 @@ CheckIfRunning(ForceIT:=0) {
 GetPhysicalCursorPos(ByRef mX, ByRef mY) {
 ; function from: https://github.com/jNizM/AHK_DllCall_WinAPI/blob/master/src/Cursor%20Functions/GetPhysicalCursorPos.ahk
 ; by jNizM, modified by Marius Șucan
+
     If (A_OSVersion="WIN_XP")
     {
        MouseGetPos, mX, mY
@@ -9930,19 +9988,21 @@ InitAHKhThreads() {
          VarSetCapacity(data, 0)
       } Else
       {
-          IsMouseFile := FileExist("Lib\keypress-mouse-functions.ahk")
-          IsMouseNumpadFile := FileExist("Lib\keypress-numpadmouse.ahk")
-          IsRipplesFile := FileExist("Lib\keypress-mouse-ripples-functions.ahk")
-          IsSoundsFile := FileExist("Lib\keypress-beeperz-functions.ahk")
-          IsKeystrokesFile := FileExist("Lib\keypress-keystrokes-helper.ahk")
-          IsTypingAidFile := FileExist("Lib\keypress-typing-aid.ahk")
-          MouseFuncThread := %func2exec%(" #Include *i Lib\keypress-mouse-functions.ahk ")
-          MouseNumpadThread := %func2exec%(" #Include *i Lib\keypress-numpadmouse.ahk ")
-          TypingAidThread := %func2exec%(" #Include *i Lib\keypress-typing-aid.ahk ")
-          MouseRipplesThread := %func2exec%(" #Include *i Lib\keypress-mouse-ripples-functions.ahk ")
-          SoundsThread := %func2exec%(" #Include *i Lib\keypress-beeperz-functions.ahk ")
-          KeyStrokesThread := %func2exec%(" #Include *i Lib\keypress-keystrokes-helper.ahk ")
+          If IsMouseFile := FileExist("Lib\keypress-mouse-functions.ahk")
+             MouseFuncThread := %func2exec%(" #Include *i Lib\keypress-mouse-functions.ahk ")
+          If IsMouseNumpadFile := FileExist("Lib\keypress-numpadmouse.ahk")
+             MouseNumpadThread := %func2exec%(" #Include *i Lib\keypress-numpadmouse.ahk ")
+          If IsTypingAidFile := FileExist("Lib\keypress-typing-aid.ahk")
+             TypingAidThread := %func2exec%(" #Include *i Lib\keypress-typing-aid.ahk ")
+          If IsRipplesFile := FileExist("Lib\keypress-mouse-ripples-functions.ahk")
+             MouseRipplesThread := %func2exec%(" #Include *i Lib\keypress-mouse-ripples-functions.ahk ")
+          If IsSoundsFile := FileExist("Lib\keypress-beeperz-functions.ahk")
+             SoundsThread := %func2exec%(" #Include *i Lib\keypress-beeperz-functions.ahk ")
+          If IsKeystrokesFile := FileExist("Lib\keypress-keystrokes-helper.ahk")
+             KeyStrokesThread := %func2exec%(" #Include *i Lib\keypress-keystrokes-helper.ahk ")
       }
+      ShowLongMsg("Initializing...")
+      SetTimer, HideGUI, % -DisplayTime/2
       Sleep, 10
       If IsRipplesFile
          SendVarsRipplesAHKthread(1)

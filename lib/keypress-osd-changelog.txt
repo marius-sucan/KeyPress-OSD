@@ -11,6 +11,9 @@ http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip
 
 by Marius Sucan (robodesign.ro)
 
+  v4.31.3 (2018-04-29)
+  - more bug fixes.... ;-)
+
   v4.31.2 (2018-04-26)
   - more bug fixes
   
@@ -965,6 +968,11 @@ Features to implement:
  - afișează shortcuts in meniuri
  - identify when user switches to admin apps
 
+  - ahkL bug with mediated keys; Esc, Bksp pressed continously
+  -- [Justice PC] test if mouse ripples can still cause silent crashes
+-- messy and confused conditions at SwitchPreferences(); 
+
+
 - compile the thing! include all scripts inside?
   - separate UI settings and tray menu? separate files with include
 https://www.facebook.com/iulia.zgripcea/videos/
@@ -980,7 +988,6 @@ https://www.facebook.com/iulia.zgripcea/videos/
 
 -use the input hook for mouse keys?
 
-  -- [Justice PC] test if mouse ripples can still cause silent crashes
  - it sometimes crashes on restart
  - one cannot drag the OSD with Mouse Keys
  - reparații la mouse ripples; wheel up/down frequency mess-up
