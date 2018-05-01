@@ -31,6 +31,7 @@ Global IsTypingAidFile    := 1
  , AudioAlerts            := 0     ; generate beeps when key bindings fail
  , EnableAltGr            := 1
  , DisableTypingMode      := 0
+ , HideAnnoyingKeys       := 1
 
 , DeadKeys := 1
 , DKaltGR_list
@@ -140,6 +141,10 @@ TypingKeysInit() {
        Hotkey, ~^vk58, dummy, useErrorLevel
        Hotkey, ~^vk5A, dummy, useErrorLevel
     }
+
+    If (A_OSVersion>=10 && HideAnnoyingKeys=1)
+      Hotkey, ~#+s, hideMainOSD, useErrorLevel
+
     MainExe.ahkPostFunction("genericBeeper")
     moduleInitialized := 1
 }
@@ -187,6 +192,12 @@ OnLetterPressed() {
   If (ScriptelSuspendel="Y" || PrefOpen=1)
      Return
   MainExe.ahkFunction("OnLetterPressed", 0, A_ThisHotkey)
+}
+
+hideMainOSD() {
+  If (ScriptelSuspendel="Y" || PrefOpen=1)
+     Return
+  MainExe.ahkPostFunction("HideGUI")
 }
 
 OnLetterUp() {
