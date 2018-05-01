@@ -11,7 +11,11 @@ http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip
 
 by Marius Sucan (robodesign.ro)
 
+  v4.31.4 (2018-04-30)
+  - more bug fixes; it includes a fix for a regression that caused loss of saved settings;
+
   v4.31.3 (2018-04-29)
+  - [major bug fix] fixed a bug that made the script unusable on AHK_L when any mediated key was pressed
   - more bug fixes.... ;-)
 
   v4.31.2 (2018-04-26)
@@ -967,10 +971,9 @@ Features to implement:
 
  - afișează shortcuts in meniuri
  - identify when user switches to admin apps
-
-  - ahkL bug with mediated keys; Esc, Bksp pressed continously
-  -- [Justice PC] test if mouse ripples can still cause silent crashes
--- messy and confused conditions at SwitchPreferences(); 
+ - use a RichEdit with zero-width carets?
+ 
+-- [Justice PC] test if mouse ripples can still cause silent crashes
 
 
 - compile the thing! include all scripts inside?

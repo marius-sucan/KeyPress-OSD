@@ -147,7 +147,7 @@
 ;@Ahk2Exe-SetMainIcon Lib\keypress.ico
 ;@Ahk2Exe-SetName KeyPress OSD v4
 ;@Ahk2Exe-SetDescription KeyPress OSD v4 [mirror keyboard and mouse usage]
-;@Ahk2Exe-SetVersion 4.31.3
+;@Ahk2Exe-SetVersion 4.31.4
 ;@Ahk2Exe-SetCopyright Marius Şucan (2017-2018)
 ;@Ahk2Exe-SetCompanyName ROBODesign.ro
 ;@Ahk2Exe-SetOrigFilename keypress-osd.ahk
@@ -354,8 +354,8 @@
  , DownloadExternalFiles  := 1
 
 ; Release info
- , Version                := "4.31.3"
- , ReleaseDate            := "2018 / 04 / 29"
+ , Version                := "4.31.4"
+ , ReleaseDate            := "2018 / 04 / 30"
  , hMutex, ScriptInitialized, FirstRun := 1
  , KPregEntry := "HKEY_CURRENT_USER\SOFTWARE\KeyPressOSD\v4"
 
@@ -2775,7 +2775,10 @@ ExpandFeatureFunction() {
 
   If ExpandWordsList[UserTypedWord] && (A_TickCount-LastTypedSince < NoExpandAfter)
   {
-     StringReplace, Typed, Typed, %UserTypedWord%%A_Space%%Lola%, % ExpandWordsList[UserTypedWord] Lola
+     Text2Send := ExpandWordsList[UserTypedWord]
+     If (GetKeyState("CapsLock", "T") || GetKeyState("Shift"))
+        Text2Send := RegExReplace(Text2Send, "i)^\s*\w", "$U0")
+     StringReplace, Typed, Typed, %UserTypedWord%%A_Space%%Lola%, % Text2Send Lola
      StringGetPos, CaretPos, Typed, %Lola%
      times2pressKey := TxtLen + 1
      DoNotRepeatTimer := A_TickCount
@@ -2783,7 +2786,6 @@ ExpandFeatureFunction() {
      {
         SendInput, {BackSpace %times2pressKey% }
         Sleep, 25
-        Text2Send := ExpandWordsList[UserTypedWord]
         SendInput, {text}%Text2Send%
      }
      LastMatchedExpandPair := UserTypedWord " // " ExpandWordsList[UserTypedWord]
@@ -6055,14 +6057,15 @@ initSettingsWindow() {
 }
 
 verifySettingsWindowSize() {
-    If (PrefsLargeFonts=0) || (A_TickCount-DoNotRepeatTimer<40000)
+    Static lastAsked
+    If (PrefsLargeFonts=0) || (A_TickCount-lastAsked<35000)
        Return
     GuiGetSize(Wid, Heig, 5)
     SysGet, SM_CXMAXIMIZED, 61
     SysGet, SM_CYMAXIMIZED, 62
     If (Heig>SM_CYMAXIMIZED-75) || (Wid>SM_CXMAXIMIZED-50)
     {
-       Global DoNotRepeatTimer := A_TickCount
+       lastAsked := A_TickCount
        SoundBeep, 300, 900
        MsgBox, 4,, The option "Large UI fonts" is enabled. The window seems to exceed your screen resolution. `nDo you want to disable Large UI fonts?
        IfMsgBox, Yes
@@ -6084,20 +6087,17 @@ SwitchPreferences(forceReopenSame:=0) {
     If (testPrefWind=CurrentPrefWindow)
        Return
 
-    If (NoAhkH=1 && (CurrentPrefWindow=4 || CurrentPrefWindow=3))
+    If (SafeModeExec=1 || NoAhkH=1) && (CurrentPrefWindow=4 || CurrentPrefWindow=3)
     {
-      ShowLongMsg("ERROR: AHK_L detected. Features unavailable.")
+      ShowLongMsg("ERROR: Running in limited mode. Features unavailable.")
       SoundBeep, 300, 900
       SetTimer, HideGUI, % -DisplayTime
       Return
     }
-    If ((!IsSoundsFile || MissingAudios=1 || NoAhkH=1) && CurrentPrefWindow=3)
-    || (NoAhkH=1 && CurrentPrefWindow=4) ; keypress-beeperz-functions.ahk / keypress-mouse-functions.ahk
+
+    If ((!IsSoundsFile || MissingAudios=1) && CurrentPrefWindow=3 && SafeModeExec!=1)
     {
-      If (SafeModeExec!=1)
-         ShowLongMsg("ERROR: Missing files...")
-      Else
-         ShowLongMsg("Safe mode is activated. Features are disabled.")
+      ShowLongMsg("ERROR: Missing files...")
       SoundBeep, 300, 900
       SetTimer, HideGUI, % -DisplayTime
       Return
@@ -6105,6 +6105,7 @@ SwitchPreferences(forceReopenSame:=0) {
     PrefOpen := 0
     GuiControlGet, ApplySettingsBTN, Enabled
     Gui, Submit
+    Sleep, 5
     Gui, SettingsGUIA: Destroy
     Sleep, 25
     SettingsGUI()
@@ -6277,6 +6278,7 @@ ShowTypeSettings() {
     deadKstatus := (DeadKeys=1 && AutoDetectKBD=1) ? "Dead keys present." : "No dead keys detected."
     deadKstatus := (AutoDetectKBD=1) ? deadKstatus : ""
     Global CurrentPrefWindow := 2
+    Global DoNotRepeatTimer := A_TickCount
     Global txt1, txt2, txt3, txt4, txt5, txt6, editF1, editF2, editF3
          , editF4, SaveWordPairsBTN, DefaultWordPairsBTN, OpenWordPairsBTN
     txtWid := 350
@@ -6382,9 +6384,6 @@ ShowTypeSettings() {
     Gui, Add, DropDownList, x+8 AltSubmit gSwitchPreferences choose%CurrentPrefWindow% vCurrentPrefWindow , Keyboard|Typing mode|Sounds|Mouse|Appearance|Shortcuts
     Gui, Show, AutoSize, Typing mode settings: KeyPress OSD
     verifySettingsWindowSize()
-    Sleep, 15
-    Global DoNotRepeatTimer := A_TickCount
-    Sleep, 15
     VerifyTypeOptions(0)
 }
 
@@ -6646,6 +6645,7 @@ ShowShortCutsSettings() {
     If (doNotOpen=1)
        Return
 
+    DoNotRepeatTimer := A_TickCount
     CurrentPrefWindow := 6
     col1width := 290
     If (PrefsLargeFonts=1)
@@ -6710,9 +6710,6 @@ ShowShortCutsSettings() {
     Gui, Add, Checkbox, x+8 gVerifyShortcutOptions Checked%GlobalKBDsNoIntercept% vGlobalKBDsNoIntercept, Allow other apps to use the same shortcuts
     Gui, Show, AutoSize, Global shortcuts: KeyPress OSD
     verifySettingsWindowSize()
-    Sleep, 15
-    DoNotRepeatTimer := A_TickCount
-    Sleep, 15
     VerifyShortcutOptions(0)
     ProcessComboKBD(0)
 }
@@ -6873,11 +6870,8 @@ VerifyShortcutOptions(enableApply:=1) {
         SwitchStateKBDbtn("KBDReload", 0)
     } Else
     {
-        If (DisableTypingMode=0)
-        {
-           SwitchStateKBDbtn("KBDsynchApp1", 1)
-           SwitchStateKBDbtn("KBDsynchApp2", 1)
-        }
+        SwitchStateKBDbtn("KBDsynchApp1", 1)
+        SwitchStateKBDbtn("KBDsynchApp2", 1)
         SwitchStateKBDbtn("KBDsynchApp1", 1)
         SwitchStateKBDbtn("KBDsynchApp2", 1)
         SwitchStateKBDbtn("KBDTglNeverOSD", 1)
@@ -6886,7 +6880,7 @@ VerifyShortcutOptions(enableApply:=1) {
         SwitchStateKBDbtn("KBDidLangNow", 1)
         SwitchStateKBDbtn("KBDReload", 1)
     }
-
+/*
     If (DisableTypingMode=1)
     {
        SwitchStateKBDbtn("KBDpasteOSDcnt1", 0)
@@ -6900,7 +6894,7 @@ VerifyShortcutOptions(enableApply:=1) {
 
     If (MissingAudios=1 || SafeModeExec=1 || NoAhkH=1)
        SwitchStateKBDbtn("KBDTglSilence", 0)
-
+*/
     ProcessComboKBD()
 }
 
@@ -7287,6 +7281,7 @@ ShowKBDsettings() {
        Return
 
     Global RealTimeUpdates := 0
+    Global DoNotRepeatTimer := A_TickCount
     Global CurrentPrefWindow := 1
     Global EditF22, EditF23, EditF24, EditF25, EditF26, EditF27, EditF28, EditF29
          , EditF30, EditF31, EditF32, EditF33, EditF34, DeleteAllClippyBTN
@@ -7404,9 +7399,6 @@ ShowKBDsettings() {
     Gui, Show, AutoSize, Keyboard settings: KeyPress OSD
     ColorPickerHandles := hLV12
     verifySettingsWindowSize()
-    Sleep, 15
-    Global DoNotRepeatTimer := A_TickCount
-    Sleep, 15
     VerifyKeybdOptions(0)
 }
 
@@ -7532,6 +7524,7 @@ ShowMouseSettings() {
        Return
 
     Global RealTimeUpdates := 0
+    Global DoNotRepeatTimer := A_TickCount
     Global CurrentPrefWindow := 4
     Global editF1, editF2, editF3, editF4, editF5, editF6, editF7, editF8, editF9, editF10, editF11
          , editF12, editF13, editF14, editF15, editF16, editF17, editF18, txt1, txt2, txt3, txt4
@@ -7650,9 +7643,6 @@ ShowMouseSettings() {
     Gui, Show, AutoSize, Mouse settings: KeyPress OSD
     ColorPickerHandles := hLV4 "," hLV6 "," hLV7 "," hLV8 "," hLV9 "," hLV10 "," hLV11 "," hLV12
     verifySettingsWindowSize()
-    Sleep, 15
-    Global DoNotRepeatTimer := A_TickCount
-    Sleep, 15
     VerifyMouseOptions(0)
 }
 
@@ -7876,6 +7866,7 @@ SendVarsTypingAHKthread(initMode:=0) {
    sendTypingVar("DKnotShifted_list")
    sendTypingVar("DKshift_list")
    sendTypingVar("DisableTypingMode")
+   sendTypingVar("HideAnnoyingKeys")
    Sleep, 10
    If IsTypingAidFile
       TypingAidThread.ahkFunction["TypingKeysInit"] 
@@ -8133,6 +8124,7 @@ ShowOSDsettings() {
     If ShowPreview             ; If OSD is already visible don't hide/show it,
        SetTimer, HideGUI, Off  ; just update the text (avoids the flicker)
     Global CurrentPrefWindow := 5
+    Global DoNotRepeatTimer := A_TickCount
     Global positionB, editF1, editF2, editF3, editF4, editF5, editF6, Btn1
          , editF7, editF8, editF9, editF10, editF35, editF36, editF37, Btn2
     GUIposition := GUIposition + 1
@@ -8231,11 +8223,8 @@ ShowOSDsettings() {
     Gui, Add, DropDownList, x+8 AltSubmit gSwitchPreferences choose%CurrentPrefWindow% vCurrentPrefWindow , Keyboard|Typing mode|Sounds|Mouse|Appearance|Shortcuts
     Gui, Show, AutoSize, OSD appearance: KeyPress OSD
     verifySettingsWindowSize()
-    Sleep, 15
-    Global DoNotRepeatTimer := A_TickCount
-    Sleep, 15
-    VerifyOsdOptions(0)
     ColorPickerHandles := hLV1 "," hLV2 "," hLV3 "," hLV5 "," hTXT
+    VerifyOsdOptions(0)
 }
 
 VerifyOsdOptions(EnableApply:=1) {
@@ -9517,6 +9506,7 @@ MinMaxVar(ByRef givenVar, miny, maxy, defy) {
 }
 
 CheckSettings() {
+   Critical, On
 
 ; verify check boxes
     BinaryVar(AlternateTypingMode, 1)
@@ -9820,7 +9810,7 @@ RunAsTask() {
     XML := "
     (LTrim Join
       <?xml version=""1.0"" ?><Task xmlns=""http://schemas.microsoft.com/windows/2004/02/mit/task"">
-      <RegistrationInfo /><Triggers> <LogonTrigger><Enabled>false</Enabled><Delay>PT20S</Delay>
+      <RegistrationInfo /><Triggers><LogonTrigger><Enabled>false</Enabled><Delay>PT20S</Delay>
       </LogonTrigger></Triggers><Principals><Principal id=""Author""><LogonType>InteractiveToken
       </LogonType><RunLevel>HighestAvailable</RunLevel></Principal></Principals><Settings>
       <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy><DisallowStartIfOnBatteries>false
@@ -9830,7 +9820,7 @@ RunAsTask() {
       </RestartOnIdle></IdleSettings><AllowStartOnDemand>true</AllowStartOnDemand><Enabled>true</Enabled>
       <Hidden>false</Hidden><RunOnlyIfIdle>false</RunOnlyIfIdle><DisallowStartOnRemoteAppSession>false
       </DisallowStartOnRemoteAppSession><UseUnifiedSchedulingEngine>false</UseUnifiedSchedulingEngine>
-      <WakeToRun>false</WakeToRun><ExecutionTimeLimit>PT0S</ExecutionTimeLimit><Priority>5</Priority>
+      <WakeToRun>false</WakeToRun><ExecutionTimeLimit>PT09</ExecutionTimeLimit><Priority>5</Priority>
       </Settings><Actions Context=""Author""><Exec>
       <Command>" ( A_IsCompiled ? A_ScriptFullpath : A_AhkPath ) "</Command>
       <Arguments>" ( !A_IsCompiled ? """" A_ScriptFullpath  """" : "" ) "</Arguments>
@@ -10365,5 +10355,5 @@ dummy() {
 
 CheckThis:
 ;    addScript("ahkThread_Free(deleteME)",0)   ; comment/delete this line to execute this script with AHK_L
-     ahkThread_Free(deleteME)   ; comment/delete this line to execute this script with AHK_L
+      ahkThread_Free(deleteME)   ; comment/delete this line to execute this script with AHK_L
 Return

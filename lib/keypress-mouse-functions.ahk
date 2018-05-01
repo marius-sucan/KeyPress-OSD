@@ -426,6 +426,7 @@ CaretHalo(restartNow:=0) {
           mY := Round(A_CaretY + CaretHeight/2 - CaretHaloH/2 + 1)
           If (!mX || !mY)
           {
+             mX := mY := 1
              lastFlash := A_TickCount
              doNotShow := 1
           }
