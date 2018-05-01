@@ -147,7 +147,7 @@
 ;@Ahk2Exe-SetMainIcon Lib\keypress.ico
 ;@Ahk2Exe-SetName KeyPress OSD v4
 ;@Ahk2Exe-SetDescription KeyPress OSD v4 [mirror keyboard and mouse usage]
-;@Ahk2Exe-SetVersion 4.31.4
+;@Ahk2Exe-SetVersion 4.31.5
 ;@Ahk2Exe-SetCopyright Marius Şucan (2017-2018)
 ;@Ahk2Exe-SetCompanyName ROBODesign.ro
 ;@Ahk2Exe-SetOrigFilename keypress-osd.ahk
@@ -354,7 +354,7 @@
  , DownloadExternalFiles  := 1
 
 ; Release info
- , Version                := "4.31.4"
+ , Version                := "4.31.5"
  , ReleaseDate            := "2018 / 04 / 30"
  , hMutex, ScriptInitialized, FirstRun := 1
  , KPregEntry := "HKEY_CURRENT_USER\SOFTWARE\KeyPressOSD\v4"
@@ -2776,17 +2776,30 @@ ExpandFeatureFunction() {
   If ExpandWordsList[UserTypedWord] && (A_TickCount-LastTypedSince < NoExpandAfter)
   {
      Text2Send := ExpandWordsList[UserTypedWord]
-     If (GetKeyState("CapsLock", "T") || GetKeyState("Shift"))
-        Text2Send := RegExReplace(Text2Send, "i)^\s*\w", "$U0")
+     StringLeft, testCase, UserTypedWord, 1
+     If testCase is Upper
+        Text2Send := RegExReplace(Text2Send, "i)^.", "$U0")
      StringReplace, Typed, Typed, %UserTypedWord%%A_Space%%Lola%, % Text2Send Lola
      StringGetPos, CaretPos, Typed, %Lola%
      times2pressKey := TxtLen + 1
      DoNotRepeatTimer := A_TickCount
      If (SecondaryTypingMode!=1)
      {
+        Sleep, 25
         SendInput, {BackSpace %times2pressKey% }
         Sleep, 25
         SendInput, {text}%Text2Send%
+        Sleep, 25
+        If GetKeyState("CapsLock", "T")
+        {
+           SendInput, {Space Up}
+           Sleep, 25
+           SetCapsLockState, Off
+           If (OSDshowLEDs=1)
+              GuiControl, OSD:, CapsLED, 0
+           If (MouseKeys=1)
+              MouseNumpadThread.ahkPostFunction["ToggleCapsLock", 1]
+        }
      }
      LastMatchedExpandPair := UserTypedWord " // " ExpandWordsList[UserTypedWord]
   }
@@ -9786,7 +9799,7 @@ RunAsTask() {
   TaskName      := TheName ; " @" SubStr( "000000000"  DllCall( "NTDLL\RtlComputeCrc32"
 ;                , "Int",0, "WStr",CmdLine, "UInt",StrLen( CmdLine ) * 2, "UInt" ), -9 )
 
-  Try RunAsTask := TaskRoot.GetTask( TaskName )
+  Try RunAsTask := TaskRoot.GetTask(TaskName)
   TaskExists    := !A_LastError 
 
   If (A_IsAdmin)
@@ -9800,18 +9813,18 @@ RunAsTask() {
          If InStr(brr, "KeyPress")
             TaskRoot.DeleteTask(task.Name, 0)
        }
+       Sleep, 10
        ShowLongMsg("Disabled Start at Boot")
        SetTimer, HideGUI, % -DisplayTime
-       RunAsTask_CreateShortcut(TaskName, A_StartupCommon, TaskName, 1)
+       RunAsTask_Shortcut(TaskName, A_StartupCommon, TaskName, 1)
        Menu, PrefsMenu, Uncheck, Sta&rt at boot
-
        Return 0
     }
+    ; <LogonTrigger><Enabled>false</Enabled><Delay>PT20S</Delay></LogonTrigger>
     XML := "
     (LTrim Join
       <?xml version=""1.0"" ?><Task xmlns=""http://schemas.microsoft.com/windows/2004/02/mit/task"">
-      <RegistrationInfo /><Triggers><LogonTrigger><Enabled>false</Enabled><Delay>PT20S</Delay>
-      </LogonTrigger></Triggers><Principals><Principal id=""Author""><LogonType>InteractiveToken
+      <RegistrationInfo /><Triggers> </Triggers><Principals><Principal id=""Author""><LogonType>InteractiveToken
       </LogonType><RunLevel>HighestAvailable</RunLevel></Principal></Principals><Settings>
       <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy><DisallowStartIfOnBatteries>false
       </DisallowStartIfOnBatteries><StopIfGoingOnBatteries>false</StopIfGoingOnBatteries><AllowHardTerminate>
@@ -9820,23 +9833,32 @@ RunAsTask() {
       </RestartOnIdle></IdleSettings><AllowStartOnDemand>true</AllowStartOnDemand><Enabled>true</Enabled>
       <Hidden>false</Hidden><RunOnlyIfIdle>false</RunOnlyIfIdle><DisallowStartOnRemoteAppSession>false
       </DisallowStartOnRemoteAppSession><UseUnifiedSchedulingEngine>false</UseUnifiedSchedulingEngine>
-      <WakeToRun>false</WakeToRun><ExecutionTimeLimit>PT09</ExecutionTimeLimit><Priority>5</Priority>
+      <WakeToRun>false</WakeToRun><ExecutionTimeLimit>PT0S</ExecutionTimeLimit><Priority>5</Priority>
       </Settings><Actions Context=""Author""><Exec>
       <Command>" ( A_IsCompiled ? A_ScriptFullpath : A_AhkPath ) "</Command>
       <Arguments>" ( !A_IsCompiled ? """" A_ScriptFullpath  """" : "" ) "</Arguments>
       <WorkingDirectory>" A_ScriptDir "</WorkingDirectory></Exec></Actions></Task>
     )"
     TaskRoot.RegisterTask(TaskName, XML, TASK_CREATE, "", "", TASK_LOGON_INTERACTIVE_TOKEN)
-    ErrorLevel := 0
-    Menu, PrefsMenu, Check, Sta&rt at boot
-    ShowLongMsg("Enabled Start at Boot")
+    Sleep, 25
+    Try RunAsTask := TaskRoot.GetTask(TaskName)
+    TaskExists2 := !A_LastError 
+    If TaskExists2
+    {
+       Menu, PrefsMenu, Check, Sta&rt at boot
+       ShowLongMsg("Enabled Start at Boot")
+       RunAsTask_Shortcut(TaskName, A_StartupCommon, TaskName, 0)
+    } Else
+    {
+       SoundBeep, 300, 900
+       ShowLongMsg("Failed to set Start at Boot")
+    }
     SetTimer, HideGUI, % -DisplayTime
-    RunAsTask_CreateShortcut(TaskName, A_StartupCommon, TaskName, 0)
     Return 1
   }
 }
 
-RunAsTask_CreateShortcut(TaskName := "",Folder := "",ShcName := "", delete:=0) { ; by SKAN, http://goo.gl/yG6A1F
+RunAsTask_Shortcut(TaskName := "",Folder := "",ShcName := "", delete:=0) { ; by SKAN, http://goo.gl/yG6A1F
   Local LINK, Description
   If !TaskName
      Return 
