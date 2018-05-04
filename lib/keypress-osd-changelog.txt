@@ -11,8 +11,17 @@ http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip
 
 by Marius Sucan (robodesign.ro)
 
-  v4.31.4 (2018-04-30)
+  v4.31.6 (2018-05-04)
+  - when typing mode is activated, but not "only typing mode", it will show a green LED to indicate when text was written [and is still accessible by typing], once the user pressed typing related [/ navigation] keys, but return to typing delay expired;
+  - bug fixes regarding keyboard shortcuts; since I introduced the option to not restart on keyboard layout changes, the global shortcuts ceased to function properly
+  - bug fixes regarding the clipboard manager
+  - other bug fixes;
+
+  v4.31.5 (2018-04-30)
+  - [improvement] if you type the word to be auto-replaced with the first letter capitalized, [e.g., Btw].... it will be expanded to By the way [the first letter is capitalized when expanded]
+    - if you have capslock activated, the entire expanded text becomes capitalized, e.g., BTW = BY THE WAY.
   - more bug fixes; it includes a fix for a regression that caused loss of saved settings;
+  - it also attempts to detect if the settings windows are too large, when Large UI fonts is activated; the user is given the option to turn it off;
 
   v4.31.3 (2018-04-29)
   - [major bug fix] fixed a bug that made the script unusable on AHK_L when any mediated key was pressed
@@ -965,82 +974,4 @@ by tmplinshi from https://autohotkey.com/boards/viewtopic.php?f=6&t=225
   v0.50 (2010-03-18)
   - Released by RaptorX.
 ---------------------------------------------------------------
-
-TO-DO:
-Features to implement:
-
- - afișează shortcuts in meniuri
- - identify when user switches to admin apps
- - use a RichEdit with zero-width carets?
- 
--- [Justice PC] test if mouse ripples can still cause silent crashes
-
-
-- compile the thing! include all scripts inside?
-  - separate UI settings and tray menu? separate files with include
-https://www.facebook.com/iulia.zgripcea/videos/
-
-- test compiled version on different systems; crashes?
-- test update, binary, changelog and help files update?
-- safer defaults?
-- test slow VM; laptop, pc
-
-- Kill switch. On click exit. Force exit. 
-- elimină iniWrite for clipboard manager? then make ID per install
-- integrate Vis2?
-
--use the input hook for mouse keys?
-
- - it sometimes crashes on restart
- - one cannot drag the OSD with Mouse Keys
- - reparații la mouse ripples; wheel up/down frequency mess-up
- - updater.bat does not work in XP
- - Drugwash: checkWindowKBD() - TO FIX
-
-- probably fixed
-  -- KeyStrokeAider can cause crashes after a long period of running
-
-
-- Go through older posts. Check what's done. 
-- update help; separate FAQs into sections
-- test different DPIs
-- test on different computers - slow computers...
-
-Glitches to fix or think of possible solutions:
-- caret gets out of synch in FF, multi-line fields
-  - use real caret data?
-- OSD is never on top of Start menu in Windows 10
-- support for Bengali, Assamese and other similar scripts is shady
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-- auto-correct [with 1,2,3] - long words; visualize first
-- https://autohotkey.com/board/topic/54987-sift3-super-fast-and-accurate-string-distance-algorithm/
-- https://github.com/first20hours/google-10000-english
-- https://www.sketchengine.co.uk/word-lists/
-http://www.itprotoday.com/software-development/double-metaphone-sounds-great
-
-- capture text to-do:
-  - wm-getobject, send message [chrome]
-  - get tool tips
-  - external GUI - multi-line
-https://www.chromium.org/developers/design-documents/accessibility#TOC-How-Chrome-detects-the-presence-of-Assistive-Technology
-https://github.com/neptercn/Component_AHK/blob/master/uia.ahk
-https://autohotkey.com/board/topic/53672-get-the-text-content-of-a-tool-tip-window/
-
-- window spy, get texts underneath the mouse using Narrator's accessibility APIs
-  https://autohotkey.com/board/topic/57431-get-text-under-mouse-cursor/
-  https://blogs.msdn.microsoft.com/oldnewthing/20130408-00/?p=4733
 

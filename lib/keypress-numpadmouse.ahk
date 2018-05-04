@@ -399,7 +399,7 @@ ButtonClickEnd() {
   GetKeyState, already_down_state, LButton
   If (already_down_state = "D")
      MouseClick, Left,,, 1, 0, U
-  If lastUpped && (A_TickCount - lastUpped < DCT)
+  If (lastUpped && (A_TickCount - lastUpped < DCT) && lastClick="Left")
      MainExe.ahkPostFunction("OnMouseKeysPressed", "Double Click")
   clickHeldDown := 0
   lastUpped := A_TickCount
@@ -555,7 +555,7 @@ ButtonWheels() {
   Static NumPidButton, lastCalc
   StringReplace, NewButton, A_ThisHotkey, *
   reset := 0
-  If (NewButton!=NumPidButton) || (A_TickCount - lastCalc > 200)
+  If (NewButton!=NumPidButton) || (A_TickCount - lastCalc > 100)
   {
      reset := 1
      showMsg := 1

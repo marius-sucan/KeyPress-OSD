@@ -200,6 +200,8 @@ ShowRipple(_color, _style, _interval:=10, _dir:="") {
 RippleTimer() {
     Global
     Static PolyBuf, c := Cos(4*ATan(1)/6), offset
+  Try
+  {
     DllCall("gdiplus\GdipGraphicsClear", "Ptr", pRippleGraphics, "Int", 0)
     If ((RippleDiameter += RippleStep) < RippleMaxSize)
     {
@@ -280,6 +282,7 @@ RippleTimer() {
        , "UInt"   , 0
        , "UIntP"  , 0x1FF0000
        , "UInt"   , 2)
+  }
 }
 
 ToggleMouseRipples(force:=0) {

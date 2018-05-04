@@ -40,8 +40,11 @@ Global IsTypingAidFile    := 1
 , AllDKsList := ""
 , moduleInitialized := 0
 , ScriptelSuspendel, PrefOpen := 0
-, MainExe := AhkExported()
 , moduleLoaded := 1
+, MainExe := AhkExported()
+, mainScriptHasInit := 0
+, regedKBDhotkeys := ""
+
 
 Return
 
@@ -133,20 +136,48 @@ TypingKeysInit() {
           SoundBeep, 1900, 50
     }
 
-    If (DisableTypingMode=0)
+    If (DisableTypingMode=0)   ; do not mess with Ctrl + A / C / V / X / Z
     {
        Hotkey, ~^vk41, dummy, useErrorLevel
        Hotkey, ~^vk43, dummy, useErrorLevel
        Hotkey, ~^vk56, dummy, useErrorLevel
        Hotkey, ~^vk58, dummy, useErrorLevel
        Hotkey, ~^vk5A, dummy, useErrorLevel
+       Hotkey, ~^vk53, dummy, useErrorLevel
     }
 
-    If (A_OSVersion>=10 && HideAnnoyingKeys=1)
+    If (HideAnnoyingKeys=1) ; do not mess with screenshot in Win 10
       Hotkey, ~#+s, hideMainOSD, useErrorLevel
 
-    MainExe.ahkPostFunction("genericBeeper")
     moduleInitialized := 1
+}
+
+registerDummyHotkeys() {
+   For each, HotKate in StrSplit(regedKBDhotkeys, "²")
+   {
+       If StrLen(HotKate)<1
+          Continue
+       lineArr := StrSplit(HotKate, "¹")
+       ; MsgBox, % HotKate
+       Hotkey, % lineArr[1], MainHotkeysCaller
+   }
+}
+
+MainHotkeysCaller() {
+   If (ScriptelSuspendel="Y" || PrefOpen=1)
+      Return
+
+   For each, HotKate in StrSplit(regedKBDhotkeys, "²")
+   {
+       If StrLen(HotKate)<1
+          Continue
+       lineArr := StrSplit(HotKate, "¹")
+       If (A_ThisHotkey=lineArr[1])
+       {
+          callThis := lineArr[2]
+          MainExe.ahkPostFunction[callThis]
+       }
+   } 
 }
 
 GetKeyChar(key) {
@@ -188,17 +219,18 @@ GetKeyChar(key) {
     Return StrGet(&char, n, "utf-16")
 }
 
+hideMainOSD() {
+  If (ScriptelSuspendel="Y" || PrefOpen=1)
+     Return
+  MainExe.ahkPostFunction("HideGUI")
+}
 OnLetterPressed() {
   If (ScriptelSuspendel="Y" || PrefOpen=1)
      Return
   MainExe.ahkFunction("OnLetterPressed", 0, A_ThisHotkey)
 }
 
-hideMainOSD() {
-  If (ScriptelSuspendel="Y" || PrefOpen=1)
-     Return
-  MainExe.ahkPostFunction("HideGUI")
-}
+
 
 OnLetterUp() {
   If (ScriptelSuspendel="Y" || PrefOpen=1)

@@ -147,7 +147,7 @@
 ;@Ahk2Exe-SetMainIcon Lib\keypress.ico
 ;@Ahk2Exe-SetName KeyPress OSD v4
 ;@Ahk2Exe-SetDescription KeyPress OSD v4 [mirror keyboard and mouse usage]
-;@Ahk2Exe-SetVersion 4.31.5
+;@Ahk2Exe-SetVersion 4.31.6
 ;@Ahk2Exe-SetCopyright Marius Şucan (2017-2018)
 ;@Ahk2Exe-SetCompanyName ROBODesign.ro
 ;@Ahk2Exe-SetOrigFilename keypress-osd.ahk
@@ -354,10 +354,8 @@
  , DownloadExternalFiles  := 1
 
 ; Release info
- , Version                := "4.31.5"
- , ReleaseDate            := "2018 / 04 / 30"
- , hMutex, ScriptInitialized, FirstRun := 1
- , KPregEntry := "HKEY_CURRENT_USER\SOFTWARE\KeyPressOSD\v4"
+ , Version                := "4.31.6"
+ , ReleaseDate            := "2018 / 05 / 04"
 
 ; Possible caret symbols; all are WStr chars
  , Lola        := "│"   ; Main caret
@@ -383,6 +381,8 @@
  , CSx3        := "▪"   ; place-holder
  , CSx4        := "◐"
  , REx1        := "i)(▫│)"  ; RegEx with WStr
+ , hMutex, ScriptInitialized, FirstRun := 1
+ , KPregEntry := "HKEY_CURRENT_USER\SOFTWARE\KeyPressOSD\v4"
 
 ; Check if INIT previously failed or if KP is running and then load settings.
 ; These functions are in Section 8.
@@ -489,6 +489,7 @@ Global Debug := 0    ; for testing purposes
  , InstKBDsWinOpen, CurrentTab, AnyWindowOpen := 0
  , PreviewWindowText := "Preview " Lola "window... " Lola2
  , MainModsList := ["LCtrl", "RCtrl", "LAlt", "RAlt", "LShift", "RShift", "LWin", "RWin"]
+ , regedKBDhotkeys := []
  , GlobalKBDsList := "KBDaltTypeMode,KBDpasteOSDcnt1,KBDpasteOSDcnt2,KBDsynchApp1,KBDsynchApp2
     ,KBDTglNeverOSD,KBDTglPosition,KBDTglSilence,KBDidLangNow,KBDReload,KBDsuspend,KBDclippyMenu"
  , KeysComboList := "(Disabled)|(Restore Default)|[[ 0-9 / Digits ]]|[[ Letters ]]|Right|Left|Up|Down|Home|End
@@ -526,8 +527,9 @@ If (SafeModeExec!=1)
    SetMyVolume()
 }
 Sleep, 5
-CreateGlobalShortcuts()
 IdentifyKBDlayoutWrapper()
+Sleep, 5
+CreateGlobalShortcuts()
 CreateHotkey()
 InitializeTray()
 If (ClipMonitor=1 || EnableClipManager=1)
@@ -566,7 +568,7 @@ OnMudPressed() {
     If (NeverDisplayOSD=1 && OutputOSDtoToolTip=0)
        Return
     Static repeatCount := 1
-    Static modPressedTimer
+    Static modPressedTimer := 1
     BackTypeCtrl := Typed
     fl_prefix := checkIfModsHeld(0)
     StringReplace, keya, A_ThisHotkey, ~*,
@@ -662,15 +664,23 @@ OnMudPressed() {
 OnMouseKeysPressed(key) {
     Thread, Priority, -20
     Critical, off
+    Static oldKey, miniCounter
+
+
     Global lastClickTimer := A_TickCount
     If (ShowMouseButton=1 && OnlyTypingMode=0 && PrefOpen=0)
     && (NeverDisplayOSD=0 || OutputOSDtoToolTip=1)
     {
-       KeyCount := 0.3
        If !InStr(key, "lock")
           SetTimer, ClicksTimer, 400, 50
        If !(InStr(key, "left click") && StrLen(key)<12 && HideAnnoyingKeys=1)
-          ShowHotkey(key)
+       {
+          miniCounter := (key!=oldKey || KeyCount>=1) ? 1 : miniCounter + 1
+          oldKey := key
+          keyCounter := (miniCounter>1 && ShowKeyCount=1) ? " (" miniCounter ")" : ""
+          KeyCount := 0.3
+          ShowHotkey(key keyCounter)
+       }
        SetTimer, HideGUI, % -DisplayTime
        If StrLen(Typed)>2
           SetTimer, ReturnToTyped, % -DisplayTime/4
@@ -1419,15 +1429,17 @@ OnKeyPressed() {
 
         If (EnterErasesLine=1 && SecondaryTypingMode=1 && (key ~= "i)(enter|esc)"))
         {
+           Sleep, 500
            SwitchSecondaryTypingMode()
            If (StrLen(Typed)>3 && EnableTypingHistory=1)
               recordTypedHistory()
-           Sleep, 20
+           Sleep, 100
            WinActivate, ahk_id %Window2ActivateHwnd%
            Sleep, 40
            WinWaitActive, ahk_id %Window2ActivateHwnd%, , 5
            If InStr(key, "enter")
            {
+              Sleep, 50
               SendOSDcontent(1)
               SkipRest := 1
            }
@@ -2031,6 +2043,27 @@ OnCtrlC() {
   }
 }
 
+OnTypingFriendly() {
+  If (OnlyTypingMode=1 || NeverDisplayOSD=1 || PrefOpen=1)
+     Return
+  PressKeyRecorded := 1
+  If (StrLen(Typed)>3 && (A_TickCount-LastTypedSince < ReturnToTypingDelay) && KeyCount<10)
+  {
+     SetTimer, ReturnToTyped, % -400
+     SetTimer, HideGUI, % -DisplayTimeTyping
+  } Else
+  {
+     Try {
+         If ((A_TickCount-LastTypedSince > ReturnToTypingDelay) && KeyCount>10) || StrLen(Typed)<3
+            Typed := ""
+
+         key := GetKeyStr()
+         ShowHotkey(key)
+         SetTimer, HideGUI, % -DisplayTime
+     }
+  }
+}
+
 OnCtrlX() {
   PressKeyRecorded := 1
   If !InStr(A_PriorHotkey, "*vk58") && InStr(A_thisHotkey, "^vk58")
@@ -2356,7 +2389,7 @@ caretSymbolChangeIndicator(NewSymbol,timerz:=1300,DKsleep:=0) {
 ReturnToTyped() {
     If (StrLen(Typed)>2 && KeyCount<10 && !A_IsSuspended
     && (A_TickCount-LastTypedSince < ReturnToTypingDelay)
-    && ShowSingleKey=1 && DisableTypingMode=0)
+    && ShowSingleKey=1 && DisableTypingMode=0 && PrefOpen=0)
     {
        CalcVisibleText()
        ShowHotkey(VisibleTextField)
@@ -2775,24 +2808,21 @@ ExpandFeatureFunction() {
 
   If ExpandWordsList[UserTypedWord] && (A_TickCount-LastTypedSince < NoExpandAfter)
   {
+     CapsState := GetKeyState("CapsLock", "T")
      Text2Send := ExpandWordsList[UserTypedWord]
      StringLeft, testCase, UserTypedWord, 1
      If testCase is Upper
         Text2Send := RegExReplace(Text2Send, "i)^.", "$U0")
+     If (CapsState=1)
+        StringUpper, Text2Send, Text2Send
      StringReplace, Typed, Typed, %UserTypedWord%%A_Space%%Lola%, % Text2Send Lola
      StringGetPos, CaretPos, Typed, %Lola%
      times2pressKey := TxtLen + 1
      DoNotRepeatTimer := A_TickCount
      If (SecondaryTypingMode!=1)
      {
-        Sleep, 25
-        SendInput, {BackSpace %times2pressKey% }
-        Sleep, 25
-        SendInput, {text}%Text2Send%
-        Sleep, 25
-        If GetKeyState("CapsLock", "T")
+        If (CapsState=1)
         {
-           SendInput, {Space Up}
            Sleep, 25
            SetCapsLockState, Off
            If (OSDshowLEDs=1)
@@ -2800,6 +2830,13 @@ ExpandFeatureFunction() {
            If (MouseKeys=1)
               MouseNumpadThread.ahkPostFunction["ToggleCapsLock", 1]
         }
+        Sleep, 25
+        SendInput, {BackSpace %times2pressKey% }
+        Sleep, 25
+        SendInput, {text}%Text2Send%
+        Sleep, 25
+        If (CapsState=1)
+           SendInput, {Space Up}
      }
      LastMatchedExpandPair := UserTypedWord " // " ExpandWordsList[UserTypedWord]
   }
@@ -2990,27 +3027,32 @@ CreateOSDGUI() {
        positionText := (OSDalignment=2) ? 0 : 0 - smallLEDheight -2
     }
 
-    Gui, OSD: Add, Edit, -E0x200 x%positionText% -multi %textAlign% readonly -WantCtrlA -WantReturn -wrap w%widtha% vHotkeyText hwndhOSDctrl, %HotkeyText%
     If (OSDborder=1)
     {
-        WinSet, Style, +0xC40000
-        WinSet, Style, -0xC00000
-        WinSet, Style, +0x800000   ; small border
+       WinSet, Style, +0xC40000
+       WinSet, Style, -0xC00000
+       WinSet, Style, +0x800000   ; small border
     }
+
+    Gui, OSD: Add, Edit, -E0x200 x%positionText% -multi %textAlign% readonly -WantCtrlA -WantReturn -wrap BackgroundTrans w%widtha% vHotkeyText hwndhOSDctrl, %HotkeyText%
     If (OSDshowLEDs=1)
     {
-        capsLEDheight := GuiHeight + FontSize
-        capsLEDwidth := FontSize/2 < 11 ? 11 : FontSize/2
-        smallLEDwidth := capsLEDwidth + smallLEDheight
-        ScrolColorLED := "EE2200"
-        Gui, OSD: Add, Progress, x0 y0 w%capsLEDwidth% h%capsLEDheight% Background%OSDbgrColor% c%CapsColorHighlight% vCapsLED hwndhOSDind1, 1
-        Gui, OSD: Add, Progress, x+0 w%smallLEDwidth% h%smallLEDheight% Background%OSDbgrColor% c%TypingColorHighlight% vNumLED hwndhOSDind2, 1
-        Gui, OSD: Add, Progress, x+0 w%smallLEDwidth% h%smallLEDheight% Background%OSDbgrColor% c%OSDtextColor% vModsLED hwndhOSDind3, 100
-        Gui, OSD: Add, Progress, x+0 w%smallLEDwidth% h%smallLEDheight% Background%OSDbgrColor% c%ScrolColorLED% vScrolLED hwndhOSDind4, 1
+       capsLEDheight := GuiHeight + FontSize
+       capsLEDwidth := FontSize/2 < 11 ? 11 : FontSize/2
+       smallLEDwidth := capsLEDwidth + smallLEDheight - 4
+       textLEDwidth := smallLEDwidth * 3
+       ScrolColorLED := "EE2200"
+       If (PrefOpen=0 && DisableTypingMode=0 && OnlyTypingMode=0)
+          Gui, OSD: Add, Progress, xp y+0 w%textLEDwidth% h15 Background%OSDbgrColor% c%TypingColorHighlight% vTextLED hwndhOSDind6, 0
+       Gui, OSD: Add, Progress, x0 y0 Section w%capsLEDwidth% h%capsLEDheight% Background%OSDbgrColor% c%CapsColorHighlight% vCapsLED hwndhOSDind1, 0
+       Gui, OSD: Add, Progress, x+0 w%smallLEDwidth% h%smallLEDheight% Background%OSDbgrColor% c%TypingColorHighlight% vNumLED hwndhOSDind2, 0
+       Gui, OSD: Add, Progress, x+0 w%smallLEDwidth% h%smallLEDheight% Background%OSDbgrColor% c%OSDtextColor% vModsLED hwndhOSDind3, 100
+       Gui, OSD: Add, Progress, x+0 w%smallLEDwidth% h%smallLEDheight% Background%OSDbgrColor% c%ScrolColorLED% vScrolLED hwndhOSDind4, 0
     }
+
     Gui, OSD: Show, NoActivate Hide x%GuiX% y%GuiY%, KeyPressOSDwin  ; required for initialization when Drag2Move is active
-    OSDhandles := hOSD "," hOSDctrl "," hOSDind1 "," hOSDind2 "," hOSDind3 "," hOSDind4
-    dragOSDhandles := hOSDind1 "," hOSDind2 "," hOSDind3 "," hOSDind4
+    OSDhandles := hOSD "," hOSDctrl "," hOSDind1 "," hOSDind2 "," hOSDind3 "," hOSDind4 "," hOSDind5 "," hOSDind6
+    dragOSDhandles := hOSDind1 "," hOSDind2 "," hOSDind3 "," hOSDind4 "," hOSDind5 "," hOSDind6
     If (OSDalignment>1)
        CreateOSDGUIghost()
     LEDsIndicatorsManager()
@@ -3046,7 +3088,7 @@ ShowHotkey(HotkeyStr) {
 
     GetPhysicalCursorPos(mX, mY)
     NewMousePosition := mX "," mY
-    If (NewMousePosition=MousePosition && (A_TickCount-Tickcount_start2 < 6000)  && MouseOSDbehavior=1)
+    If (NewMousePosition=MousePosition && (A_TickCount-Tickcount_start2 < 6000) && MouseOSDbehavior=1)
        Return
     Else
        MousePosition := ""
@@ -3062,23 +3104,36 @@ ShowHotkey(HotkeyStr) {
     || ((HotkeyStr ~= "i)( \+ )") && !(Typed ~= "i)( \+ )") && OnlyTypingMode=1))
        Return
 
+    UpdateLEDs := (A_TickCount-Tickcount_start2 > 500) ? 1 : 0
     Global Tickcount_start2 := A_TickCount
-    Static oldText_width, Wid, Heig
+    Static oldText_width, Wid, Heig, oldTextIndicator
     If (OSDautosize=1)
     {
         If (StrLen(HotkeyStr)!=oldText_width || ShowPreview=1 || StrLen(Typed)<2)
         {
            growthIncrement := (FontSize/2)*(OSDsizingFactor/150)
            startPoint := GetTextExtentPoint(HotkeyStr, FontName, FontSize) / (OSDsizingFactor/100) + 35
+
            If ((startPoint > Text_width+growthIncrement)
-           || (startPoint < Text_width-growthIncrement) || StrLen(Typed)<2)         
+           || (startPoint < Text_width-growthIncrement) || StrLen(Typed)<2)
               Text_width := Round(startPoint)
+
            Text_width := (Text_width > MaxAllowedGuiWidth-growthIncrement*2)
                        ? Round(MaxAllowedGuiWidth) : Round(Text_width)
         }
         oldText_width := StrLen(HotkeyStr)
     } Else If (OSDautosize=0)
         Text_width := MaxAllowedGuiWidth
+
+    If (OnlyTypingMode=0 && DisableTypingMode=0 && OSDshowLEDs=1 && PrefOpen=0 && UpdateLEDs=1)
+    {
+       textIndicator := (A_TickCount-LastTypedSince > ReturnToTypingDelay) && StrLen(Typed)>5 ? 1 : 0
+       If (textIndicator!=oldTextIndicator)
+       {
+          GuiControl, OSD:, TextLED, % (textIndicator=1) ? 100 : 0
+          oldTextIndicator := textIndicator
+       }
+    }
 
     dGuiX := Round(GuiX)
     GuiControl, OSD: , HotkeyText, %HotkeyStr%
@@ -3431,7 +3486,7 @@ genericBeeper() {
 
 CompactModifiers(ztr) {
     Static CompactPattern := {"LCtrl":"Ctrl", "RCtrl":"Ctrl", "LShift":"Shift", "RShift":"Shift"
-             , "LAlt":"Alt", "LWin":"WinKey", "RWin":"WinKey", "RAlt":"AltGr"}
+                           , "LAlt":"Alt", "LWin":"WinKey", "RWin":"WinKey", "RAlt":"AltGr"}
     If (DifferModifiers=0)
     {
        StringReplace, ztr, ztr, LCtrl+RAlt, AltGr, All
@@ -3444,7 +3499,7 @@ CompactModifiers(ztr) {
 }
 
 checkIfModsHeld(displayIT:=1) {
-    Static LastNoDisplay
+    Static LastNoDisplay := 1
     For i, mod in MainModsList
     {
         If GetKeyState(mod)
@@ -3978,6 +4033,16 @@ CreateHotkey() {
        }
        If (ErrorLevel!=0 && AudioAlerts=1)
           SoundBeep, 1900, 50
+    }
+
+    If (DisableTypingMode=0 && OnlyTypingMode=0)
+       Hotkey, ~^vk53, OnTypingFriendly, useErrorLevel
+
+    If (HideAnnoyingKeys=1) ; do not mess with screenshot  and keyboard layout switcher in Win 10
+    {
+       Hotkey, ~#+s, HideGUI, useErrorLevel
+       If (DisableTypingMode=0 && OnlyTypingMode=0)
+          Hotkey, ~#Space, OnTypingFriendly, useErrorLevel
     }
 }
 
@@ -4766,7 +4831,10 @@ ConstantKBDtimer() {
              IdentifyKBDlayout()
              Sleep, 25
              TypingAidThread.ahkReload[]
+             Sleep, 5
              SendVarsTypingAHKthread()
+             Sleep, 5
+             CreateGlobalShortcuts()
              If StrLen(Typed)>2
                 SetTimer, CalcVisibleTextFieldDummy, -50
           } Else ReloadScript()
@@ -4867,9 +4935,12 @@ checkTypingWindow() {
    IfWinNotActive, KeyPressOSDtyping
    {
        BackTypeCtrl := (Typed || A_TickCount-LastTypedSince > DisplayTimeTyping) ? Typed : BackTypeCtrl
-       Sleep, 200
+       Sleep, 100
        If (PasteOnClick=1)
-          sendOSDcontent()
+       {
+          Sleep, 150
+          sendOSDcontent(1)
+       }
        Sleep, 45
        If (EnableTypingHistory=1)
           recordTypedHistory()
@@ -5119,37 +5190,37 @@ GenerateClippyMenu() {
           md5checkTest := varMD5(editField0)
           If !InStr(md5checkList, md5checkTest)
           {
-              md5checkList .= "," md5checkTest
-              troll0 := processClippy(editField0)
-              If StrLen(troll0)>1
-                 Menu, ClippyMenu, Add, H0. %troll0%, PasteSelectedHistory
+             md5checkList .= "," md5checkTest
+             troll0 := processClippy(editField0)
+             If StrLen(troll0)>1
+                Menu, ClippyMenu, Add, H0. %troll0%, PasteSelectedHistory
           }
           md5checkTest := varMD5(editField1)
           If !InStr(md5checkList, md5checkTest)
           {
-              md5checkList .= "," md5checkTest
-              troll1 := processClippy(editField1)
-              If StrLen(troll1)>1
-                 Menu, ClippyMenu, Add, H1. %troll1%, PasteSelectedHistory
+             md5checkList .= "," md5checkTest
+             troll1 := processClippy(editField1)
+             If StrLen(troll1)>1
+                Menu, ClippyMenu, Add, H1. %troll1%, PasteSelectedHistory
           }
           md5checkTest := varMD5(editField2)
           If !InStr(md5checkList, md5checkTest)
           {
-              md5checkList .= "," md5checkTest
-              troll2 := processClippy(editField2)
-              If StrLen(troll2)>1
-                 Menu, ClippyMenu, Add, H2. %troll2%, PasteSelectedHistory
+             md5checkList .= "," md5checkTest
+             troll2 := processClippy(editField2)
+             If StrLen(troll2)>1
+                Menu, ClippyMenu, Add, H2. %troll2%, PasteSelectedHistory
           }
           md5checkTest := varMD5(editField4)
           If !InStr(md5checkList, md5checkTest)
           {
-              md5checkList .= "," md5checkTest
-              troll4 := processClippy(editField4)
-              If StrLen(troll4)>1
-                 Menu, ClippyMenu, Add, H4. %troll4%, PasteSelectedHistory
+             md5checkList .= "," md5checkTest
+             troll4 := processClippy(editField4)
+             If StrLen(troll4)>1
+                Menu, ClippyMenu, Add, H4. %troll4%, PasteSelectedHistory
           }
        } Else If (DisableTypingMode=0)
-              Menu, ClippyMenu, Add, Activate typing history, ToggleTypingHistory
+             Menu, ClippyMenu, Add, Activate typing history, ToggleTypingHistory
 
        If (DisableTypingMode=0)
        {
@@ -5158,16 +5229,34 @@ GenerateClippyMenu() {
           Menu, ClippyMenu, Add, Capture current line of text from host app, SynchronizeApp2
        }
     } Else If (CountClippies>0)
-           Menu, ClippyMenu, Add, { Delete All }, DeleteAllClippy
+          Menu, ClippyMenu, Add, { Delete All }, DeleteAllClippy
 
     If (PrefOpen=0 && DisableTypingMode=0 && (SendJumpKeys=1 || MediateNavKeys=1))
     {
        Menu, ClippyMenu, Add
-       Menu, ClippyMenu, Add, { Close }, dummy
+       Menu, ClippyMenu, Add, { Close }, CloseClippyMenu
     }
+    If (A_TickCount-LastTypedSince < DisplayTimeTyping) && StrLen(BackTypeCtrl)>2
+       Typed := BackTypeCtrl
+
+}
+
+CloseClippyMenu() {
+  If (A_TickCount-LastTypedSince < DisplayTimeTyping) && StrLen(BackTypeCtrl)>2
+     Typed := BackTypeCtrl
+  If (StrLen(Typed)>3 && PrefOpen=0 && DisableTypingMode=0)
+  {
+     Global LastTypedSince := A_TickCount
+     ReturnToTyped()
+     Sleep, 5
+     SetTimer, HideGUI, % -DisplayTimeTyping
+  }
 }
 
 PasteCurrentClippy() {
+  If (A_TickCount-LastTypedSince < DisplayTimeTyping) && StrLen(BackTypeCtrl)>2
+     Typed := BackTypeCtrl
+
   Sleep, 70
   If (SecondaryTypingMode=0)
   {
@@ -5186,6 +5275,9 @@ PasteCurrentClippy() {
 PasteSelectedClippy() {
   If (PrefOpen=1)
      Return
+  If (A_TickCount-LastTypedSince < DisplayTimeTyping) && StrLen(BackTypeCtrl)>2
+     Typed := BackTypeCtrl
+
   ErrorLevel := 0
   StringLeft, ReadThisFile, A_ThisMenuItem, 2
   Global DoNotRepeatTimer := A_TickCount
@@ -5232,6 +5324,9 @@ PasteSelectedClippy() {
 }
 
 PasteSelectedHistory() {
+  If (A_TickCount-LastTypedSince < DisplayTimeTyping) && StrLen(BackTypeCtrl)>2
+     Typed := BackTypeCtrl
+
   StringLeft, ThisField, A_ThisMenuItem, 2
   StringReplace, ThisField, ThisField, h
   content := editField%ThisField%
@@ -5283,12 +5378,34 @@ RegisterGlobalShortcuts(HotKate,destination,apriori) {
    If (ErrorLevel!=0)
    {
       Hotkey, %apriori%, %destination%, UseErrorLevel
+      If !InStr(destination, "suspend")
+         regedKBDhotkeys[apriori] := destination
       Return apriori
    }
+   If !InStr(destination, "suspend")
+      regedKBDhotkeys[HotKate] := destination
    Return HotKate
 }
 
 CreateGlobalShortcuts() {
+    Static blahBlah
+    If (ScriptInitialized && NoRestartLangChange=1 && IsTypingAidFile)
+    {
+       If !blahBlah
+       {
+          For key, value in regedKBDhotkeys
+          {
+              Hotkey, %key%, Off, UseErrorLevel
+              blahBlah .= key "¹" value "²"
+          }
+       }
+       TypingAidThread.ahkassign("regedKBDhotkeys", blahBlah)
+       Sleep, 10
+       TypingAidThread.ahkFunction["registerDummyHotkeys"]
+       genericBeeper()
+       Return
+    }
+
     KBDsuspend := RegisterGlobalShortcuts(KBDsuspend,"SuspendScript", "+Pause")
     If (AlternateTypingMode=1)
        KBDaltTypeMode := RegisterGlobalShortcuts(KBDaltTypeMode,"SwitchSecondaryTypingMode", "!^CapsLock")
@@ -5632,6 +5749,8 @@ ReloadScriptNow() {
 }
 
 InvokeClippyMenu() {
+  If StrLen(Typed)>2
+     BackTypeCtrl := Typed
   If (PrefOpen=0)
   {
      ShowLongMsg("Clipboard history menu...")
@@ -6070,8 +6189,8 @@ initSettingsWindow() {
 }
 
 verifySettingsWindowSize() {
-    Static lastAsked
-    If (PrefsLargeFonts=0) || (A_TickCount-lastAsked<35000)
+    Static lastAsked := 1
+    If (PrefsLargeFonts=0) || (A_TickCount-lastAsked<30000)
        Return
     GuiGetSize(Wid, Heig, 5)
     SysGet, SM_CXMAXIMIZED, 61
@@ -7854,6 +7973,7 @@ SendVarsMouseAHKthread(initMode) {
    sendMouseVar("CaretHaloFlash")
    sendMouseVar("CaretHaloThick")
    sendMouseVar("SilentMode")
+   sendMouseVar("OSDshowLEDs")
    If (initMode=1 && IsMouseFile)
    {
       Sleep, 10
@@ -9009,7 +9129,7 @@ updateNow() {
      IniWrite, %checkFilesRan%, %IniFile%, TempSettings, checkFilesRan
      If (completeSucces=1)
      {
-        MsgBox, Update seems to be succesful. No errors detected. `nThe script will now reload.
+        MsgBox,,, Update seems to be succesful. No errors detected. `nThe script will now reload., 10
         If (A_IsCompiled && ahkDownloaded=1)
         {
            FileRemoveDir, Lib\Help, 1
@@ -10377,5 +10497,5 @@ dummy() {
 
 CheckThis:
 ;    addScript("ahkThread_Free(deleteME)",0)   ; comment/delete this line to execute this script with AHK_L
-      ahkThread_Free(deleteME)   ; comment/delete this line to execute this script with AHK_L
+     ahkThread_Free(deleteME)   ; comment/delete this line to execute this script with AHK_L
 Return

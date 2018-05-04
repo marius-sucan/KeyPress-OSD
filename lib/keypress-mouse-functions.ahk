@@ -48,15 +48,17 @@ Global IniFile           := "keypress-osd.ini"
  , CaretHaloShape        := 2     ; 1=circle, 2=square, 3=round square, 4=triangle, 5=crosshair
  , CaretHaloMode         := 1     ; 1=fixed size (obey Radius), 2=variable size based on caret height
  , CaretHaloFlash        := 1     ; some may find it disturbing (me included)
- 
+ , OSDshowLEDs           := 1
+ , SilentMode            := 0
+
  , CaretHeight
  , CaretBlinkTime := DllCall("user32\GetCaretBlinkTime")
  , wa := 0
  , ha := 0
- , SilentMode := 0
  , ScriptelSuspendel := 0
  , MouseClickCounter := 0
  , PrefOpen := 0
+ , CaretHaloTimer := 1
  , MouseVclickScale := MouseVclickScaleUser/10
  , WinMouseHalo := "KeyPress OSD: Mouse halo"
  , WinMouseIdle := "KeyPress OSD: Mouse idle"
@@ -65,6 +67,8 @@ Global IniFile           := "keypress-osd.ini"
  , MButtons := "LButton|MButton|RButton"
  , Wheels := "WheelDown|WheelUp|WheelLeft|WheelRight|XButton1|XButton2"
  , isMouseFile := 1
+ , CaretHaloVisible := 0
+ , MainStartTime := 0
  , MainExe := AhkExported()
  , hMain := MainExe.ahkgetvar.hMain
 
@@ -95,6 +99,7 @@ MouseInit() {
        Loop, parse, Wheels, |
              Hotkey, % "~*" A_LoopField, OnKeyPressed, On UseErrorLevel
     }
+    Global MainStartTime := A_TickCount
 }
 
 MouseClose() {
@@ -446,21 +451,25 @@ CaretHalo(restartNow:=0) {
        }
        If (doNotShow!=1)
        {
+          CaretHaloVisible := 1
           Gui, CaretH: Show, NoActivate x%mX% y%mY% w%CaretHaloW% h%CaretHaloH%, %WinCaretHalo%
           HaloRegion%CaretHaloShape%(hHalo, 0, 0, CaretHaloW, CaretHaloH, CaretHaloThick)
           WinSet, Transparent, %CaretHaloAlpha%, %WinCaretHalo%
           WinSet, AlwaysOnTop, On, %WinCaretHalo%
           If ((A_TickCount-lastFlash>CaretBlinkTime*2) && CaretHaloFlash)
           {
-              CaretHaloAlphae := CaretHaloAlpha/3
-              WinSet, Transparent, %CaretHaloAlphae%, %WinCaretHalo%
-              Sleep, CaretBlinkTime/2
-              lastFlash := A_TickCount
+             CaretHaloAlphae := CaretHaloAlpha/3
+             WinSet, Transparent, %CaretHaloAlphae%, %WinCaretHalo%
+             Sleep, CaretBlinkTime/2
+             lastFlash := A_TickCount
           }
        }
     }
     If ((ShowCaretHalo=1 && ScriptelSuspendel="Y") || doNotShow=1)
+    {
        Gui, CaretH: Hide
+       CaretHaloVisible := 0
+    }
 }
 
 ToggleMouseTimerz(force:=0) {
