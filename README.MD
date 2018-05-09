@@ -29,7 +29,6 @@
 <li>Show previously pressed key if fired quickly.</li>
 <li>Count key presses or key fires and mouse clicks.</li>
 <li>Indicators for Caps Lock, Num Lock and Scroll Lock states.</li>
-<li>Option to ignore specific keys.</li>
 <li>Typing mode. It shows what you are typing in an expanding text area.</li>
 <li>Virtual caret/cursor navigation: </li>
 <ul>

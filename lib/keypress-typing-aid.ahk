@@ -24,8 +24,6 @@ SetKeyDelay, -1
 SetMouseDelay, -1
 
 Global IsTypingAidFile    := 1
- , IgnoreAdditionalKeys   := 0
- , IgnorekeysList         := "a.b.c"
  , DoNotBindDeadKeys      := 0
  , DoNotBindAltGrDeadKeys := 0
  , AudioAlerts            := 0     ; generate beeps when key bindings fail
@@ -90,15 +88,6 @@ TypingKeysInit() {
            }
         }
  
-        If (IgnoreAdditionalKeys=1)
-        {
-           For each, char2skip in StrSplit(IgnorekeysList, ".")
-           {
-               If (n=char2skip)
-                  Continue, 2
-           }
-        }
-
         Hotkey, % "~*vk" code, OnLetterPressed, useErrorLevel
         Hotkey, % "~*vk" code " Up", OnLetterUp, useErrorLevel
         If (DisableTypingMode=0)
