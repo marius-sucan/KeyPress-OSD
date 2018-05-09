@@ -11,6 +11,10 @@ http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip
 
 by Marius Sucan (robodesign.ro)
 
+  v4.31.7 (2018-05-09)
+  - removed option to ignore specific keys; it was limited only to typing keys; therefore, users were not able to ignore such as Esc or F1. it created confusion
+  - fixed a glitch; xbutton 1 and 2 were not considered as mouse buttons; they were displayied in the OSD even if "Show mouse buttons" was deactivated
+  
   v4.31.6 (2018-05-04)
   - when typing mode is activated, but not "only typing mode", it will show a green LED to indicate when text was written [and is still accessible by typing], once the user pressed typing related [/ navigation] keys, but return to typing delay expired;
   - bug fixes regarding keyboard shortcuts; since I introduced the option to not restart on keyboard layout changes, the global shortcuts ceased to function properly

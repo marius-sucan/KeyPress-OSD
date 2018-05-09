@@ -147,7 +147,7 @@
 ;@Ahk2Exe-SetMainIcon Lib\keypress.ico
 ;@Ahk2Exe-SetName KeyPress OSD v4
 ;@Ahk2Exe-SetDescription KeyPress OSD v4 [mirror keyboard and mouse usage]
-;@Ahk2Exe-SetVersion 4.31.6
+;@Ahk2Exe-SetVersion 4.31.7
 ;@Ahk2Exe-SetCopyright Marius Şucan (2017-2018)
 ;@Ahk2Exe-SetCompanyName ROBODesign.ro
 ;@Ahk2Exe-SetOrigFilename keypress-osd.ahk
@@ -190,8 +190,6 @@
  Global IniFile           := "keypress-osd.ini"
  , LangFile               := "keypress-osd-languages.ini"
  , WordPairsFile          := "keypress-osd-pairs.ini"
- , IgnoreAdditionalKeys   := 0
- , IgnorekeysList         := "a.b.c"
  , DoNotBindDeadKeys      := 0
  , DoNotBindAltGrDeadKeys := 0
  , AutoDetectKBD          := 1     ; at start, detect keyboard layout
@@ -354,8 +352,8 @@
  , DownloadExternalFiles  := 1
 
 ; Release info
- , Version                := "4.31.6"
- , ReleaseDate            := "2018 / 05 / 04"
+ , Version                := "4.31.7"
+ , ReleaseDate            := "2018 / 05 / 09"
 
 ; Possible caret symbols; all are WStr chars
  , Lola        := "│"   ; Main caret
@@ -675,14 +673,14 @@ OnMouseKeysPressed(key) {
           SetTimer, ClicksTimer, 400, 50
        If !(InStr(key, "left click") && StrLen(key)<12 && HideAnnoyingKeys=1)
        {
-          miniCounter := (key!=oldKey || KeyCount>=1) ? 1 : miniCounter + 1
+          miniCounter := (ShowKeyCount=0 || key!=oldKey || KeyCount>=1) ? 1 : miniCounter + 1
           oldKey := key
           keyCounter := (miniCounter>1 && ShowKeyCount=1) ? " (" miniCounter ")" : ""
           KeyCount := 0.3
           ShowHotkey(key keyCounter)
        }
        SetTimer, HideGUI, % -DisplayTime
-       If StrLen(Typed)>2
+       If (StrLen(Typed)>2 && miniCounter<10)
           SetTimer, ReturnToTyped, % -DisplayTime/4
     }
     If (ShowMouseRipples=1)
@@ -3104,7 +3102,7 @@ ShowHotkey(HotkeyStr) {
     || ((HotkeyStr ~= "i)( \+ )") && !(Typed ~= "i)( \+ )") && OnlyTypingMode=1))
        Return
 
-    UpdateLEDs := (A_TickCount-Tickcount_start2 > 500) ? 1 : 0
+    UpdateLEDs := (A_TickCount-Tickcount_start2 > 100) ? 1 : 0
     Global Tickcount_start2 := A_TickCount
     Static oldText_width, Wid, Heig, oldTextIndicator
     If (OSDautosize=1)
@@ -3127,7 +3125,11 @@ ShowHotkey(HotkeyStr) {
 
     If (OnlyTypingMode=0 && DisableTypingMode=0 && OSDshowLEDs=1 && PrefOpen=0 && UpdateLEDs=1)
     {
-       textIndicator := (A_TickCount-LastTypedSince > ReturnToTypingDelay) && StrLen(Typed)>5 ? 1 : 0
+       If StrLen(Typed)>3
+       {
+          textIndicator := (A_TickCount-LastTypedSince > DisplayTimeTyping/2) && !InStr(Typed, HotkeyStr) ? 1 : 0
+          textIndicator := (A_TickCount-LastTypedSince > DisplayTimeTyping) ? 1 : textIndicator
+       }
        If (textIndicator!=oldTextIndicator)
        {
           GuiControl, OSD:, TextLED, % (textIndicator=1) ? 100 : 0
@@ -3587,12 +3589,16 @@ GetKeyStr(externKey:=0) {
         key := "Print Screen"
     } Else If InStr(key, "lock") {
         key := GetCrayCrayState(key)
-    } Else If InStr(key, "wheel") {
+    } Else If (InStr(key, "wheel") || InStr(key, "xbutton")) {
         Global lastClickTimer := A_TickCount
         If (ShowMouseButton=0 || OnlyTypingMode=1)
+        {
            Throw
-        Else
+        } Else
+        {
            StringReplace, key, key, wheel, wheel%A_Space%
+           StringReplace, key, key, xbutton, X%A_Space%Button%A_Space%
+        }
     } Else If (key = "LButton" && IsDoubleClick()) {
         key := "Double Click"
     } Else If (key = "LButton") {
@@ -3914,15 +3920,6 @@ CreateHotkey() {
                }
             }
      
-            If (IgnoreAdditionalKeys=1)
-            {
-               For each, char2skip in StrSplit(IgnorekeysList, ".")
-               {
-                   If (n=char2skip)
-                      Continue, 2
-               }
-            }
-
             Hotkey, % "~*vk" code, OnLetterPressed, useErrorLevel
             Hotkey, % "~*vk" code " Up", OnLetterUp, useErrorLevel
             If (DisableTypingMode=0)
@@ -4036,14 +4033,13 @@ CreateHotkey() {
     }
 
     If (DisableTypingMode=0 && OnlyTypingMode=0)
+    {
        Hotkey, ~^vk53, OnTypingFriendly, useErrorLevel
+       Hotkey, ~#Space, OnTypingFriendly, useErrorLevel
+    }
 
     If (HideAnnoyingKeys=1) ; do not mess with screenshot  and keyboard layout switcher in Win 10
-    {
        Hotkey, ~#+s, HideGUI, useErrorLevel
-       If (DisableTypingMode=0 && OnlyTypingMode=0)
-          Hotkey, ~#Space, OnTypingFriendly, useErrorLevel
-    }
 }
 
 GenerateDKnames() {
@@ -7437,11 +7433,9 @@ ShowKBDsettings() {
     Gui, Add, Checkbox, y+7 gVerifyKeybdOptions Checked%SilentDetection% vSilentDetection, Silent detection (no messages)
     Gui, Add, Checkbox, y+7 gVerifyKeybdOptions Checked%NoRestartLangChange% vNoRestartLangChange, No restarts on keyboard layout changes
     Gui, Add, Checkbox, y+7 Section gVerifyKeybdOptions Checked%EnableAltGr% vEnableAltGr, Enable Ctrl+Alt / AltGr support
-    Gui, Add, Checkbox, xs+0 y+7 gVerifyKeybdOptions Checked%IgnoreAdditionalKeys% vIgnoreAdditionalKeys, Ignore specific keys (dot separated)
-    Gui, Add, Edit, xp+20 y+5 gVerifyKeybdOptions w180 r1 -multi -wantReturn -wantTab -wrap vIgnorekeysList, %IgnorekeysList%
 
     Gui, Font, Bold
-    Gui, Add, Text, xp-20 y+7, Current keyboard layout:
+    Gui, Add, Text, y+7, Current keyboard layout:
     Gui, Add, Text, y+7 w%txtWid%, %CurrentKBD%
     IniRead, KBDsDetected, %LangFile%, Options, KBDsDetected, -
     If (KBDsDetected>0)
@@ -7537,7 +7531,6 @@ ShowKBDsettings() {
 VerifyKeybdOptions(EnableApply:=1) {
     GuiControlGet, AutoDetectKBD
     GuiControlGet, ConstantAutoDetect
-    GuiControlGet, IgnoreAdditionalKeys
     GuiControlGet, ShowSingleKey
     GuiControlGet, HideAnnoyingKeys
     GuiControlGet, SilentDetection
@@ -7586,7 +7579,6 @@ VerifyKeybdOptions(EnableApply:=1) {
 
     GuiControl, % (AutoDetectKBD=1 ? "Enable" : "Disable"), ConstantAutoDetect
     GuiControl, % (AutoDetectKBD=1 ? "Enable" : "Disable"), SilentDetection
-    GuiControl, % (IgnoreAdditionalKeys=0 ? "Disable" : "Enable"), IgnorekeysList
 
     If (!IsTypingAidFile || SafeModeExec=1 || NoAhkH=1)
     {
@@ -7987,8 +7979,6 @@ SendVarsTypingAHKthread(initMode:=0) {
       While !moduleLoaded := TypingAidThread.ahkgetvar.moduleLoaded
             Sleep, 10
    }
-   sendTypingVar("IgnoreAdditionalKeys")
-   sendTypingVar("IgnorekeysList")
    sendTypingVar("DoNotBindDeadKeys")
    sendTypingVar("DoNotBindAltGrDeadKeys")
    sendTypingVar("AudioAlerts")
@@ -9454,8 +9444,6 @@ INIsettings(a) {
   INIaction(a, "ConstantAutoDetect", "SavedSettings")
   INIaction(a, "NoRestartLangChange", "SavedSettings")
   INIaction(a, "DoBackup", "SavedSettings")
-  INIaction(a, "IgnoreAdditionalKeys", "SavedSettings")
-  INIaction(a, "IgnorekeysList", "SavedSettings")
   INIaction(a, "PrefsLargeFonts", "SavedSettings")
   INIaction(a, "SilentDetection", "SavedSettings")
   INIaction(a, "UseMUInames", "SavedSettings")
@@ -9671,7 +9659,6 @@ CheckSettings() {
     BinaryVar(ExpandWords, 0)
     BinaryVar(GUIposition, 1)
     BinaryVar(HideAnnoyingKeys, 1)
-    BinaryVar(IgnoreAdditionalKeys, 0)
     BinaryVar(JumpHover, 0)
     BinaryVar(KeyBeeper, 0)
     BinaryVar(GlobalKBDhotkeys, 1)
@@ -10499,3 +10486,4 @@ CheckThis:
 ;    addScript("ahkThread_Free(deleteME)",0)   ; comment/delete this line to execute this script with AHK_L
      ahkThread_Free(deleteME)   ; comment/delete this line to execute this script with AHK_L
 Return
+
