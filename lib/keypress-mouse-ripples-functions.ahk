@@ -14,9 +14,10 @@
 #SingleInstance, Force
 #Persistent
 #NoTrayIcon
-#MaxThreads 255
-#MaxThreadsPerHotkey 255
 #MaxHotkeysPerInterval 500
+#MaxThreads 2
+#MaxThreadsBuffer Off
+Critical, On
 CoordMode Mouse, Screen
 SetBatchLines, -1
 ListLines, Off
@@ -37,7 +38,7 @@ Global IniFile           := "keypress-osd.ini"
  , ScriptelSuspendel := 0
  , WinMouseRipples := "KeyPress OSD: Mouse click ripples"
  , MButtons := "LButton|MButton|RButton|WheelDown|WheelUp|WheelLeft|WheelRight"
- , MainMouseRippleThickness
+ , MainMouseRippleThickness, RippleVisible
  , Period, PointDir, tf, PrefOpen
  , isRipplesFile := 1
  , style1        := "GdipDrawEllipse"
@@ -95,7 +96,7 @@ MRInit() {
     RippleAlphaMax := MouseRippleOpacity
     RippleAlphaStep := RippleAlphaMax // ((RippleMaxSize - RippleMinSize) / RippleStep)
 
-    RippleVisible := False
+    RippleVisible := 0
     LeftClickRippleColor := "0x" MouseRippleLbtnColor
     WheelColor := "0x" MouseRippleWbtnColor
     RightClickRippleColor := "0x" MouseRippleRbtnColor
@@ -153,9 +154,11 @@ MouseRippleUpdate() {
 ShowRipple(_color, _style, _interval:=10, _dir:="") {
     Global
     Static lastStyle, lastEvent, lastClk := A_TickCount
-    If (ScriptelSuspendel="Y" || PrefOpen=1)
+    If (ScriptelSuspendel="Y" || PrefOpen=1) ; RippleVisible=1
        Return
 
+   Critical, Off
+;  Thread, Priority, 100
     Sleep, 60
     Gui Ripple: Destroy
     Sleep, 15
@@ -163,8 +166,6 @@ ShowRipple(_color, _style, _interval:=10, _dir:="") {
     Gui Ripple: Show, NoActivate, %WinMouseRipples%
     WinSet, ExStyle, -0x20, %WinMouseRipples%
 
-    If (RippleVisible)
-       Return
     w := InStr(_style, "Poly") ? 1 : 0  ; wheel
     RippleStart := w ? RippleMinSize+50 : RippleMinSize
     If ((A_TickCount-lastClk<DCT) && lastEvent=_color && !w)
@@ -192,14 +193,18 @@ ShowRipple(_color, _style, _interval:=10, _dir:="") {
     RippleAlpha := RippleAlphaMax
     WinSet, AlwaysOnTop, On, %WinMouseRipples%
     GetPhysicalCursorPos(_pointerX, _pointerY)
-    RippleTimer()
-    SetTimer RippleTimer, %Period%
+    SetTimer RippleTimer, %Period%, 200
     Return
 }
 
 RippleTimer() {
-    Global
-    Static PolyBuf, c := Cos(4*ATan(1)/6), offset
+  Global
+  Critical, On
+;  Thread, Priority, 250
+
+  Static PolyBuf, c := Cos(4*ATan(1)/6), offset
+  RippleVisible := 1
+  EndNow := 0
   Try
   {
     DllCall("gdiplus\GdipGraphicsClear", "Ptr", pRippleGraphics, "Int", 0)
@@ -260,9 +265,9 @@ RippleTimer() {
         DllCall("gdiplus\GdipDeletePen", "Ptr", pRipplePen)
     } Else
     {
-        RippleVisible := False
         SetTimer RippleTimer, Off
         Gui Ripple: Destroy
+        EndNow := 1
     }
 
     L := RippleDiameter+MouseRippleThickness*tf
@@ -282,6 +287,11 @@ RippleTimer() {
        , "UInt"   , 0
        , "UIntP"  , 0x1FF0000
        , "UInt"   , 2)
+  }
+  If (EndNow=1)
+  {
+     Sleep, 10
+     RippleVisible := 0
   }
 }
 
@@ -312,21 +322,27 @@ ShowRipple(MiddleClickRippleColor, style2, MouseRippleFrequency)
 Return
 
 OnMouseWheelDown:
-Sleep, 15
+Sleep, 10
 ShowRipple(WheelColor, style3, MouseRippleFrequency, "D")
+Sleep, 50
 Return
 
 OnMouseWheelUp:
-Sleep, 15
+Sleep, 10
 ShowRipple(WheelColor, style3, MouseRippleFrequency, "U")
+Sleep, 50
 Return
 
 OnMouseWheelLeft:
+Sleep, 10
 ShowRipple(WheelColor, style3, MouseRippleFrequency, "L")
+Sleep, 50
 Return
 
 OnMouseWheelRight:
+Sleep, 10
 ShowRipple(WheelColor, style3, MouseRippleFrequency, "R")
+Sleep, 50
 Return
 
 GetPhysicalCursorPos(ByRef mX, ByRef mY) {
