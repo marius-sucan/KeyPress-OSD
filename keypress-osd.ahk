@@ -147,7 +147,7 @@
 ;@Ahk2Exe-SetMainIcon Lib\keypress.ico
 ;@Ahk2Exe-SetName KeyPress OSD v4
 ;@Ahk2Exe-SetDescription KeyPress OSD v4 [mirror keyboard and mouse usage]
-;@Ahk2Exe-SetVersion 4.31.7
+;@Ahk2Exe-SetVersion 4.31.8
 ;@Ahk2Exe-SetCopyright Marius Şucan (2017-2018)
 ;@Ahk2Exe-SetCompanyName ROBODesign.ro
 ;@Ahk2Exe-SetOrigFilename keypress-osd.ahk
@@ -352,8 +352,8 @@
  , DownloadExternalFiles  := 1
 
 ; Release info
- , Version                := "4.31.7"
- , ReleaseDate            := "2018 / 05 / 09"
+ , Version                := "4.31.8"
+ , ReleaseDate            := "2018 / 05 / 12"
 
 ; Possible caret symbols; all are WStr chars
  , Lola        := "│"   ; Main caret
@@ -2820,21 +2820,13 @@ ExpandFeatureFunction() {
      If (SecondaryTypingMode!=1)
      {
         If (CapsState=1)
-        {
-           Sleep, 25
-           SetCapsLockState, Off
-           If (OSDshowLEDs=1)
-              GuiControl, OSD:, CapsLED, 0
-           If (MouseKeys=1)
-              MouseNumpadThread.ahkPostFunction["ToggleCapsLock", 1]
-        }
-        Sleep, 25
+           SetStoreCapsLockMode, Off
+        Sleep, 15
         SendInput, {BackSpace %times2pressKey% }
         Sleep, 25
         SendInput, {text}%Text2Send%
-        Sleep, 25
-        If (CapsState=1)
-           SendInput, {Space Up}
+        Sleep, 15
+        SetStoreCapsLockMode, On
      }
      LastMatchedExpandPair := UserTypedWord " // " ExpandWordsList[UserTypedWord]
   }
@@ -10483,7 +10475,7 @@ dummy() {
 }
 
 CheckThis:
-;    addScript("ahkThread_Free(deleteME)",0)   ; comment/delete this line to execute this script with AHK_L
-     ahkThread_Free(deleteME)   ; comment/delete this line to execute this script with AHK_L
+    addScript("ahkThread_Free(deleteME)",0)   ; comment/delete this line to execute this script with AHK_L
+;     ahkThread_Free(deleteME)   ; comment/delete this line to execute this script with AHK_L
 Return
 

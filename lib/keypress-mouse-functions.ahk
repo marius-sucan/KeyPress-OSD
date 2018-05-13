@@ -11,8 +11,6 @@
 #Persistent
 #NoTrayIcon
 #WinActivateForce
-#MaxThreads 255
-#MaxThreadsPerHotkey 255
 #MaxHotkeysPerInterval 500
 CoordMode, Caret, Screen
 CoordMode, Mouse, Screen
