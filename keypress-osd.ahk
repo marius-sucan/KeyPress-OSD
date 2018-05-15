@@ -147,7 +147,7 @@
 ;@Ahk2Exe-SetMainIcon Lib\keypress.ico
 ;@Ahk2Exe-SetName KeyPress OSD v4
 ;@Ahk2Exe-SetDescription KeyPress OSD v4 [mirror keyboard and mouse usage]
-;@Ahk2Exe-SetVersion 4.31.8
+;@Ahk2Exe-SetVersion 4.32.0
 ;@Ahk2Exe-SetCopyright Marius Şucan (2017-2018)
 ;@Ahk2Exe-SetCompanyName ROBODesign.ro
 ;@Ahk2Exe-SetOrigFilename keypress-osd.ahk
@@ -352,8 +352,8 @@
  , DownloadExternalFiles  := 1
 
 ; Release info
- , Version                := "4.31.8"
- , ReleaseDate            := "2018 / 05 / 12"
+ , Version                := "4.32"
+ , ReleaseDate            := "2018 / 05 / 15"
 
 ; Possible caret symbols; all are WStr chars
  , Lola        := "│"   ; Main caret
@@ -572,14 +572,14 @@ OnMudPressed() {
     StringReplace, keya, A_ThisHotkey, ~*,
     fl_prefix .= keya "+"
     fl_prefix := CompactModifiers(fl_prefix)
+ ;  ToolTip, %A_THISHOTKEY% -- %fl_prefix%
     Sort, fl_prefix, U D+
     fl_prefix := RTrim(fl_prefix, "+")
     StringReplace, fl_prefix, fl_prefix, +, %A_Space%+%A_Space%, All
 
-    If (A_TickCount-Tickcount_start2 < 35)
-       Return
     CapsLockState := GetKeyState("CapsLock", "T")
-    If (InStr(fl_prefix, "Shift") && ShiftDisableCaps=1) && (CapsLockState=1)
+    If (InStr(fl_prefix, "Shift") && ShiftDisableCaps=1 && CapsLockState=1
+    && (A_TickCount-Tickcount_start2 > 150))
     {
        SetCapsLockState, off
        If (MouseKeys=1) && (A_TickCount-Tickcount_start2 > 50)
@@ -664,7 +664,6 @@ OnMouseKeysPressed(key) {
     Critical, off
     Static oldKey, miniCounter
 
-
     Global lastClickTimer := A_TickCount
     If (ShowMouseButton=1 && OnlyTypingMode=0 && PrefOpen=0)
     && (NeverDisplayOSD=0 || OutputOSDtoToolTip=1)
@@ -677,34 +676,21 @@ OnMouseKeysPressed(key) {
           oldKey := key
           keyCounter := (miniCounter>1 && ShowKeyCount=1) ? " (" miniCounter ")" : ""
           KeyCount := 0.3
+          Sleep, 150
           ShowHotkey(key keyCounter)
        }
        SetTimer, HideGUI, % -DisplayTime
        If (StrLen(Typed)>2 && miniCounter<10)
           SetTimer, ReturnToTyped, % -DisplayTime/4
     }
-    If (ShowMouseRipples=1)
-    {
-       If InStr(key, "left click")
-          MouseRipplesThread.ahkLabel("OnMouseLButton")
-       If InStr(key, "right click")
-          MouseRipplesThread.ahkLabel("OnMouseRButton")
-       If InStr(key, "middle click")
-          MouseRipplesThread.ahkLabel("OnMouseMButton")
-       If InStr(key, "wheel up")
-          MouseRipplesThread.ahkLabel("OnMouseWheelUp")
-       If InStr(key, "wheel down")
-          MouseRipplesThread.ahkLabel("OnMouseWheelDown")
-       If InStr(key, "wheel left")
-          MouseRipplesThread.ahkLabel("OnMouseWheelLeft")
-       If InStr(key, "wheel right")
-          MouseRipplesThread.ahkLabel("OnMouseWheelRight")
-    }
 
-    If (MouseBeeper=1)
+    If (ShowMouseRipples=1 && IsRipplesFile)
+       MouseRipplesThread.ahkPostFunction("MouseKeysEvent", key)
+
+    If (MouseBeeper=1 && IsSoundsFile)
        SoundsThread.ahkPostFunction("OnMousePressed", key)
 
-    If (ShowMouseVclick=1)
+    If (ShowMouseVclick=1 && IsMouseFile)
     {
        If InStr(key, "left click")
           MouseFuncThread.ahkPostFunction("ShowMouseClick", "LButton")
@@ -2821,14 +2807,14 @@ ExpandFeatureFunction() {
      {
         If (CapsState=1)
            SetStoreCapsLockMode, Off
-        Sleep, 15
+        Sleep, 25
         SendInput, {BackSpace %times2pressKey% }
         Sleep, 25
         SendInput, {text}%Text2Send%
-        Sleep, 15
+        Sleep, 25
         SetStoreCapsLockMode, On
      }
-     LastMatchedExpandPair := UserTypedWord " // " ExpandWordsList[UserTypedWord]
+     LastMatchedExpandPair := UserTypedWord " // " Text2Send
   }
 }
 
@@ -4033,7 +4019,9 @@ CreateHotkey() {
     If (HideAnnoyingKeys=1) ; do not mess with screenshot  and keyboard layout switcher in Win 10
        Hotkey, ~#+s, HideGUI, useErrorLevel
 }
-
+testttt() {
+  SoundBeep
+}
 GenerateDKnames() {
      Loop, Parse, DKnotShifted_list, .
      {
@@ -5823,6 +5811,8 @@ QuickMenuPrefPanels() {
     Menu, QuickPrefsMenu, Add, &Mouse, ShowMouseSettings
     Menu, QuickPrefsMenu, Add, &OSD appearance, ShowOSDsettings
     Menu, QuickPrefsMenu, Add, &Global shortcuts, ShowShortCutsSettings
+    Menu, QuickPrefsMenu, Add
+    Menu, QuickPrefsMenu, Add, &Quick start presets, PresetsWindow
 
     If (NoAhkH=1 || !IsSoundsFile || MissingAudios=1 || SafeModeExec=1)     ; keypress-beeperz-functions.ahk
        Menu, QuickPrefsMenu, Delete, &Sounds
@@ -6125,11 +6115,10 @@ KillScript(showMSG:=1) {
    If (ScriptInitialized!=1)
       ExitApp
 
-   PrefOpen := 0
-   RegWrite, REG_SZ, %KPregEntry%, PrefOpen, %PrefOpen%
    If (FileExist(ThisFile) && showMSG)
    {
-      INIsettings(1)
+      If (PrefOpen=0)
+         INIsettings(1)
       ShowLongMsg("Bye byeee :-)")
       Sleep, 350
    } Else If showMSG
@@ -6137,6 +6126,8 @@ KillScript(showMSG:=1) {
       ShowLongMsg("Adiiooosss :-(((")
       Sleep, 950
    }
+   PrefOpen := 0
+   RegWrite, REG_SZ, %KPregEntry%, PrefOpen, %PrefOpen%
    Cleanup()
    ExitApp
 }
@@ -10475,7 +10466,7 @@ dummy() {
 }
 
 CheckThis:
-    addScript("ahkThread_Free(deleteME)",0)   ; comment/delete this line to execute this script with AHK_L
-;     ahkThread_Free(deleteME)   ; comment/delete this line to execute this script with AHK_L
+;    addScript("ahkThread_Free(deleteME)",0)   ; comment/delete this line to execute this script with AHK_L
+     ahkThread_Free(deleteME)   ; comment/delete this line to execute this script with AHK_L
 Return
 

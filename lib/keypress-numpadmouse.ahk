@@ -81,7 +81,7 @@ Global IsMouseNumpadFile := 1
 Return
 
 MouseKeysInit() {
-  Hotkey, ~#l, DeactivateMouseKeys, UseErrorLevel
+  ; Hotkey, ~#l, DeactivateMouseKeys, UseErrorLevel
   Hotkey, ~MButton, ButtonTheClicks, UseErrorLevel
   Hotkey, ~RButton, ButtonTheClicks, UseErrorLevel
   Hotkey, ~LButton, ButtonTheClicks, UseErrorLevel
@@ -137,13 +137,13 @@ SuspendScript(killNow:=1) {
   If (killNow=0)
   {
      ToggleNumLock(1,1)
-     Hotkey, ~#l, Off
+     ; Hotkey, ~#l, Off
      Hotkey, ~NumLock Up, Off
      Hotkey, ~CapsLock Up, Off
   } Else
   {
      ToggleNumLock(0,1)
-     Hotkey, ~#l, On
+     ; Hotkey, ~#l, On
      Hotkey, ~NumLock Up, On
      Hotkey, ~CapsLock Up, On
   }

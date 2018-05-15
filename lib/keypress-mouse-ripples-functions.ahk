@@ -39,7 +39,7 @@ Global IniFile           := "keypress-osd.ini"
  , WinMouseRipples := "KeyPress OSD: Mouse click ripples"
  , MButtons := "LButton|MButton|RButton|WheelDown|WheelUp|WheelLeft|WheelRight"
  , MainMouseRippleThickness, RippleVisible
- , Period, PointDir, tf, PrefOpen
+ , Period, PointDir, tf, PrefOpen, hRippleWin
  , isRipplesFile := 1
  , style1        := "GdipDrawEllipse"
  , style2        := "GdipDrawRectangle"
@@ -125,6 +125,11 @@ MRInit() {
     hOldRippleBmp := DllCall("gdi32\SelectObject", "Ptr", hRippleDC, "Ptr", hRippleBmp, "Ptr")
     DllCall("gdiplus\GdipCreateFromHDC", "Ptr", hRippleDC, "PtrP", pRippleGraphics)
     DllCall("gdiplus\GdipSetSmoothingMode", "Ptr", pRippleGraphics, "Int", 4)
+    Gui Ripple: Destroy
+    Sleep, 15
+    Gui Ripple: -Caption +LastFound +AlwaysOnTop +ToolWindow +Owner +E0x80000 +hwndhRippleWin
+    Gui Ripple: Show, NoActivate, %WinMouseRipples%
+    WinSet, ExStyle, -0x20, %WinMouseRipples%
     Loop, Parse, MButtons, |
           Hotkey, % "~*" A_LoopField, OnMouse%A_LoopField%, UseErrorLevel
     ToggleMouseRipples()
@@ -159,12 +164,6 @@ ShowRipple(_color, _style, _interval:=10, _dir:="") {
 
    Critical, Off
 ;  Thread, Priority, 100
-    Sleep, 60
-    Gui Ripple: Destroy
-    Sleep, 15
-    Gui Ripple: -Caption +LastFound +AlwaysOnTop +ToolWindow +Owner +E0x80000 +hwndhRippleWin
-    Gui Ripple: Show, NoActivate, %WinMouseRipples%
-    WinSet, ExStyle, -0x20, %WinMouseRipples%
 
     w := InStr(_style, "Poly") ? 1 : 0  ; wheel
     RippleStart := w ? RippleMinSize+50 : RippleMinSize
@@ -191,10 +190,28 @@ ShowRipple(_color, _style, _interval:=10, _dir:="") {
     RippleStyle := _style
     RippleDiameter := RippleStart
     RippleAlpha := RippleAlphaMax
-    WinSet, AlwaysOnTop, On, %WinMouseRipples%
+   ;  ToolTip, %_color% -- %MouseRippleRbtnColor%
+    If (_color="0x" MouseRippleRbtnColor)
+    { 
+       While (ClickHeldDown()=1)
+         Sleep, 50
+       Sleep, 150
+    }
     GetPhysicalCursorPos(_pointerX, _pointerY)
-    SetTimer RippleTimer, %Period%, 200
+    WinSet, AlwaysOnTop, On, %WinMouseRipples%
+    WinSet, ExStyle, -0x20, %WinMouseRipples%
+    SetTimer, RippleTimer, %Period%, 200
     Return
+}
+
+ClickHeldDown() {
+;  LClickDown := GetKeyState("LButton")
+  RClickDown := GetKeyState("RButton")
+;  MClickDown := GetKeyState("MButton")
+  If (LClickDown=1 || RClickDown=1 || MClickDown=1)
+     Return 1
+  Sleep, 10
+  Return 0
 }
 
 RippleTimer() {
@@ -266,7 +283,6 @@ RippleTimer() {
     } Else
     {
         SetTimer RippleTimer, Off
-        Gui Ripple: Destroy
         EndNow := 1
     }
 
@@ -313,7 +329,7 @@ ShowRipple(LeftClickRippleColor, style1, MouseRippleFrequency)
 Return
 
 OnMouseRButton:
-Sleep, 160
+Sleep, 50
 ShowRipple(RightClickRippleColor, style1, MouseRippleFrequency)
 Return
 
@@ -344,6 +360,23 @@ Sleep, 10
 ShowRipple(WheelColor, style3, MouseRippleFrequency, "R")
 Sleep, 50
 Return
+
+MouseKeysEvent(key) {
+   If InStr(key, "left click")
+      Gosub, OnMouseLButton
+   If InStr(key, "right click")
+      Gosub, OnMouseRButton
+   If InStr(key, "middle click")
+      Gosub, OnMouseMButton
+   If InStr(key, "wheel up")
+      Gosub, OnMouseWheelUp
+   If InStr(key, "wheel down")
+      Gosub, OnMouseWheelDown
+   If InStr(key, "wheel left")
+      Gosub, OnMouseWheelLeft
+   If InStr(key, "wheel right")
+      Gosub, OnMouseWheelRight
+}
 
 GetPhysicalCursorPos(ByRef mX, ByRef mY) {
 ; function from: https://github.com/jNizM/AHK_DllCall_WinAPI/blob/master/src/Cursor%20Functions/GetPhysicalCursorPos.ahk

@@ -11,9 +11,13 @@ http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip
 
 by Marius Sucan (robodesign.ro)
 
+  v4.32 (2018-05-15)
+  - fixed issues related to Caret Halo, Mouse Visual Clicks [the blocks and ripples]... Now, right-clicks should work in MS Word.... Previously, these features, when activated, were interfering and it was impossible to invoke the context menu in MS Word by right-clicking ... Hopefully, the changes made do not cause any regressions.
+  - other fixes;
+
   v4.31.8 (2018-05-12)
   - [bug fix] fixed a bug that caused crashes on some systems when Mouse Ripples were activated
-  
+
   v4.31.7 (2018-05-09)
   - removed option to ignore specific keys; it was limited only to typing keys; therefore, users were not able to ignore keys such as Esc or F1; this feature created confusion
   - fixed a glitch; xbutton 1 and 2 were not considered as mouse buttons; they were displayied in the OSD even if "Show mouse buttons" was deactivated

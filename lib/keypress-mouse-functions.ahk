@@ -66,6 +66,7 @@ Global IniFile           := "keypress-osd.ini"
  , Wheels := "WheelDown|WheelUp|WheelLeft|WheelRight|XButton1|XButton2"
  , isMouseFile := 1
  , CaretHaloVisible := 0
+ , lastClicked := "0"
  , MainStartTime := 0
  , MainExe := AhkExported()
  , hMain := MainExe.ahkgetvar.hMain
@@ -92,10 +93,14 @@ MouseInit() {
     If (ShowMouseVclick=1)
     {
        CreateMouseGUI()
+       Loop, Parse, Wheels, |
+             Hotkey, % "~*" A_LoopField, OnKeyPressed, On UseErrorLevel
+    }
+
+    If (ShowMouseVclick=1 || ShowCaretHalo=1)
+    {
        Loop, Parse, MButtons, |
              Hotkey, % "~*" A_LoopField, OnMousePressed, On UseErrorLevel
-       Loop, parse, Wheels, |
-             Hotkey, % "~*" A_LoopField, OnKeyPressed, On UseErrorLevel
     }
     Global MainStartTime := A_TickCount
 }
@@ -257,11 +262,24 @@ OnMousePressed() {
     If (PrefOpen=1)
        Return
 
+    Global lastClicked := A_TickCount
+    If (ShowCaretHalo=1)
+       SetTimer, ClickHeldDown, -10, 200
     If (ShowMouseVclick=1 && ScriptelSuspendel!="Y")
     {
        mkey := SubStr(A_ThisHotkey, 3)
        ShowMouseClick(mkey)
     }
+}
+
+ClickHeldDown() {
+  Critical, on
+  LClickDown := GetKeyState("LButton")
+  RClickDown := GetKeyState("RButton")
+  MClickDown := GetKeyState("MButton")
+  Global lastClicked := A_TickCount
+  If (LClickDown=1 || RClickDown=1 || MClickDown=1)
+     SetTimer, ClickHeldDown, -10, 200
 }
 
 OnKeyPressed() {
@@ -296,7 +314,7 @@ ShowMouseClick(clicky:=0, restartNow:=0) {
     }
     If !clicky
        Return
-    SetTimer, HideMouseClickGUI, 900
+    SetTimer, HideMouseClickGUI, 600
     Sleep, 50
     ; Gui, Mouser: Hide
     MouseClickCounter := (MouseClickCounter > 10) ? 1 : 11
@@ -353,33 +371,27 @@ ShowMouseClick(clicky:=0, restartNow:=0) {
           If (A_Index=2)
              Sleep, 250
           GuiGetSize(Wa, Ha, 4)
+          While GetKeyState("RButton")
+             Sleep, 250
           WinSet, AlwaysOnTop, On, %WinMouseVclick%
       }
     }
 }
 
 HideMouseClickGUI() {
-    Loop, {
-       MouseDown := 0
-       If GetKeyState("LButton","P")
-          MouseDown := 1
-       If GetKeyState("RButton","P")
-          MouseDown := 1
-       If GetKeyState("MButton","P")
-          MouseDown := 1
+   MouseDown := 0
+   If (GetKeyState("LButton") || GetKeyState("RButton") || GetKeyState("MButton"))
+      MouseDown := 1
 
-       If (MouseDown=0)
-       {
-          Sleep, 250
-          Gui, Mouser: Hide
-          MouseClickCounter := 20
-          SetTimer, HideMouseClickGUI, off
-          Break
-       } Else
-       {
-          WinSet, Transparent, 55, %WinMouseVclick%
-       }
-    }
+   If (MouseDown=0)
+   {
+      Gui, Mouser: Hide
+      MouseClickCounter := 20
+      SetTimer, HideMouseClickGUI, off
+   } Else
+   {
+      WinSet, Transparent, 55, %WinMouseVclick%
+   }
 }
 
 GuiGetSize( ByRef W, ByRef H, vindov) {
@@ -403,7 +415,7 @@ CaretHalo(restartNow:=0) {
     Static
     Static lastFlash := A_TickCount
          , CaretHaloW := CaretHaloH := mX := mY := 1
-    If (PrefOpen=1)
+    If (PrefOpen=1 || (A_TickCount-lastClicked<300))
        Return
 
     If (restartNow=1)
@@ -449,6 +461,7 @@ CaretHalo(restartNow:=0) {
        }
        If (doNotShow!=1)
        {
+
           CaretHaloVisible := 1
           Gui, CaretH: Show, NoActivate x%mX% y%mY% w%CaretHaloW% h%CaretHaloH%, %WinCaretHalo%
           HaloRegion%CaretHaloShape%(hHalo, 0, 0, CaretHaloW, CaretHaloH, CaretHaloThick)
