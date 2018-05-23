@@ -207,7 +207,7 @@ MouseHalo(killNow:=0) {
        Return
 
     If (ShowMouseHalo=0 || killNow=1
-    || (HideMhalosMcurHidden=1 && A_TimeIdlePhysical>125000)
+    || (HideMhalosMcurHidden=1 && A_TimeIdle>125000)
     || (A_TimeIdle > MouseIdleAfter*1000))
     {
        Gui, MouseH: Destroy
@@ -426,7 +426,7 @@ CaretHalo(restartNow:=0) {
     }
 
     doNotShow := 0
-    If (ShowCaretHalo=1 && ScriptelSuspendel!="Y" && (A_TimeIdlePhysical < MouseIdleAfter*1500))
+    If (ShowCaretHalo=1 && ScriptelSuspendel!="Y" && (A_TimeIdle < MouseIdleAfter*1500))
     {
        If (A_CaretX && A_CaretY)
        {

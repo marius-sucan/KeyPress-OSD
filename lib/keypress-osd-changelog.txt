@@ -11,6 +11,10 @@ http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip
 
 by Marius Sucan (robodesign.ro)
 
+  v4.32.1 (2018-05-23)
+  - bug fixes regarding Emojis and the auto-replace feature
+  - now it should no longer stall if the host application stalls
+
   v4.32 (2018-05-15)
   - fixed issues related to Caret Halo, Mouse Visual Clicks [the blocks and ripples]... Now, right-clicks should work in MS Word.... Previously, these features, when activated, were interfering and it was impossible to invoke the context menu in MS Word by right-clicking ... Hopefully, the changes made do not cause any regressions.
   - other fixes;

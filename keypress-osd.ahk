@@ -147,7 +147,7 @@
 ;@Ahk2Exe-SetMainIcon Lib\keypress.ico
 ;@Ahk2Exe-SetName KeyPress OSD v4
 ;@Ahk2Exe-SetDescription KeyPress OSD v4 [mirror keyboard and mouse usage]
-;@Ahk2Exe-SetVersion 4.32.0
+;@Ahk2Exe-SetVersion 4.32.1
 ;@Ahk2Exe-SetCopyright Marius Şucan (2017-2018)
 ;@Ahk2Exe-SetCompanyName ROBODesign.ro
 ;@Ahk2Exe-SetOrigFilename keypress-osd.ahk
@@ -352,8 +352,8 @@
  , DownloadExternalFiles  := 1
 
 ; Release info
- , Version                := "4.32"
- , ReleaseDate            := "2018 / 05 / 15"
+ , Version                := "4.32.1"
+ , ReleaseDate            := "2018 / 05 / 23"
 
 ; Possible caret symbols; all are WStr chars
  , Lola        := "│"   ; Main caret
@@ -501,7 +501,7 @@ Global Debug := 0    ; for testing purposes
  , hOSD, OSDhandles, dragOSDhandles, ColorPickerHandles
  , hMain := A_ScriptHwnd
  , CCLVO := "-E0x200 +Border -Hdr -Multi +ReadOnly Report AltSubmit gsetColors"
- , Emojis := "(☀|🤣|👌|☹|☺|♥|⛄|❤|️|🌙|🌛|🌜|🌷|🌸|🎄|👄|👋|👍|👏|👙|👳|👶|👼|👽|💁|💃|💋
+ , Emojis := "x)(☀|🤣|👌|☹|☺|♥|⛄|❤|️|🌙|🌛|🌜|🌷|🌸|🎄|👄|👋|👍|👏|👙|👳|👶|👼|👽|💁|💃|💋
     |💏|💓|💕|💖|💗|💞|💤|💯|😀|😁|😂|😃|😄|😆|😇|😈|😉|😊|😋|😌|😍|😎|😐|😓|😔|😕|😗
     |😘|😙|😚|😛|😜|😝|😞|😡|😢|😥|😩|😫|😭|😮|😲|😳|😴|😶|🙁|🙂|🙃|🙈|🙊|🙏|🤔|🤢)"
  , MouseFuncThread, MouseNumpadThread, MouseRipplesThread, SoundsThread, KeyStrokesThread, TypingAidThread
@@ -566,7 +566,9 @@ OnMudPressed() {
     If (NeverDisplayOSD=1 && OutputOSDtoToolTip=0)
        Return
     Static repeatCount := 1
-    Static modPressedTimer := 1
+         , modPressedTimer := 1
+         , prevPrefix
+
     BackTypeCtrl := Typed
     fl_prefix := checkIfModsHeld(0)
     StringReplace, keya, A_ThisHotkey, ~*,
@@ -577,9 +579,13 @@ OnMudPressed() {
     fl_prefix := RTrim(fl_prefix, "+")
     StringReplace, fl_prefix, fl_prefix, +, %A_Space%+%A_Space%, All
 
+    If (A_TickCount-Tickcount_start2 < 60) && (fl_prefix=prevPrefix)
+       Return
+    prevPrefix := fl_prefix
+
     CapsLockState := GetKeyState("CapsLock", "T")
-    If (InStr(fl_prefix, "Shift") && ShiftDisableCaps=1 && CapsLockState=1
-    && (A_TickCount-Tickcount_start2 > 150))
+    If (InStr(fl_prefix, "Shift") && ShiftDisableCaps=1
+    && CapsLockState=1 && (A_TickCount-Tickcount_start2 > 100))
     {
        SetCapsLockState, off
        If (MouseKeys=1) && (A_TickCount-Tickcount_start2 > 50)
@@ -588,8 +594,8 @@ OnMudPressed() {
           GuiControl, OSD:, CapsLED, 0
     }
 
-    If (StrLen(Typed)>1 && OSDvisible=1 && (A_TickCount-LastTypedSince < 4000)
-    && (A_TickCount-modPressedTimer > 70))
+    If (StrLen(Typed)>1 && (A_TickCount-LastTypedSince < 4000)
+    && (A_TickCount-modPressedTimer > 70) && OSDvisible=1)
        caretSymbolChangeIndicator(CSmo)
 
     If (A_TickCount-modPressedTimer > 150) && (OSDshowLEDs=1)
@@ -662,7 +668,10 @@ OnMudPressed() {
 OnMouseKeysPressed(key) {
     Thread, Priority, -20
     Critical, off
-    Static oldKey, miniCounter
+    Static oldKey, miniCounter, lastInvoked := 1
+    If (A_TickCount-lastInvoked < 165)
+       Return
+    lastInvoked := A_TickCount
 
     Global lastClickTimer := A_TickCount
     If (ShowMouseButton=1 && OnlyTypingMode=0 && PrefOpen=0)
@@ -672,11 +681,11 @@ OnMouseKeysPressed(key) {
           SetTimer, ClicksTimer, 400, 50
        If !(InStr(key, "left click") && StrLen(key)<12 && HideAnnoyingKeys=1)
        {
+          Sleep, 150
           miniCounter := (ShowKeyCount=0 || key!=oldKey || KeyCount>=1) ? 1 : miniCounter + 1
           oldKey := key
           keyCounter := (miniCounter>1 && ShowKeyCount=1) ? " (" miniCounter ")" : ""
           KeyCount := 0.3
-          Sleep, 150
           ShowHotkey(key keyCounter)
        }
        SetTimer, HideGUI, % -DisplayTime
@@ -1249,6 +1258,7 @@ OnBspPressed() {
              StringGetPos, CaretPos, Typed, %Lola%
              times2pressKey := TxtLen - 1
              SendInput, {BackSpace %times2pressKey% }
+
              If (SecondaryTypingMode!=1)
              {
                 Sleep, 25
@@ -2681,13 +2691,15 @@ FilterText(invsChars:=1, ByRef KaretPoz:=0, ByRef KaretPozSel:=0, ByRef TxtLengt
 ; and other languages; it skips over invisible chars and
 ; converts two-part Emojis defined at the top of this file.
     Static invisibleChars := "[\p{Mc}\p{Mn}\p{Cc}\p{Cf}]"
+    If StrLen(Typed)<2
+       Return
 
     If (textus=0)
        StringReplace, Taiped, Typed, %CSx1%,, All
     Else
        StringReplace, Taiped, textus, %CSx1%,, All
 
-    Taiped := RegExReplace(Taiped, Emojis, "1")
+    Taiped := RegExReplace(Taiped, Emojis, "~")
     If (invsChars=1)
        Taiped := RegExReplace(Taiped, invisibleChars)
 
@@ -2858,7 +2870,7 @@ CreateWordPairsFile(WordPairsFile) {
 }
 
 addRemoveExpandableWords(line,replace:=0,inLoop:=0) {
-   If inLoop>2
+   If (inLoop>2)
       Return
 
    If RegExMatch(line, "i)^(\+\/\/\+\s)") && (st_count(line, " // ")=1)
@@ -4019,9 +4031,7 @@ CreateHotkey() {
     If (HideAnnoyingKeys=1) ; do not mess with screenshot  and keyboard layout switcher in Win 10
        Hotkey, ~#+s, HideGUI, useErrorLevel
 }
-testttt() {
-  SoundBeep
-}
+
 GenerateDKnames() {
      Loop, Parse, DKnotShifted_list, .
      {
