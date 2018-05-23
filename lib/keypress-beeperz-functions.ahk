@@ -51,7 +51,7 @@ SetTimer, checkCurrentWindow, 1500
 Return
 
 checkCurrentWindow() {
-  Static oldCurrWin
+  Static oldCurrWin, lastMsg
   If (ScriptelSuspendel="Y" || PrefOpen=1)
   {
      oldCurrWin := ""
@@ -59,10 +59,18 @@ checkCurrentWindow() {
   }
 
   currWin := WinExist("A")
-;  If DllCall("IsHungAppWindow", "UInt", currWin)
-;     MainExe.ahkPostFunction("ShowLongMsg", "App hung...")
-  If (currWin!=oldCurrWin)
+  Try WinDead := DllCall("IsHungAppWindow", "UInt", currWin)
+  If (WinDead=1 && lastMsg<3)
+  {
+     lastMsg++
+     MainExe.ahkPostFunction("ShowLongMsg", "Host app froze...")
+     Sleep, 600
+     MainExe.ahkPostFunction("HideGui")
+  } Else If (WinDead!=1 && currWin!=oldCurrWin)
+  {
      MainExe.ahkPostFunction("ShellMessageDummy")
+     lastMsg := 0
+  }
   oldCurrWin := currWin
 }
 
