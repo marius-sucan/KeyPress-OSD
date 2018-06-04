@@ -45,13 +45,14 @@ Global IniFile           := "keypress-osd.ini"
  , MainExe := AhkExported()
  , hMain := MainExe.ahkgetvar.hMain
  , hOSD := MainExe.ahkgetvar.hOSD
+ , ShowCaretHalo := MainExe.ahkgetvar.ShowCaretHalo
 
 checkTeamViewerTimer()
 SetTimer, checkCurrentWindow, 1500
 Return
 
 checkCurrentWindow() {
-  Static oldCurrWin, lastMsg
+  Static oldCurrWin, WinList
   If (ScriptelSuspendel="Y" || PrefOpen=1)
   {
      oldCurrWin := ""
@@ -59,18 +60,19 @@ checkCurrentWindow() {
   }
 
   currWin := WinExist("A")
-  Try WinDead := DllCall("IsHungAppWindow", "UInt", currWin)
-  If (WinDead=1 && lastMsg<3)
-  {
-     lastMsg++
-     MainExe.ahkPostFunction("ShowLongMsg", "Host app froze...")
-     Sleep, 600
-     MainExe.ahkPostFunction("HideGui")
-  } Else If (WinDead!=1 && currWin!=oldCurrWin)
+  If (currWin!=oldCurrWin)
   {
      MainExe.ahkPostFunction("ShellMessageDummy")
-     lastMsg := 0
+     If (ShowCaretHalo=1 && !InStr(WinList, currWin))
+     {
+        WinList .= currWin "-"
+        StringRight, WinList, WinList, 25
+        Try WinDead := DllCall("IsHungAppWindow", "UInt", currWin)
+        If (WinDead!=1)
+           Try DllCall("oleacc\AccessibleObjectFromPoint", "Int64", x==""||y==""?0*DllCall("user32\GetCursorPos","Int64*",pt)+pt:x&0xFFFFFFFF|y<<32, "Ptr*", pacc, "Ptr", VarSetCapacity(varChild,8+2*A_PtrSize,0)*0+&varChild)=0
+     }
   }
+
   oldCurrWin := currWin
 }
 

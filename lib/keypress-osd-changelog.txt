@@ -9,7 +9,11 @@ http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd.ahk
 [b]ZIP Package compiled [x64 / x32], includes AHK_H and sources:[/b]
 http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip
 
-by Marius Sucan (robodesign.ro)
+by Marius Șucan (robodesign.ro)
+
+  v4.32.2 (2018-06-01)
+  - bug fixes regarding mouse ripples; they should not be clickable anymore
+  - other minor fixes
 
   v4.32.1 (2018-05-23)
   - bug fixes regarding Emojis and the auto-replace feature

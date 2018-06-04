@@ -147,7 +147,7 @@
 ;@Ahk2Exe-SetMainIcon Lib\keypress.ico
 ;@Ahk2Exe-SetName KeyPress OSD v4
 ;@Ahk2Exe-SetDescription KeyPress OSD v4 [mirror keyboard and mouse usage]
-;@Ahk2Exe-SetVersion 4.32.1
+;@Ahk2Exe-SetVersion 4.32.2
 ;@Ahk2Exe-SetCopyright Marius Şucan (2017-2018)
 ;@Ahk2Exe-SetCompanyName ROBODesign.ro
 ;@Ahk2Exe-SetOrigFilename keypress-osd.ahk
@@ -352,8 +352,8 @@
  , DownloadExternalFiles  := 1
 
 ; Release info
- , Version                := "4.32.1"
- , ReleaseDate            := "2018 / 05 / 23"
+ , Version                := "4.32.2"
+ , ReleaseDate            := "2018 / 06 / 01"
 
 ; Possible caret symbols; all are WStr chars
  , Lola        := "│"   ; Main caret
@@ -502,7 +502,7 @@ Global Debug := 0    ; for testing purposes
  , hMain := A_ScriptHwnd
  , CCLVO := "-E0x200 +Border -Hdr -Multi +ReadOnly Report AltSubmit gsetColors"
  , Emojis := "x)(☀|🤣|👌|☹|☺|♥|⛄|❤|️|🌙|🌛|🌜|🌷|🌸|🎄|👄|👋|👍|👏|👙|👳|👶|👼|👽|💁|💃|💋
-    |💏|💓|💕|💖|💗|💞|💤|💯|😀|😁|😂|😃|😄|😆|😇|😈|😉|😊|😋|😌|😍|😎|😐|😓|😔|😕|😗
+    |💏|💓|💕|💖|💗|💞|💤|💯|😀|😁|😂|😃|😄|😆|😇|😈|😉|😊|😋|😌|😍|😎|😐|😓|😔|😕|😗|🤗
     |😘|😙|😚|😛|😜|😝|😞|😡|😢|😥|😩|😫|😭|😮|😲|😳|😴|😶|🙁|🙂|🙃|🙈|🙊|🙏|🤔|🤢)"
  , MouseFuncThread, MouseNumpadThread, MouseRipplesThread, SoundsThread, KeyStrokesThread, TypingAidThread
  , IsMouseFile, IsMouseNumpadFile, IsRipplesFile, IsSoundsFile, IsKeystrokesFile, IsTypingAidFile, NoAhkH
@@ -3975,11 +3975,11 @@ CreateHotkey() {
        If (ErrorLevel!=0 && AudioAlerts=1)
           SoundBeep, 1900, 50
     }
-    Otherkeys := "WheelDown|WheelUp|WheelLeft|WheelRight|XButton1|XButton2|Browser_Forward|Browser_Back
-                 |Browser_Refresh|Browser_Stop|Browser_Search|Browser_Favorites|Browser_Home|CtrlBreak
-                 |Insert|CapsLock|ScrollLock|NumLock|Pause|Volume_Mute|Volume_Down|Volume_Up|Media_Next
-                 |Media_Stop|Media_Play_Pause|Launch_Mail|Launch_Media|Launch_App1|Launch_App2|Help
-                 |Sleep|PrintScreen|AppsKey|Tab|Enter|Media_Prev|Esc|Break|NumpadEnter"
+    Otherkeys := "WheelDown|WheelUp|WheelLeft|WheelRight|XButton1|XButton2|Browser_Forward|Browser_Back"
+               . "|Browser_Refresh|Browser_Stop|Browser_Search|Browser_Favorites|Browser_Home|CtrlBreak"
+               . "|Insert|CapsLock|ScrollLock|NumLock|Pause|Volume_Mute|Volume_Down|Volume_Up|Break"
+               . "|Media_Stop|Media_Play_Pause|Launch_Mail|Launch_Media|Launch_App1|Launch_App2|Help"
+               . "|Sleep|PrintScreen|AppsKey|Tab|Enter|Media_Prev|Esc|Media_Next|NumpadEnter"
 
     If (DisableTypingMode=1)           
        Otherkeys .= "|Left|Right|Up|Down|BackSpace|Del|Home|End|PgUp|PgDn|space"
@@ -8839,9 +8839,6 @@ ShellMessageDummy() {
 ; timer from SoundsThread.
 ; This function is  used to update parts of the UI based
 ; on window changes.
-
-  If (ShowCaretHalo=1 && PrefOpen=0)
-     DllCall("oleacc\AccessibleObjectFromPoint", "Int64", x==""||y==""?0*DllCall("user32\GetCursorPos","Int64*",pt)+pt:x&0xFFFFFFFF|y<<32, "Ptr*", pacc, "Ptr", VarSetCapacity(varChild,8+2*A_PtrSize,0)*0+&varChild)=0
 
   If (SecondaryTypingMode=0 && DisableTypingMode=0
   && (A_TickCount - DoNotRepeatTimer > 2000)
