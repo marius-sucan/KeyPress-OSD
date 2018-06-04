@@ -44,6 +44,7 @@ Global IniFile           := "keypress-osd.ini"
  , style1        := "GdipDrawEllipse"
  , style2        := "GdipDrawRectangle"
  , style3        := "GdipDrawPolygon"
+ , MouseRippleFreq := MouseRippleFrequency
 
 OnExit("MouseRippleClose")
 Return
@@ -129,7 +130,7 @@ MRInit() {
     Sleep, 15
     Gui Ripple: -Caption +LastFound +AlwaysOnTop +ToolWindow +Owner +E0x80000 +hwndhRippleWin
     Gui Ripple: Show, NoActivate, %WinMouseRipples%
-    WinSet, ExStyle, -0x20, %WinMouseRipples%
+    WinSet, ExStyle, +0x20, %WinMouseRipples%
     Loop, Parse, MButtons, |
           Hotkey, % "~*" A_LoopField, OnMouse%A_LoopField%, UseErrorLevel
     ToggleMouseRipples()
@@ -156,26 +157,25 @@ MouseRippleUpdate() {
        MRInit()
 }
 
-ShowRipple(_color, _style, _interval:=10, _dir:="") {
+ShowRipple(_color, _style, _dir:="") {
     Global
-    Static lastStyle, lastEvent, lastClk := A_TickCount
+    Static lastStyle, lastEvent
     If (ScriptelSuspendel="Y" || PrefOpen=1) ; RippleVisible=1
        Return
 
    Critical, Off
 ;  Thread, Priority, 100
 
-    w := InStr(_style, "Poly") ? 1 : 0  ; wheel
+    IsWheel := InStr(_style, "Poly") ? 1 : 0  ; wheel
     RippleStart := w ? RippleMinSize+50 : RippleMinSize
-    If ((A_TickCount-lastClk<DCT) && lastEvent=_color && !w)
+    If ((A_TickCount-lastClk<DCT) && lastEvent=_color && !IsWheel)
     {
-       Sleep, 25
        tf := 1.5
        MouseRippleThickness := MainMouseRippleThickness*tf
        RippleColor := _color & 0xBFBFBF
        _style := lastStyle
+       MouseRippleFreq := MouseRippleFrequency * 1.2
        lastEvent := ""
-       Period := _interval*1.3
     } Else
     {
        tf := 1
@@ -183,31 +183,48 @@ ShowRipple(_color, _style, _interval:=10, _dir:="") {
        RippleColor := _color
        lastEvent := _color
        lastStyle := _style
-       Period := _interval
        lastClk := A_TickCount
+       MouseRippleFreq := MouseRippleFrequency
+       noDblClick := 1
     }
     PointDir := _dir
     RippleStyle := _style
     RippleDiameter := RippleStart
     RippleAlpha := RippleAlphaMax
-   ;  ToolTip, %_color% -- %MouseRippleRbtnColor%
-    If (_color="0x" MouseRippleRbtnColor)
-    { 
-       While (ClickHeldDown()=1)
-         Sleep, 50
-       Sleep, 150
-    }
     GetPhysicalCursorPos(_pointerX, _pointerY)
-    WinSet, AlwaysOnTop, On, %WinMouseRipples%
-    WinSet, ExStyle, -0x20, %WinMouseRipples%
-    SetTimer, RippleTimer, %Period%, 200
+    Sleep, 5
+   ;  ToolTip, %_color% -- %MouseRippleRbtnColor%
+    If ((_color="0x" MouseRippleRbtnColor)
+    || (_color="0x" MouseRippleLbtnColor)
+    || (_color="0x" MouseRippleMbtnColor))
+    { 
+       While (ClickHeldDown()=1) && (noDblClick=1)
+             Sleep, 50
+    }
+
+    If !IsWheel
+    {
+       SetTimer, RippleTimerDummy, -150, 200
+    } Else
+    {
+       MouseRippleFreq := MouseRippleFrequency * 1.05
+       SetTimer, RippleTimerDummy, -10, 200
+    }
     Return
 }
 
+RippleTimerDummy() {
+    Global
+    If (A_TickCount-lastClk>400)
+       GetPhysicalCursorPos(_pointerX, _pointerY)
+    WinSet, AlwaysOnTop, On, %WinMouseRipples%
+    SetTimer, RippleTimer, %MouseRippleFreq%, 200
+}
+
 ClickHeldDown() {
-;  LClickDown := GetKeyState("LButton")
+  LClickDown := GetKeyState("LButton")
   RClickDown := GetKeyState("RButton")
-;  MClickDown := GetKeyState("MButton")
+  MClickDown := GetKeyState("MButton")
   If (LClickDown=1 || RClickDown=1 || MClickDown=1)
      Return 1
   Sleep, 10
@@ -325,39 +342,39 @@ ToggleMouseRipples(force:=0) {
 }
 
 OnMouseLButton:
-ShowRipple(LeftClickRippleColor, style1, MouseRippleFrequency)
+ShowRipple(LeftClickRippleColor, style1)
 Return
 
 OnMouseRButton:
 Sleep, 50
-ShowRipple(RightClickRippleColor, style1, MouseRippleFrequency)
+ShowRipple(RightClickRippleColor, style1)
 Return
 
 OnMouseMButton:
-ShowRipple(MiddleClickRippleColor, style2, MouseRippleFrequency)
+ShowRipple(MiddleClickRippleColor, style2)
 Return
 
 OnMouseWheelDown:
 Sleep, 10
-ShowRipple(WheelColor, style3, MouseRippleFrequency, "D")
+ShowRipple(WheelColor, style3, "D")
 Sleep, 50
 Return
 
 OnMouseWheelUp:
 Sleep, 10
-ShowRipple(WheelColor, style3, MouseRippleFrequency, "U")
+ShowRipple(WheelColor, style3, "U")
 Sleep, 50
 Return
 
 OnMouseWheelLeft:
 Sleep, 10
-ShowRipple(WheelColor, style3, MouseRippleFrequency, "L")
+ShowRipple(WheelColor, style3, "L")
 Sleep, 50
 Return
 
 OnMouseWheelRight:
 Sleep, 10
-ShowRipple(WheelColor, style3, MouseRippleFrequency, "R")
+ShowRipple(WheelColor, style3, "R")
 Sleep, 50
 Return
 

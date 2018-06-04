@@ -446,6 +446,9 @@ MouseEventAPI(x, y) {
 }
 
 MouseMover() {
+  bVWrap := (A_ThisHotkey ~= "i)(padUp|padHome|padPgUp|padDown|padEnd|padPgDn)") ? 1 : 0
+  bHWrap := (A_ThisHotkey ~= "i)(padLeft|padHome|padPgUp|padRight|padEnd|padPgDn)") ? 1 : 0
+
   If (PrefOpen!=1)
      SetTimer, MouseMoverTimer, -25
 }
@@ -478,41 +481,49 @@ MouseMoverTimer() {
     {
        MoveY0 := -1 * MoveY*2
        MoveX0 := 0
+       bVWrap := 1
     }
-    if (PadDownDown=1) && InStr(buttonsDownList, "PadDown")
+    If (PadDownDown=1) && InStr(buttonsDownList, "PadDown")
     {
        MoveY1 := MoveY*2
        MoveX1 := 0
+       bVWrap := 1
     }
-    if (PadLeftDown=1) && InStr(buttonsDownList, "PadLeft")
+    If (PadLeftDown=1) && InStr(buttonsDownList, "PadLeft")
     {
        MoveX2 := -1 * MoveX*2
        MoveY2 := 0
+       bHWrap := 1
     }
-    if (PadRightDown=1) && InStr(buttonsDownList, "PadRight")
+    If (PadRightDown=1) && InStr(buttonsDownList, "PadRight")
     {
        MoveX3 := MoveX*2
        MoveY3 := 0
+       bHWrap := 1
     }
-    if (PadHomeDown=1) && InStr(buttonsDownList, "PadHome")
+    If (PadHomeDown=1) && InStr(buttonsDownList, "PadHome")
     {
        MoveX4 := -dF * MoveX
        MoveY4 := -dF * MoveY
+       bHWrap := bVWrap := 1
     }
-    if (PadPgUpDown=1) && InStr(buttonsDownList, "PadPgUp")
+    If (PadPgUpDown=1) && InStr(buttonsDownList, "PadPgUp")
     {
        MoveY5 := -dF * MoveY
        MoveX5 := MoveX * dF
+       bHWrap := bVWrap := 1
     }
-    if (PadEndDown=1) && InStr(buttonsDownList, "PadEnd")
+    If (PadEndDown=1) && InStr(buttonsDownList, "PadEnd")
     {
        MoveX6 := -dF * MoveX
        MoveY6 := MoveY * dF
+       bHWrap := bVWrap := 1
     }
-    if (PadPgDnDown=1) && InStr(buttonsDownList, "PadPgDn")
+    If (PadPgDnDown=1) && InStr(buttonsDownList, "PadPgDn")
     {
        MoveX7 := MoveX * dF
        MoveY7 := MoveY * dF
+       bHWrap := bVWrap := 1
     }
 
   FinMoveX := MoveX0 + MoveX1 + MoveX2 + MoveX3 + MoveX4 + MoveX5 + MoveX6 + MoveX7
