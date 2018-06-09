@@ -11,6 +11,10 @@ http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip
 
 by Marius Șucan (robodesign.ro)
 
+  v4.32.3 (2018-06-08)
+  - fixed a bug that prevented Ctrl + Backspace / Delete to remove the typed word from the host application when it was the last word in the OSD [this applies only when Mediate jump keys is activated]
+  - other minor improvements
+
   v4.32.2 (2018-06-01)
   - bug fixes regarding mouse ripples; they should not be clickable anymore
   - other minor fixes

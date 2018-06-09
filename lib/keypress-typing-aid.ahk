@@ -133,6 +133,7 @@ TypingKeysInit() {
        Hotkey, ~^vk58, dummy, useErrorLevel
        Hotkey, ~^vk5A, dummy, useErrorLevel
        Hotkey, ~^vk53, dummy, useErrorLevel
+       Hotkey, ~*Space, OnSpacePushed, useErrorLevel
     }
 
     If (HideAnnoyingKeys=1) ; do not mess with screenshot in Win 10
@@ -231,6 +232,12 @@ OnAltGrDeadKeyPressed() {
   If (ScriptelSuspendel="Y" || PrefOpen=1)
      Return
   MainExe.ahkFunction("OnAltGrDeadKeyPressed", A_ThisHotkey)
+}
+
+OnSpacePushed() {
+  If (ScriptelSuspendel="Y" || PrefOpen=1)
+     Return
+  MainExe.ahkFunction("OnSpacePressed", A_ThisHotkey)
 }
 
 OnDeadKeyPressed() {
