@@ -147,7 +147,7 @@
 ;@Ahk2Exe-SetMainIcon Lib\keypress.ico
 ;@Ahk2Exe-SetName KeyPress OSD v4
 ;@Ahk2Exe-SetDescription KeyPress OSD v4 [mirror keyboard and mouse usage]
-;@Ahk2Exe-SetVersion 4.32.2
+;@Ahk2Exe-SetVersion 4.32.3
 ;@Ahk2Exe-SetCopyright Marius Şucan (2017-2018)
 ;@Ahk2Exe-SetCompanyName ROBODesign.ro
 ;@Ahk2Exe-SetOrigFilename keypress-osd.ahk
@@ -352,8 +352,8 @@
  , DownloadExternalFiles  := 1
 
 ; Release info
- , Version                := "4.32.2"
- , ReleaseDate            := "2018 / 06 / 01"
+ , Version                := "4.32.3"
+ , ReleaseDate            := "2018 / 06 / 08"
 
 ; Possible caret symbols; all are WStr chars
  , Lola        := "│"   ; Main caret
@@ -1159,9 +1159,10 @@ OnPGupDnPressed() {
     }
 }
 
-OnSpacePressed() {
+OnSpacePressed(externKey:=0) {
     Try {
-          key := GetKeyStr()
+          theHotkey := externKey ? externKey : A_ThisHotkey
+          key := GetKeyStr(theHotkey)
           If ((A_TickCount-LastTypedSince < ReturnToTypingDelay)
           && StrLen(Typed)>0 && DisableTypingMode=0 && ShowSingleKey=1)
           {
@@ -1926,7 +1927,8 @@ OnCtrlDelBack() {
   }
 
   FilterText(DelPressed, abz, zba, TxtLenAfter)
-  times2pressKey := InitialTxtLen - TxtLenAfter
+  TxtLenAfter := TxtLenAfter<1 ? 0.2 : TxtLenAfter
+  times2pressKey := Round(InitialTxtLen - TxtLenAfter)
   If (times2pressKey>1)
      KeyCount := 1
 
@@ -2122,23 +2124,25 @@ OnKeyUp() {
 
 OnLetterUp(externKey:=0,priorExternKey:=0) {
     LastMatchedExpandPair := ""
-    a1 := externKey ? externKey : A_ThisHotkey
-    StringReplace, a2, a1, %A_Space%up
-    StringRight, a2, a2, 4
-    b1 := priorExternKey ? priorExternKey : A_PriorHotKey
-    ; ToolTip, %a1% - %b1%
-    If (PressKeyRecorded=0 && DisableTypingMode=0
-    && SecondaryTypingMode=0 && InStr(b1, "vk")
-    && (A_TickCount-DeadKeyPressed>400)
-    && (A_TickCount-LastTypedSince>15))
-    {
-       If !InStr(TypedKeysHistory, a2)
+;    If (NoRestartLangChange=0)
+ ;   {
+       a1 := externKey ? externKey : A_ThisHotkey
+       StringReplace, a2, a1, %A_Space%up
+       StringRight, a2, a2, 4
+       b1 := priorExternKey ? priorExternKey : A_PriorHotKey
+       ; ToolTip, %a1% - %b1%
+       If (PressKeyRecorded=0 && DisableTypingMode=0
+       && SecondaryTypingMode=0 && InStr(b1, "vk")
+       && (A_TickCount-DeadKeyPressed>400)
+       && (A_TickCount-LastTypedSince>15))
        {
-          TypedKeysHistory := 0
-          OnLetterPressed(1, externKey)
+          If !InStr(TypedKeysHistory, a2)
+          {
+             TypedKeysHistory := 0
+             OnLetterPressed(1, externKey)
+          }
        }
-    }
-
+  ;  }
     OnKeyUp()
     PressKeyRecorded := 0
     If (KeyBeeper=1 || CapslockBeeper=1) && SecondaryTypingMode=0
@@ -3789,7 +3793,8 @@ BindTypeHotKeys() {
     Hotkey, ~*Del Up, OnKeyUp, useErrorLevel
     Hotkey, ~*BackSpace, OnBspPressed, useErrorLevel
     Hotkey, ~*BackSpace Up, OnKeyUp, useErrorLevel
-    Hotkey, ~*Space, OnSpacePressed, useErrorLevel
+    If (NoRestartLangChange=0 || DisableTypingMode=1)
+       Hotkey, ~*Space, OnSpacePressed, useErrorLevel
     Hotkey, ~*Space Up, OnKeyUp, useErrorLevel
     Hotkey, ~*Home, OnHomeEndPressed, useErrorLevel
     Hotkey, ~+Home, OnHomeEndPressed, useErrorLevel
@@ -9789,6 +9794,10 @@ CheckSettings() {
     CaretHaloThick := (CaretHaloThick<5) ? 0 : CaretHaloThick
     CaretHaloThick := (CaretHaloThick > Round(CaretHaloHeight/2-1)) ? Round(CaretHaloHeight/2-1) : Round(CaretHaloThick)
     CaretHaloThick := (CaretHaloThick > Round(CaretHaloWidth/2-1)) ? Round(CaretHaloWidth/2-1) : Round(CaretHaloThick)
+    GuiXa := (GuiXa=0) ? 1 : GuiXa
+    GuiXb := (GuiXb=0) ? 1 : GuiXb
+    GuiYa := (GuiYa=0) ? 1 : GuiYa
+    GuiYb := (GuiYb=0) ? 1 : GuiYb
 
 ; verify HEX values
 
@@ -10473,7 +10482,7 @@ dummy() {
 }
 
 CheckThis:
-;    addScript("ahkThread_Free(deleteME)",0)   ; comment/delete this line to execute this script with AHK_L
-     ahkThread_Free(deleteME)   ; comment/delete this line to execute this script with AHK_L
+    addScript("ahkThread_Free(deleteME)",0)   ; comment/delete this line to execute this script with AHK_L
+;     ahkThread_Free(deleteME)   ; comment/delete this line to execute this script with AHK_L
 Return
 
