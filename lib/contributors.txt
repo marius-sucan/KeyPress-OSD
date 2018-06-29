@@ -68,10 +68,6 @@ by Maestrith:
 by Sean:
 - GetTextExtentPoint()  ; (modified) from https://autohotkey.com/board/topic/16414-hexview-31-for-stdlib/#entry107363
 
-by SKAN:
-- VarMD5()              ; from https://autohotkey.com/board/topic/59576-filecrc32-filesha1-filemd5-and-md5/
-                        ; www.autohotkey.com/forum/viewtopic.php?p=275910#275910
-
 by Stealzy:
 - ChangeKBD()       ; from [CLASS] Lyt https://autohotkey.com/boards/viewtopic.php?t=28258
 - ChangeKBDGlobal() ; as above
@@ -96,7 +92,8 @@ by Paegus (paegus@gmail.com) from MouseWrapper v1.2
 - ScreenWrap()      ; (modified)
 
 by jNizM
-- GetPhysicalCursorPos()   ; (modified)
-; function from: https://github.com/jNizM/AHK_DllCall_WinAPI/blob/master/src/Cursor%20Functions/GetPhysicalCursorPos.ahk
+- GetPhysicalCursorPos()   ; (modified) from: https://github.com/jNizM/AHK_DllCall_WinAPI/blob/master/src/Cursor%20Functions/GetPhysicalCursorPos.ahk
+- CalcAddrHash()
+  and CalcStringHash()     ; from https://github.com/jNizM/HashCalc
 
 For the Mouse Keys features, I was inspired by Deguix's Mouse Numpad script.

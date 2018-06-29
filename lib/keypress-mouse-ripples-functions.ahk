@@ -208,7 +208,7 @@ ShowRipple(_color, _style, _dir:="") {
     } Else
     {
        MouseRippleFreq := MouseRippleFrequency * 1.05
-       SetTimer, RippleTimerDummy, -10, 200
+       SetTimer, RippleTimerDummy, -50, 200
     }
     Return
 }

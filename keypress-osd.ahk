@@ -147,7 +147,7 @@
 ;@Ahk2Exe-SetMainIcon Lib\keypress.ico
 ;@Ahk2Exe-SetName KeyPress OSD v4
 ;@Ahk2Exe-SetDescription KeyPress OSD v4 [mirror keyboard and mouse usage]
-;@Ahk2Exe-SetVersion 4.32.3
+;@Ahk2Exe-SetVersion 4.33
 ;@Ahk2Exe-SetCopyright Marius Şucan (2017-2018)
 ;@Ahk2Exe-SetCompanyName ROBODesign.ro
 ;@Ahk2Exe-SetOrigFilename keypress-osd.ahk
@@ -352,8 +352,8 @@
  , DownloadExternalFiles  := 1
 
 ; Release info
- , Version                := "4.32.3"
- , ReleaseDate            := "2018 / 06 / 08"
+ , Version                := "4.33"
+ , ReleaseDate            := "2018 / 06 / 23"
 
 ; Possible caret symbols; all are WStr chars
  , Lola        := "│"   ; Main caret
@@ -379,12 +379,15 @@
  , CSx3        := "▪"   ; place-holder
  , CSx4        := "◐"
  , REx1        := "i)(▫│)"  ; RegEx with WStr
- , hMutex, ScriptInitialized, FirstRun := 1
+ , hMutex, ScriptInitialized, RegisteredUser, SerialCode
+ , TrialPeriodLeft := 1, GratuicielMode := 1, FirstRun := 1
  , KPregEntry := "HKEY_CURRENT_USER\SOFTWARE\KeyPressOSD\v4"
 
 ; Check if INIT previously failed or if KP is running and then load settings.
 ; These functions are in Section 8.
 
+    If (GratuicielMode=0)
+       checkTrialPeriod()
     RegRead, InitCheckReg, %KPregEntry%, Initializing
     If (InitCheckReg="Yes")
     {
@@ -411,6 +414,7 @@
         INIsettings(0)
     } Else
     {
+        RegWrite, REG_SZ, %KPregEntry%, FirstRunTime, %A_Now%
         CheckSettings()
         INIsettings(1)
     }
@@ -535,7 +539,7 @@ If (ClipMonitor=1 || EnableClipManager=1)
 
 If (ExpandWords=1 && DisableTypingMode=0)
    InitExpandableWords()
-If (EnableClipManager=1)
+If (EnableClipManager=1 && TrialPeriodLeft>0)
    InitClipboardManager()
 
 hCursM := DllCall("user32\LoadCursorW", "Ptr", NULL, "Int", 32646, "Ptr")  ; IDC_SIZEALL
@@ -1460,7 +1464,7 @@ OnKeyPressed() {
 
             If (EnterErasesLine=1)
             {
-               If ((key ~= "i)(enter)") && StrLen(Typed)>11
+               If ((key ~= "i)(enter)") && StrLen(Typed)>11 && OSDvisible=1
                && ExpandWords=1 && (DeadKeys=0 || AltHook2keysUser=1))
                {
                   StringReplace, line, Typed, %Lola%,,All
@@ -5040,23 +5044,6 @@ InitClipboardManager() {
     }
 }
 
-varMD5(V) {
-; Found on / posted by SKAN:
-; https://autohotkey.com/board/topic/59576-filecrc32-filesha1-filemd5-and-md5/
-; Function from: www.autohotkey.com/forum/viewtopic.php?p=275910#275910
-
-   StringReplace, v, v, %Lola%,, All
-   StringReplace, v, v, %Lola2%,, All
-   L := StrLen(V)
-   VarSetCapacity( MD5_CTX,104,0 )
-   DllCall( "advapi32\MD5Init", Str,MD5_CTX )
-   DllCall( "advapi32\MD5Update", Str,MD5_CTX, Str,V, UInt,L ? L : StrLen(V) )
-   DllCall( "advapi32\MD5Final", Str,MD5_CTX )
-   Loop % StrLen( Hex:="123456789ABCDEF0" )
-        N := NumGet( MD5_CTX,87+A_Index,"Char"), MD5 .= SubStr(Hex,N>>4,1) . SubStr(Hex,N&15,1)
-   Return MD5
-}
-
 ClipboardManager(PrivateMode, ClipData) {
     Static PrivateClipsMD5s
     Sleep, 150
@@ -5066,7 +5053,7 @@ ClipboardManager(PrivateMode, ClipData) {
     If (ClipData ~= "i)^(.?\:\\.?.?)") && StrLen(ClipData)>5
        Return
 
-    MD5check := VarMD5(ClipData)
+    MD5check := CalcStringHash(ClipData, 0x8003)
     If InStr(ClipDataMD5s, MD5check) || InStr(PrivateClipsMD5s, MD5check)
        Return
 
@@ -5147,8 +5134,7 @@ GenerateClippyMenu() {
     {
         If (StrLen(ClippyData) < Round(MaxRTFtextClipLen/2))
         {
-           MD5checkTest := VarMD5(ClippyData)
-;          MD5checkList .= "," varMD5(Clipboard)
+           MD5checkTest := CalcStringHash(ClippyData, 0x8003)
            If !InStr(ClipDataMD5s, md5checkTest)
               ClipboardManager(PrivateMode, ClippyData)
         }
@@ -5178,7 +5164,7 @@ GenerateClippyMenu() {
     {
        If (EnableTypingHistory=1)
        {
-          md5checkTest := varMD5(editField0)
+          md5checkTest := CalcStringHash(editField0, 0x8003)
           If !InStr(md5checkList, md5checkTest)
           {
              md5checkList .= "," md5checkTest
@@ -5186,7 +5172,7 @@ GenerateClippyMenu() {
              If StrLen(troll0)>1
                 Menu, ClippyMenu, Add, H0. %troll0%, PasteSelectedHistory
           }
-          md5checkTest := varMD5(editField1)
+          md5checkTest := CalcStringHash(editField1, 0x8003)
           If !InStr(md5checkList, md5checkTest)
           {
              md5checkList .= "," md5checkTest
@@ -5194,7 +5180,7 @@ GenerateClippyMenu() {
              If StrLen(troll1)>1
                 Menu, ClippyMenu, Add, H1. %troll1%, PasteSelectedHistory
           }
-          md5checkTest := varMD5(editField2)
+          md5checkTest := CalcStringHash(editField2, 0x8003)
           If !InStr(md5checkList, md5checkTest)
           {
              md5checkList .= "," md5checkTest
@@ -5202,7 +5188,7 @@ GenerateClippyMenu() {
              If StrLen(troll2)>1
                 Menu, ClippyMenu, Add, H2. %troll2%, PasteSelectedHistory
           }
-          md5checkTest := varMD5(editField4)
+          md5checkTest := CalcStringHash(editField4, 0x8003)
           If !InStr(md5checkList, md5checkTest)
           {
              md5checkList .= "," md5checkTest
@@ -5774,9 +5760,11 @@ QuickSettingsMenu() {
        Menu, QuickMenu, Check, Ru&n in Safe Mode
     }
     Menu, QuickMenu, Add
-    If UpdateInfo := checkUpdateExistsAbout()
+    If (UpdateInfo := checkUpdateExistsAbout())
        Menu, QuickMenu, Add, &Check for updates, updateNow
     Menu, QuickMenu, Add, &Help, HelpFAQstarter
+    If (GratuicielMode=0)
+       Menu, QuickMenu, Add, &Register, OpenRegWin
     Menu, QuickMenu, Add, &About, AboutWindow
     Menu, QuickMenu, Add, &Quick start presets, PresetsWindow
 ;    Menu, QuickMenu, Add, Prefere&nces, OpenLastWindow
@@ -5896,6 +5884,8 @@ InitializeTray() {
     Menu, Tray, Add, &Restart, ReloadScriptNow, P50
     Menu, Tray, Add
     Menu, Tray, Add, &Help / Troubleshoot, HelpFAQstarter
+    If (GratuicielMode<=0)
+       Menu, Tray, Add, &Register, OpenRegWin
     Menu, Tray, Add, &About, AboutWindow
     Menu, Tray, Add
     Menu, Tray, Delete, E&xit
@@ -6166,11 +6156,16 @@ SettingsGUI() {
 
 initSettingsWindow() {
     Global ApplySettingsBTN, CancelSettBTN
-    If (PrefOpen=1)
+    If (PrefOpen=1 || TrialPeriodLeft<=0)
     {
        SoundBeep, 300, 900
-       WinActivate, KeyPress OSD
        doNotOpen := 1
+       If (TrialPeriodLeft<=0)
+       {
+          MsgBox, 4,, The trial period has expired. We apologize... `nDo you want to purchase KeyPress OSD ?
+          IfMsgBox, Yes
+            OpenBuyPage()
+       } Else WinActivate, KeyPress OSD
        Return doNotOpen
     }
 
@@ -6266,6 +6261,14 @@ SwitchPreferences(forceReopenSame:=0) {
 }
 
 OpenLastWindow() {
+    If (TrialPeriodLeft<=0)
+    {
+       MsgBox, 4,, The trial period has expired. We apologize... `nDo you want to purchase KeyPress OSD ?
+       IfMsgBox, Yes
+         OpenBuyPage()
+       Return
+    }
+
     InstKBDsWinOpen := 1
     RegRead, win2open, %KPregEntry%, LastOpen
     If (win2open=1)
@@ -8463,10 +8466,89 @@ DonateNow() {
 }
 
 OpenGitHub() {
-   Run, https://github.com/marius-sucan/KeyPress-OSD
+   If (GratuicielMode<=0)
+      Run, https://keypressosd.com/
+   Else
+      Run, https://github.com/marius-sucan/KeyPress-OSD
+   Sleep, 100
    CloseWindow()
 }
 
+RegisterWindow() {
+    If (PrefOpen=1)
+    {
+       SoundBeep, 300, 900
+       WinActivate, KeyPress OSD
+       Return
+    }
+
+    If (AnyWindowOpen=1)
+    {
+       CloseWindow()
+       Return
+    }
+    SettingsGUI()
+    INIaction(0, "RegisteredUser", "SavedSettings")
+    INIaction(0, "SerialCode", "SavedSettings")
+
+    Static checkVersion
+    isRegisteredMSG := (GratuicielMode=0) ? "Please register KeyPress OSD. Click on Buy to obtain a licence or enter your registrations details in the fields below." : "KeyPress OSD is registered. Thank you."
+    isTrialMSG := "The trial period expires in " TrialPeriodLeft " days. "
+    If !checkVersion
+       IniRead, checkVersion, %IniFile%, SavedSettings, Version, 0
+    If (checkVersion!=Version)
+    {
+       INIaction(1, "ReleaseDate", "SavedSettings")
+       INIaction(1, "Version", "SavedSettings")
+    }
+    AnyWindowOpen := 3
+    btnWid := 70
+    EdtWid := 260
+    txtWid := 300
+    Global btn1
+    If (PrefsLargeFonts=1)
+    {
+       btnWid := btnWid + 50
+       EdtWid := EdtWid + 125
+       txtWid := txtWid + 105
+       Gui, Font, s%LargeUIfontValue%
+    }
+    Gui, Add, Text, x15 y15 w%txtWid%, %isRegisteredMSG%
+    Gui, Add, Text, y+10, Registration e-mail:
+    Gui, Add, Edit, y+7 w%EdtWid% r1 limit35 -multi -wantReturn -wantTab -wrap vRegisteredUser, %RegisteredUser%
+    Gui, Add, Text, y+10, Registration code:
+    Gui, Add, Edit, y+7 w%EdtWid% r1 limit35 -multi -wantReturn -wantTab -wrap vSerialCode, %SerialCode%
+    If (GratuicielMode=0)
+    {
+       Gui, Font, Bold
+       Gui, Add, Text, y+15 w%txtWid%, %isTrialMSG%
+       Gui, Font, Normal
+    }
+
+    Gui, Add, Button, xs+0 y+20 w75 Default w%btnWid% gcheckRegDetails vBtn1, % (GratuicielMode=0) ? "&Register" : "&Update info"
+    Gui, Add, Button, x+5 w%btnWid% gCloseWindow, &Cancel
+    If (GratuicielMode=0)
+       Gui, Add, Button, x+15 w%btnWid% gOpenBuyPage vBtn2, &Buy
+    Gui, Show, AutoSize, Register KeyPress OSD
+    verifySettingsWindowSize()
+}
+
+checkRegDetails() {
+  GuiControlGet, RegisteredUser
+  GuiControlGet, SerialCode
+  MD5check := CalcStringHash(RegisteredUser, 0x8003)
+  If (MD5check!=SerialCode)
+  {
+     MsgBox, Incorrect registration details.
+  } Else
+  {
+     GratuicielMode := -1
+     INIaction(1, "RegisteredUser", "SavedSettings")
+     INIaction(1, "SerialCode", "SavedSettings")
+     CloseWindow()
+     MsgBox, Thank you for registering this product.
+  }
+}
 AboutWindow() {
     If (PrefOpen=1)
     {
@@ -8483,6 +8565,7 @@ AboutWindow() {
 
     Static checkVersion
     SettingsGUI()
+    isTrialMSG := "The trial period expires in " TrialPeriodLeft " days. Please register this product if you like it."
     If !checkVersion
        IniRead, checkVersion, %IniFile%, SavedSettings, Version, 0
     If (checkVersion!=Version)
@@ -8508,27 +8591,47 @@ AboutWindow() {
        Gui, Font, s%LargeUIfontValue%
     }
     Gui, Add, Link, y+4, Developed by <a href="http://marius.sucan.ro">Marius Şucan</a> on AHK_H v1.1.28.
-    Gui, Add, Text, x15 y+9, Freeware. Open source. For Windows XP, 7, 8, and 10.
+    If (GratuicielMode=1)
+       Gui, Add, Text, x15 y+9, Freeware. Open source. For Windows XP, 7, 8, and 10.
     Gui, Font, Bold
-    Gui, Add, Text, y+10 w%txtWid%, My gratitude to Drugwash for directly contributing with considerable improvements and code to this project.
+    Gui, Add, Text, x15 y+10 w%txtWid%, My gratitude to Drugwash for directly contributing with considerable improvements and code to this project.
     Gui, Font, Normal
     Gui, Add, Text, y+10 w%txtWid%, Many thanks to the great people from #ahk (irc.freenode.net), in particular to Phaleth, Tidbit and Saiapatsu. Special mentions to: Burque505 / Winter (for continued feedback) and Neuromancer.
     Gui, Add, Text, y+10 w%txtWid% Section, This application contains code from various entities. You can find more details in the source code.
     Gui, Font, Bold
-    Gui, Add, Link, xp+25 y+10, To keep the development going, `n<a href="https://www.paypal.me/MariusSucan/15">please donate</a> or <a href="mailto:marius.sucan@gmail.com">send me feedback</a>.
-    Gui, Add, Picture, x+5 yp+0 gDonateNow hp w-1 +0xE hwndhDonateBTN, HBITMAP:%hPaypalImg%
-    UpdateInfo := checkUpdateExistsAbout()
-    If UpdateInfo
+    If (GratuicielMode=0)
+    {
+       Gui, Add, Text, xp+15 y+10 w%txtWid%, %isTrialMSG%
+    } Else
+    {
+       Gui, Add, Link, xp+25 y+10, To keep the development going, `n<a href="https://www.paypal.me/MariusSucan/15">please donate</a> or <a href="mailto:marius.sucan@gmail.com">send me feedback</a>.
+       Gui, Add, Picture, x+5 yp+0 gDonateNow hp w-1 +0xE hwndhDonateBTN, HBITMAP:%hPaypalImg%
+    }
+    If (UpdateInfo := checkUpdateExistsAbout())
        Gui, Add, Text, xs+0 y+20, %UpdateInfo%
     Gui, Font, Normal
-    Gui, Add, Button, xs+0 y+20 w75 Default gCloseWindow, &Close
-    Gui, Add, Button, x+5 w%btnWid% gOpenChangeLog vBtn1, Version &history
+    Gui, Add, Button, xs+0 y+20 w%btnWid% Default gOpenChangeLog vBtn1, Version &history
+    If (GratuicielMode=0)
+       Gui, Add, Button, x+5 w%btnWid% gOpenRegWin, &Register now
     Gui, Add, Text, x+8 hp +0x200, Released: %ReleaseDate%
     Gui, Show, AutoSize, About KeyPress OSD v%Version%
     verifySettingsWindowSize()
     ColorPickerHandles := hDonateBTN "," hIcon
     Sleep, 25
     SetTimer, miniUpdateChecker, -950, -20
+}
+
+OpenRegWin() {
+    If (PrefOpen=1)
+    {
+        SoundBeep, 300, 900
+        WinActivate, KeyPress OSD
+        Return
+    }
+
+    CloseWindow()
+    Sleep, 25
+    RegisterWindow()
 }
 
 OpenChangeLog() {
@@ -8783,8 +8886,7 @@ InstalledKBDsWindow() {
       Gui, Add, Text, y+10 w%txtWid%, WARNING: Automatic keyboard layout detection is disabled.
       Gui, Font, Normal
     }
-    Gui, Add, Button, y+15 w%btnWid% Default gCloseWindow, &Close
-    Gui, Add, Button, x+5 w%btnWid% gOpenLastWindow, &Settings
+    Gui, Add, Button, y+15 w%btnWid% Default gOpenLastWindow, &Settings
     Gui, Add, Button, x+1 w20 gInvokeQuickMenu, %CSmo%
     If FileExist(LangFile)
        Gui, Add, Button, x+5 w%btnWid% gDeleteLangFile vRefreshBTN, &Refresh list
@@ -8869,6 +8971,87 @@ ShellMessageDummy() {
   }
 }
 
+CalcAddrHash(addr, length, algid, byref hash = 0, byref hashlength = 0) {
+; function by jNizM and Bentschi
+; taken from https://github.com/jNizM/HashCalc
+
+    static h := [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, "a", "b", "c", "d", "e", "f"]
+    static b := h.minIndex()
+    hProv := hHash := o := ""
+    if (DllCall("advapi32\CryptAcquireContext", "Ptr*", hProv, "Ptr", 0, "Ptr", 0, "UInt", 24, "UInt", 0xf0000000))
+    {
+        if (DllCall("advapi32\CryptCreateHash", "Ptr", hProv, "UInt", algid, "UInt", 0, "UInt", 0, "Ptr*", hHash))
+        {
+            if (DllCall("advapi32\CryptHashData", "Ptr", hHash, "Ptr", addr, "UInt", length, "UInt", 0))
+            {
+                if (DllCall("advapi32\CryptGetHashParam", "Ptr", hHash, "UInt", 2, "Ptr", 0, "UInt*", hashlength, "UInt", 0))
+                {
+                    VarSetCapacity(hash, hashlength, 0)
+                    if (DllCall("advapi32\CryptGetHashParam", "Ptr", hHash, "UInt", 2, "Ptr", &hash, "UInt*", hashlength, "UInt", 0))
+                    {
+                        loop % hashlength
+                        {
+                            v := NumGet(hash, A_Index - 1, "UChar")
+                            o .= h[(v >> 4) + b] h[(v & 0xf) + b]
+                        }
+                    }
+                }
+            }
+            DllCall("advapi32\CryptDestroyHash", "Ptr", hHash)
+        }
+        DllCall("advapi32\CryptReleaseContext", "Ptr", hProv, "UInt", 0)
+    }
+    Return o
+}
+
+CalcStringHash(string, algid, encoding = "UTF-8", byref hash = 0, byref hashlength = 0) {
+; function by jNizM and Bentschi
+; taken from https://github.com/jNizM/HashCalc
+; this calculates the MD5 hash
+
+    chrlength := (encoding = "CP1200" || encoding = "UTF-16") ? 2 : 1
+    length := (StrPut(string, encoding) - 1) * chrlength
+    VarSetCapacity(data, length, 0)
+    StrPut(string, &data, floor(length / chrlength), encoding)
+    Return CalcAddrHash(&data, length, algid, hash, hashlength)
+}
+
+checkTrialPeriod() {
+   Sleep, 25
+   IniRead, RegisteredUser, %IniFile%, SavedSettings, RegisteredUser, -
+   IniRead, SerialCode, %IniFile%, SavedSettings, SerialCode, -
+
+   If StrLen(RegisteredUser)>2
+      MD5check := CalcStringHash(RegisteredUser, 0x8003)
+   StringUpper, MD5check, MD5check
+   If (MD5check!=SerialCode)
+   {
+      MD5check := "error"
+   } Else
+   {
+      GratuicielMode := -1
+      RegWrite, REG_SZ, %KPregEntry%, FirstRunTime, %A_Now%
+      Return
+   }
+
+   RegRead, FirstRunTime, %KPregEntry%, FirstRunTime
+   If (StrLen(FirstRunTime)<5)
+      RegWrite, REG_SZ, %KPregEntry%, FirstRunTime, %A_Now%
+   timeNow := %A_Now%
+   EnvSub, timeNow, %FirstRunTime%, Days
+   TrialPeriodLeft := 10 - timeNow
+   If (TrialPeriodLeft<=0 && MD5check="error")
+   {
+      MsgBox, 4,, The trial period has expired. We apologize... `nDo you want to purchase KeyPress OSD ?
+      IfMsgBox, Yes
+        OpenBuyPage()
+   }
+}
+
+OpenBuyPage() {
+   Run, https://gumroad.com/l/keypressosd
+}
+
 miniUpdateChecker() {
    Static execTimes
    If (execTimes>1)
@@ -8914,6 +9097,11 @@ checkUpdateExistsAbout() {
   {
      IniRead, checkVersion, %iniTmp%, SavedSettings, Version
      IniRead, newDate, %iniTmp%, SavedSettings, ReleaseDate
+     If (GratuicielMode<=0)
+     {
+        IniRead, checkVersion, %iniTmp%, SavedSettings, CommercialVersion
+        IniRead, newDate, %iniTmp%, SavedSettings, CommercialReleaseDate
+     }
   } Else Return 0
 
   StringReplace, newDate2, newDate, %A_Space%/%A_Space%,, All
@@ -8944,6 +9132,11 @@ checkUpdateExists() {
   {
      IniRead, checkVersion, %iniTmp%, SavedSettings, Version
      IniRead, newDate, %iniTmp%, SavedSettings, ReleaseDate
+     If (GratuicielMode<=0)
+     {
+        IniRead, checkVersion, %iniTmp%, SavedSettings, CommercialVersion
+        IniRead, newDate, %iniTmp%, SavedSettings, CommercialReleaseDate
+     }
      Sleep, 25
      FileDelete, %iniTMP%
   } Else
@@ -8982,6 +9175,15 @@ updateNow() {
         WinActivate, KeyPress OSD
         Return
      }
+
+     If (GratuicielMode<=0 && !A_IsCompiled)
+     {
+        SoundBeep
+        Sleep, 100
+        SoundBeep
+        MsgBox, You are running the uncompiled commercial edition. `nAutomatic updates may lead to undesired outcomes. `n`nPlease proceed with caution!
+     }
+
      continueExec := checkUpdateExists()
      If (continueExec=0)
         Return
@@ -8993,6 +9195,7 @@ updateNow() {
 ;        Return
          FileInstall, updater.bat, updater.bat
      }
+
 
      MsgBox, 4, Question, Do you want to abort updating?
      IfMsgBox, Yes
@@ -9006,10 +9209,12 @@ updateNow() {
      Sleep, 50
      PrefOpen := 1
      mainFileBinary := (A_PtrSize=8) ? "keypress-osd-x64.exe" : "keypress-osd-x32.exe"
+     If (GratuicielMode<=0)
+        mainFileBinary := "commercial-" mainFileBinary
      mainFileTmp := A_IsCompiled ? "new-keypress-osd.exe" : "temp-keypress-osd.ahk"
      mainFile := A_IsCompiled ? mainFileBinary : "keypress-osd.ahk"
      mainFileURL := BaseURL mainFile
-     zipFile := "lib.zip"
+     zipFile := (GratuicielMode<=0) ? "commercial-lib.zip" : "lib.zip"
      zipFileTmp := zipFile
      zipUrl := BaseURL zipFile
 
@@ -9186,7 +9391,7 @@ VerifyNonCrucialFiles() {
      binaryUpdater := "updater.bat"
      binaryUpdaterURL := BaseURL binaryUpdater
 
-    zipFile := "lib.zip"
+    zipFile := (GratuicielMode<=0) ? "commercial-lib.zip" : "lib.zip"
     zipFileTmp := zipFile
     zipUrl := BaseURL zipFile
     SoundsZipFile := "keypress-sounds.zip"
@@ -10069,17 +10274,20 @@ InitAHKhThreads() {
     {
       If A_IsCompiled
       {
-         If GetRes(data, 0, "KEYPRESS-MOUSE-FUNCTIONS.AHK", "LIB")
+         If (TrialPeriodLeft>0)
          {
-            MouseFuncThread := %func2exec%(StrGet(&data))
-            While !IsMouseFile := MouseFuncThread.ahkgetvar.IsMouseFile
-                  Sleep, 10
-         }
-         If GetRes(data, 0, "KEYPRESS-NUMPADMOUSE.AHK", "LIB")
-         {
-            MouseNumpadThread := %func2exec%(StrGet(&data))
-            While !IsMouseNumpadFile := MouseNumpadThread.ahkgetvar.IsMouseNumpadFile
-                  Sleep, 10
+            If GetRes(data, 0, "KEYPRESS-MOUSE-FUNCTIONS.AHK", "LIB")
+            {
+               MouseFuncThread := %func2exec%(StrGet(&data))
+               While !IsMouseFile := MouseFuncThread.ahkgetvar.IsMouseFile
+                     Sleep, 10
+            }
+            If GetRes(data, 0, "KEYPRESS-NUMPADMOUSE.AHK", "LIB")
+            {
+               MouseNumpadThread := %func2exec%(StrGet(&data))
+               While !IsMouseNumpadFile := MouseNumpadThread.ahkgetvar.IsMouseNumpadFile
+                     Sleep, 10
+            }
          }
          If GetRes(data, 0, "KEYPRESS-TYPING-AID.AHK", "LIB")
          {
@@ -10087,20 +10295,22 @@ InitAHKhThreads() {
             While !IsTypingAidFile := TypingAidThread.ahkgetvar.IsTypingAidFile
                   Sleep, 10
          }
-         If GetRes(data, 0, "KEYPRESS-MOUSE-RIPPLES-FUNCTIONS.AHK", "LIB")
+         If (TrialPeriodLeft>0)
          {
-            MouseRipplesThread := %func2exec%(StrGet(&data))
-            While !IsRipplesFile := MouseRipplesThread.ahkgetvar.IsRipplesFile
-                  Sleep, 10
+            If GetRes(data, 0, "KEYPRESS-MOUSE-RIPPLES-FUNCTIONS.AHK", "LIB")
+            {
+               MouseRipplesThread := %func2exec%(StrGet(&data))
+               While !IsRipplesFile := MouseRipplesThread.ahkgetvar.IsRipplesFile
+                     Sleep, 10
+            }
+            If GetRes(data, 0, "KEYPRESS-BEEPERZ-FUNCTIONS.AHK", "LIB")
+            {
+               SoundsThread := %func2exec%(StrGet(&data))
+               While !IsSoundsFile := SoundsThread.ahkgetvar.IsSoundsFile
+                     Sleep, 10
+               SoundsThread.ahkassign("beepFromRes", A_IsCompiled ? "Y" : 0)
+            }
          }
-         If GetRes(data, 0, "KEYPRESS-BEEPERZ-FUNCTIONS.AHK", "LIB")
-         {
-            SoundsThread := %func2exec%(StrGet(&data))
-            While !IsSoundsFile := SoundsThread.ahkgetvar.IsSoundsFile
-                  Sleep, 10
-            SoundsThread.ahkassign("beepFromRes", A_IsCompiled ? "Y" : 0)
-         }
-
          If GetRes(data, 0, "KEYPRESS-KEYSTROKES-HELPER.AHK", "LIB")
          {
             KeyStrokesThread := %func2exec%(StrGet(&data))
@@ -10110,16 +10320,22 @@ InitAHKhThreads() {
          VarSetCapacity(data, 0)
       } Else
       {
-          If IsMouseFile := FileExist("Lib\keypress-mouse-functions.ahk")
-             MouseFuncThread := %func2exec%(" #Include *i Lib\keypress-mouse-functions.ahk ")
-          If IsMouseNumpadFile := FileExist("Lib\keypress-numpadmouse.ahk")
-             MouseNumpadThread := %func2exec%(" #Include *i Lib\keypress-numpadmouse.ahk ")
+          If (TrialPeriodLeft>0)
+          {
+             If IsMouseFile := FileExist("Lib\keypress-mouse-functions.ahk")
+                MouseFuncThread := %func2exec%(" #Include *i Lib\keypress-mouse-functions.ahk ")
+             If IsMouseNumpadFile := FileExist("Lib\keypress-numpadmouse.ahk")
+                MouseNumpadThread := %func2exec%(" #Include *i Lib\keypress-numpadmouse.ahk ")
+          }
           If IsTypingAidFile := FileExist("Lib\keypress-typing-aid.ahk")
              TypingAidThread := %func2exec%(" #Include *i Lib\keypress-typing-aid.ahk ")
-          If IsRipplesFile := FileExist("Lib\keypress-mouse-ripples-functions.ahk")
-             MouseRipplesThread := %func2exec%(" #Include *i Lib\keypress-mouse-ripples-functions.ahk ")
-          If IsSoundsFile := FileExist("Lib\keypress-beeperz-functions.ahk")
-             SoundsThread := %func2exec%(" #Include *i Lib\keypress-beeperz-functions.ahk ")
+          If (TrialPeriodLeft>0)
+          {
+             If IsRipplesFile := FileExist("Lib\keypress-mouse-ripples-functions.ahk")
+                MouseRipplesThread := %func2exec%(" #Include *i Lib\keypress-mouse-ripples-functions.ahk ")
+             If IsSoundsFile := FileExist("Lib\keypress-beeperz-functions.ahk")
+                SoundsThread := %func2exec%(" #Include *i Lib\keypress-beeperz-functions.ahk ")
+          }
           If IsKeystrokesFile := FileExist("Lib\keypress-keystrokes-helper.ahk")
              KeyStrokesThread := %func2exec%(" #Include *i Lib\keypress-keystrokes-helper.ahk ")
       }
@@ -10482,7 +10698,7 @@ dummy() {
 }
 
 CheckThis:
-    addScript("ahkThread_Free(deleteME)",0)   ; comment/delete this line to execute this script with AHK_L
-;     ahkThread_Free(deleteME)   ; comment/delete this line to execute this script with AHK_L
+;    addScript("ahkThread_Free(deleteME)",0)   ; comment/delete this line to execute this script with AHK_L
+     ahkThread_Free(deleteME)   ; comment/delete this line to execute this script with AHK_L
 Return
 
