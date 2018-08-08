@@ -408,6 +408,18 @@
        hMutex := DllCall("kernel32\CreateMutexW", "Ptr", NULL, "UInt", False, "Str", ThisFile)
        Sleep, 5
     }
+
+    StringReplace, ahkVer, A_AhkVersion,.,, All
+    StringLeft, ahkVer, ahkVer, 4
+    If (ahkVer<1127)
+       TrayTip, KeyPress OSD: WARNING, It seems you are running an old version of AHK: %A_AhkVersion%. The script may malfunction.
+
+    If (!A_IsUnicode)
+    {
+       SoundBeep
+       TrayTip, KeyPress OSD: WARNING, It seems you are not running the Unicode edition of AHK: The script will malfunction.
+    }
+
     INIaction(0, "FirstRun", "SavedSettings")
     If (FirstRun=0)
     {

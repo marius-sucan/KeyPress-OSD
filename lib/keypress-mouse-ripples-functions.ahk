@@ -93,7 +93,7 @@ MRInit() {
     MainMouseRippleThickness := (MouseRippleMaxSize < 200 && MouseRippleThickness > 35) ? MouseRippleThickness/1.7 : MouseRippleThickness
     RippleMinSize := 2*MouseRippleThickness + 2
     RippleMaxSize := RippleWinSize - 3*MouseRippleThickness - 2
-    RippleStep := MouseRippleMaxSize < 160 ? 4 : 6
+    RippleStep := 5
     RippleAlphaMax := MouseRippleOpacity
     RippleAlphaStep := RippleAlphaMax // ((RippleMaxSize - RippleMinSize) / RippleStep)
 
@@ -126,10 +126,10 @@ MRInit() {
     hOldRippleBmp := DllCall("gdi32\SelectObject", "Ptr", hRippleDC, "Ptr", hRippleBmp, "Ptr")
     DllCall("gdiplus\GdipCreateFromHDC", "Ptr", hRippleDC, "PtrP", pRippleGraphics)
     DllCall("gdiplus\GdipSetSmoothingMode", "Ptr", pRippleGraphics, "Int", 4)
-    Gui Ripple: Destroy
+    Gui, Ripple: Destroy
     Sleep, 15
-    Gui Ripple: -Caption +LastFound +AlwaysOnTop +ToolWindow +Owner +E0x80000 +hwndhRippleWin
-    Gui Ripple: Show, NoActivate, %WinMouseRipples%
+    Gui, Ripple: -Caption +LastFound +AlwaysOnTop +ToolWindow +Owner +E0x80000 +hwndhRippleWin
+    Gui, Ripple: Show, NoActivate, %WinMouseRipples%
     WinSet, ExStyle, +0x20, %WinMouseRipples%
     Loop, Parse, MButtons, |
           Hotkey, % "~*" A_LoopField, OnMouse%A_LoopField%, UseErrorLevel
@@ -171,8 +171,12 @@ ShowRipple(_color, _style, _dir:="") {
     If ((A_TickCount-lastClk<DCT) && lastEvent=_color && !IsWheel)
     {
        tf := 1.5
+       Random, rand, 1, 3
        MouseRippleThickness := MainMouseRippleThickness*tf
-       RippleColor := _color & 0xBFBFBF
+       If (rand=1)
+          RippleColor := _color & 0xBFBFBF
+       Else
+          RippleColor := (rand=2) ? _color & 0xAAFF99 : _color & 0x333333
        _style := lastStyle
        MouseRippleFreq := MouseRippleFrequency * 1.2
        lastEvent := ""
@@ -238,11 +242,12 @@ RippleTimer() {
 
   Static PolyBuf, c := Cos(4*ATan(1)/6), offset
   RippleVisible := 1
+  Gui, Ripple: Show, NoActivate
   EndNow := 0
   Try
   {
     DllCall("gdiplus\GdipGraphicsClear", "Ptr", pRippleGraphics, "Int", 0)
-    If ((RippleDiameter += RippleStep) < RippleMaxSize)
+    If ((RippleDiameter += RippleStep) <= RippleMaxSize)
     {
        offset := MouseRippleThickness*tf/2
        DllCall("gdiplus\GdipCreatePen1"
@@ -299,7 +304,8 @@ RippleTimer() {
         DllCall("gdiplus\GdipDeletePen", "Ptr", pRipplePen)
     } Else
     {
-        SetTimer RippleTimer, Off
+        DllCall("gdiplus\GdipGraphicsClear", "Ptr", pRippleGraphics, "Int", 0)
+        DllCall("gdiplus\GdipDeletePen", "Ptr", pRipplePen)
         EndNow := 1
     }
 
@@ -323,8 +329,10 @@ RippleTimer() {
   }
   If (EndNow=1)
   {
-     Sleep, 10
+     Sleep, 15
      RippleVisible := 0
+     SetTimer RippleTimer, Off
+     Gui, Ripple: Show, Hide
   }
 }
 
