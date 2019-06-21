@@ -1,8 +1,14 @@
 <h1>KeyPress OSD: Presentation</h1>
 
 <h2><a href="https://www.youtube.com/watch?v=LKvhqTeb9sg">Presentation video</a></h2>
+
 <h2>To keep the development going, <a href="https://www.paypal.me/MariusSucan/15">please donate</a> using PayPal.</h2>
-<h2>Please <a href="https://keypressosd.com/">check the commercial edition</a> as well.</h2>
+
+<h3>Please <a href="https://keypressosd.com/">check the commercial edition</a> as well.</h3>
+
+<p>The commercial edition has changed a lot since the freeware edition available here. It is much faster and optimized. It also sports better support for typing in foreign scripts. </p>
+
+<h2>Project description</h2>
 
 <p>This program is an On-Screen Display or a Heads-Up Display for keys. It displays every key or mouse button press at a clearly visible text size. I developed it for people like me, with poor eye sight or low vision. It is meant to aid desktop computer usage. It is especially useful while chatting or for occasional typing. The user no longer has to squint at the screen or zoom in the entire screen to see what s/he wrote for every text field.</p>
 
@@ -56,8 +62,8 @@
   <li>Ease to alternate between cursor speeds using Capslock.</li>
 </ul>
 <li>Distinct beepers for different types of keys and buttons or when typing with Capslock.</li>
-<li>Clipboard monitor. It displays briefly texts copied to clipboard.</li>
 <li>Multi-monitor support.</li>
+<li>Toolbar for enhanced touch screens support.</li>
 <li>Portable. No need to install/uninstall. Settings stored in an easy to read INI file.</li>
 <li>Easy to configure with many options in Settings windows to toggle features and customize behavior and look.</li>
 <li>Option to update to the latest version.</li>
