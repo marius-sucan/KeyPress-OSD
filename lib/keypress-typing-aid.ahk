@@ -46,6 +46,22 @@ Global IsTypingAidFile    := 1
 
 Return
 
+TypingKeysFullInit() {
+   AudioAlerts := MainExe.ahkgetvar.AudioAlerts
+   DeadKeys := MainExe.ahkgetvar.DeadKeys
+   DisableTypingMode := MainExe.ahkgetvar.DisableTypingMode
+   DisableTypingMode := MainExe.ahkgetvar.DisableTypingMode
+   DKaltGR_list := MainExe.ahkgetvar.DKaltGR_list
+   DKnotShifted_list := MainExe.ahkgetvar.DKnotShifted_list
+   DKshift_list := MainExe.ahkgetvar.DKshift_list
+   DoNotBindAltGrDeadKeys := MainExe.ahkgetvar.DoNotBindAltGrDeadKeys
+   DoNotBindDeadKeys := MainExe.ahkgetvar.DoNotBindDeadKeys
+   EnableAltGr := MainExe.ahkgetvar.EnableAltGr
+   HideAnnoyingKeys := MainExe.ahkgetvar.HideAnnoyingKeys
+   Sleep, 50
+   TypingKeysInit()
+}
+
 TypingKeysInit() {
 
      Static AllMods_list := ["!", "!#", "!#^", "!#^+", "!+", "#!+", "#!^", "#", "#+", "#+^", "#^", "+", "+<^>!", "+^!", "+^", "<^>!", "^!", "^"]
@@ -133,7 +149,7 @@ TypingKeysInit() {
        Hotkey, ~^vk58, dummy, useErrorLevel
        Hotkey, ~^vk5A, dummy, useErrorLevel
        Hotkey, ~^vk53, dummy, useErrorLevel
-       Hotkey, ~*Space, OnSpacePushed, useErrorLevel
+       Hotkey, ~Space, OnSpacePushed, useErrorLevel
     }
 
     If (HideAnnoyingKeys=1) ; do not mess with screenshot in Win 10

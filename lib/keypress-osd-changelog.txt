@@ -11,6 +11,20 @@ http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip
 
 by Marius Șucan (robodesign.ro)
 
+  v4.35 (2018-07-12) - commercial release
+  v4.35 (2020-05-27) - freeware release
+  - [new] quick auto-replace entries manager; a new way to easily add/remove entries
+  - [new] horizontal bar to visually indicate how much of the text in the OSD is visible, useful when the text is longer than the maximum width of the OSD
+  - [new] option to show the language code in the OSD [at keyboard preferences]
+  - [improvement] the shortcuts panel is now split into tabs such that it is easier to use
+  - [improvement] the ability to individually delete stored clipboards, at keyboard preferences
+  - more bug fixes
+
+  v4.34 (2018-07-04) - commercial release
+  - [new] option to automatically shrink text to fit the OSD width; the user has the option to set the minimum font size as well
+  - [new] one can also change the scaling factor for the height of the OSD
+  - various UI improvements and fixes in the backend and at the preferences windows
+
   v4.33 (2018-06-23)
   - added the ability to run the script in trial mode and to register it with name and code [this mode is going to be activated in the future, for commercial releases]
   - new KeyPress OSD icon

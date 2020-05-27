@@ -8,6 +8,8 @@
 
 <p>The commercial edition has changed a lot since the freeware edition available here. It is much faster and optimized. It also sports better support for typing in foreign scripts. </p>
 
+<h3><a href="http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip">Download KeyPress OSD compiled for x32/x64 freeware edition</a> (.ZIP file, portable, includes source files).</h3>
+
 <h2>Project description</h2>
 
 <p>This program is an On-Screen Display or a Heads-Up Display for keys. It displays every key or mouse button press at a clearly visible text size. I developed it for people like me, with poor eye sight or low vision. It is meant to aid desktop computer usage. It is especially useful while chatting or for occasional typing. The user no longer has to squint at the screen or zoom in the entire screen to see what s/he wrote for every text field.</p>
