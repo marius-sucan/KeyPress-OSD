@@ -30,6 +30,8 @@ Global IsTypingAidFile    := 1
  , EnableAltGr            := 1
  , DisableTypingMode      := 0
  , HideAnnoyingKeys       := 1
+ , SafeModeExec           := 0
+ , NoRestartLangChange    := 0
 
 , DeadKeys := 1
 , DKaltGR_list
@@ -50,7 +52,6 @@ TypingKeysFullInit() {
    AudioAlerts := MainExe.ahkgetvar.AudioAlerts
    DeadKeys := MainExe.ahkgetvar.DeadKeys
    DisableTypingMode := MainExe.ahkgetvar.DisableTypingMode
-   DisableTypingMode := MainExe.ahkgetvar.DisableTypingMode
    DKaltGR_list := MainExe.ahkgetvar.DKaltGR_list
    DKnotShifted_list := MainExe.ahkgetvar.DKnotShifted_list
    DKshift_list := MainExe.ahkgetvar.DKshift_list
@@ -58,8 +59,11 @@ TypingKeysFullInit() {
    DoNotBindDeadKeys := MainExe.ahkgetvar.DoNotBindDeadKeys
    EnableAltGr := MainExe.ahkgetvar.EnableAltGr
    HideAnnoyingKeys := MainExe.ahkgetvar.HideAnnoyingKeys
+   SafeModeExec := MainExe.ahkgetvar.SafeModeExec
+   NoRestartLangChange := MainExe.ahkgetvar.NoRestartLangChange
    Sleep, 50
-   TypingKeysInit()
+   If (SafeModeExec=0 && NoRestartLangChange=1)
+      TypingKeysInit()
 }
 
 TypingKeysInit() {
@@ -164,8 +168,8 @@ registerDummyHotkeys() {
        If StrLen(HotKate)<1
           Continue
        lineArr := StrSplit(HotKate, "¹")
-       ; MsgBox, % HotKate
-       Hotkey, % lineArr[1], MainHotkeysCaller
+       ; MsgBox, % HotKate "`n" lineArr[1]
+       Hotkey, % lineArr[1], MainHotkeysCaller, UseErrorLevel
    }
 }
 
@@ -178,6 +182,7 @@ MainHotkeysCaller() {
        If StrLen(HotKate)<1
           Continue
        lineArr := StrSplit(HotKate, "¹")
+       ; MsgBox, % A_ThisHotkey "=" lineArr[1]
        If (A_ThisHotkey=lineArr[1])
        {
           callThis := lineArr[2]
@@ -230,13 +235,12 @@ hideMainOSD() {
      Return
   MainExe.ahkPostFunction("HideGUI")
 }
+
 OnLetterPressed() {
   If (ScriptelSuspendel="Y" || PrefOpen=1)
      Return
   MainExe.ahkFunction("OnLetterPressed", 0, A_ThisHotkey)
 }
-
-
 
 OnLetterUp() {
   If (ScriptelSuspendel="Y" || PrefOpen=1)

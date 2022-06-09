@@ -129,43 +129,43 @@ h1,h2 {
 
 <h2>Typing mode related</h2>
 <p class="question" id="qa1">Q: How does this application work?</p>
-<p>A: KeyPress attaches [using keyboard hooks] individually to each key and modifier, on your keyboard and listens/waits for these to be pressed. When a key is pressed, it is displayied on the OSD. When typing, it uses Windows APIs to get the key names, based on the current keyboard layout. This applies as well when using Shift, AltGr or Caps lock.</p>
+<p>A: KeyPress attaches [using keyboard hooks] individually to each key and modifier, on your keyboard and listens/waits for these to be pressed. When a key is pressed, it is displayied on the OSD. When typing, it uses Windows APIs to get the key names, based on the current keyboard layout. This applies as well when using {Shift}, {AltGr} or {Caps lock}.</p>
 <p>The application does not use the caret specific Windows APIs to detect where the actual text cursor [caret] is in the text field of the currently active application, because most applications do not make use of these APIs - to report the caret position. It also does not detect if a text field is active or not.</p>
 
 <p class="question" id="qa2">Q: The text cursor does not move in synch with the host app.</p>
-<p>A: On slow computers, the host app and KeyPress are more likely to get out of synch, because each application tries to capture key presses simultaneously. If the user types *very* fast, KeyPress is likely to skip the detection of some key presses, especially when using Shift or AltGr. In other cases, on long presses of cursor navigation keys, some applications do not record every key fire.</p>
+<p>A: On slow computers, the host application and KeyPress are more likely to get out of synch, because each application processes keyboard input at different paces. If the user types *very* fast, in some cases KeyPress will miss detection of some key presses, especially when using Shift or AltGr. In other cases, on long presses of cursor navigation keys, some applications do not record every key fire.</p>
 <p>In such cases, I advise synchronizing often with the host app and typing slower.</p>
 
 <p class="question" id="qa3">Q: How to synchronize the text content from the OSD with the host app?</p>
-<p class="question" id="qa4">Q: How to retrieve the text from the host app and have it displayied in the OSD?</p>
-<p>A: Use Winkey + Insert. By default, with this keyboard shortcut, KeyPress tries to capture the entire text from the currently active window and text field (through the clipboard) - maximum characters is 950. It sends the following keystrokes rapidly: Ctrl + A [select all], Ctrl + C [copy], Right, End. The two last key strokes are meant to ensure that the caret is placed at the end of the text.</p>
-<p>Another method to synchronize is with WinKey + Alt + Insert. If you press this key combinatio, KeyPress is going to attempt to capture only the current line of text from the currently active text field. The key strokes sent are: End [2x], Shift + Home [2x], Ctrl + C, Left, Right and End [2x].</p>
+<p class="question" id="qa4">Q: How to retrieve the text from the host application and have it displayied in the OSD?</p>
+<p>A: Use {Winkey + Insert}. By default, with this keyboard shortcut, KeyPress tries to capture the entire text from the currently active window and text field (through the clipboard) - maximum characters is 950. It sends the following keystrokes rapidly: {Ctrl + A} [select all], {Ctrl + C} [copy], {Right}, {End}. The two last key strokes are meant to ensure that the caret is placed at the end of the text.</p>
+<p>Another method to synchronize is with {WinKey + Alt + Insert}. If you press this key combinatio, KeyPress is going to attempt to capture only the current line of text from the currently active text field. The key strokes sent are: {End} [2x], {Shift + Home} [2x], {Ctrl + C}, {Left}, {Right} and {End} [2x].</p>
 <p class="question" id="qa5">Q: The text cursor [caret] does not jump between words as the host app.</p>
-<p>A: Applications implement inconsistent rules for jumping between words, symbols and numbers with the caret when the user presses Ctrl + Left / Right.</p>
-<p>You can enable Mediate "Mediate the key strokes for caret jumps". KeyPress will send keys that attempt to reproduce the text cursor position. More precisely, it sends as many times required the Left, Right, Bksp or Delete keys to the host app and blocks Ctrl + Left / Right / Bksp / Delete. If there is no text in the OSD or you've reached the end or beginning of the line of text, the host app receives the keys you actually pressed. This enforces a better consistency across applications when both the OSD and the host app have the same text.</p>
+<p>A: Applications implement inconsistent rules for jumping between words, symbols and numbers with the caret when the user presses {Ctrl + Left / Right}.</p>
+<p>To help with maintaining the caret positions synhronized, you can enable "Mediate the key strokes for caret jumps". KeyPress will send keys that attempt to reproduce the text cursor position. More precisely, it sends as many times required the {Left}, {Right}, {Backspace} or {Delete} keys to the host app and blocks {Ctrl + Left / Right / Backspace / Delete}. If there is no text in the OSD or you've reached the end or beginning of the line of text, the host application receives the keys you actually pressed. This enforces a better consistency across applications when both the OSD and the host app have the same text.</p>
 
 <p>You can also try activating from the "Typing mode" settings window the option "Alternative rules to jump between words". With this option enabled, it will mimmick the behavior of Microsoft Word 2016. When the option is deactivated [by default], it mimmicks the rules of Google Chrome.</p>
 <p class="question" id="qa6">Q: I can't type letters with accents. Dead keys don't work.</p>
 <p>A: There are multiple possible solutions:</p>
 <p>1. At Preferences > "Typing mode" window, "Dead keys" tab, increase the "Typing delays scale" by 5 or 10.</p>
 <p>2. Activate in Preferences > "Typing mode" window, "Dead keys" tab, the option "Do not bind (ignore) known dead keys". KeyPress will no longer detect when such a key is pressed, thus it is completely ignored.</p>
-<p>3. You can rely for typing on the Alternate typing mode: Ctrl + Alt + Capslock.</p>
-<p>4. If nothing helps, before typing with dead keys, deactivate KeyPress with Shift + Pause/Break.</p>
+<p>3. You can rely for typing on the Alternate typing mode: {Ctrl + Alt + Capslock}.</p>
+<p>4. If nothing helps, before typing with dead keys, deactivate KeyPress with {Shift + Pause / Break}.</p>
 <p class="question" id="qa7">Q: Can I paste content from the OSD?</p>
-<p>A: Yes, using Ctrl + Shift + Insert. Alternatively, Ctrl + Alt + Insert. This replaces the entire text from the currently active text field.</p>
-<p>You must first enable in "Typing mode" settings window, Behavior tab, the option: "Enable global shortcuts to paste the OSD content into the active text field". This is not enabled by default.</p>
+<p>A: Yes, using {Ctrl + Shift + Insert}. To replace the entire text from the currently active text field use {Ctrl + Alt + Insert}.</p>
+<p>For theses keyboard shortcuts to work, in "Typing mode" settings window, the option"OSD content synchronization keyboard shortcuts" must be enabled.</p>
 <p class="question" id="qa8">Q: How to avoid exposing my passwords, if I am in public?</p>
-<p>A: Before typing passwords, deactivate "Never show the OSD" with Ctrl + Alt + Shift + F8. This will maintain other features active, such as beepers. Another option is to deactivate KeyPress with Shift + Pause / Break.</p>
+<p>A: Before typing passwords, deactivate "Never show the OSD" with {Ctrl + Alt + Shift + F8}. This will maintain other features active, such as beepers. Another option is to deactivate KeyPress with {Shift + Pause / Break}.</p>
 <p class="question" id="qa9">Q: What's typed text history?</p>
-<p>A: If this feature is enabled at "Typing mode" settings window, on Enter and Escape, the currently written line of text in the OSD is preserved. The two previously recorded lines can be accessed with Page Up / Page Down. This feature is useful to review what you previously wrote.</p>
-<p class="question" id="qa15">Q: Can I use Ctrl+Z or Ctrl+V to undo or paste?</p>
+<p>A: If this feature is enabled at "Typing mode" settings window, on {Enter} and {Escape}, the currently written line of text in the OSD is preserved. The two previously recorded lines can be accessed with {Page Up} / {Page Down}. This feature is useful to review what you previously wrote.</p>
+<p class="question" id="qa15">Q: Can I use {Ctrl + Z} or {Ctrl + V} to undo or paste?</p>
 <p>A: Yes. Paste works in the OSD even if you deactivate "Monitor clipboard" option from Keyboard settings. Undo is limited to only one level.</p>
 
 <h2>Others</h2>
 <p class="question" id="qa10">Q: When I play games, it is plain annoying. How to deactivate it temporarly?</p>
-<p>A: Before starting the game, deactivate KeyPress with Shift + Pause / Break.</p>
+<p>A: Before starting the game, deactivate KeyPress with {Shift + Pause / Break}.</p>
 <p class="question" id="qa11">Q: I only want to use this application for its keyboard beepers. How to deactivate the OSD?</p>
-<p>A: At Main menu, in the system tray, select "Never show the OSD" or press Ctrl + Alt + Shift + F8.</p>
+<p>A: At Main menu, in the system tray, select "Never show the OSD" or press {Ctrl + Alt + Shift + F8}.</p>
 <p><a href="#menu">Back to top</a>.</p>
 </body>
 </html>

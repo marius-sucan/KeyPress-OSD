@@ -440,6 +440,58 @@ CalculateSpeed(ByRef MoveX, ByRef MoveY,reset:=0, wheelMode:=0) {
 ;     ToolTip, %currentspeed% - %repeats%, 500, 500 ; - %MouseMaxSpeed% - %MouseSpeed%
 }
 
+SetMODs(press:=0) {
+  Static AltD, ShiftD, CtrlD, RwinD, LwinD
+  If (press=1)
+  {
+     If GetKeyState("Ctrl")
+     {
+        CtrlD := 1
+        Sendinput, {Ctrl down}
+     } Else CtrlD := 0
+
+     If GetKeyState("Alt")
+     {
+        AltD := 1
+        Sendinput, {Alt down}
+     } Else AltD := 0
+
+     If GetKeyState("Shift")
+     {
+        ShiftD := 1
+        Sendinput, {Shift down}
+     } Else ShiftD := 0
+
+     If GetKeyState("LWin")
+     {
+        LwinD := 1
+        Sendinput, {LWin down}
+     } Else LwinD := 0
+
+     If GetKeyState("RWin")
+     {
+        RwinD := 1
+        Sendinput, {RWin down}
+     } Else RwinD := 0
+  } Else
+  {
+     If (CtrlD=1)
+      Sendinput, {Ctrl up}
+
+     If (AltD=1)
+      Sendinput, {Alt up}
+
+     If (ShiftD=1)
+      Sendinput, {Shift up}
+
+     If (LwinD=1)
+      Sendinput, {LWin up}
+
+     If (RwinD=1)
+      Sendinput, {RWin up}
+  }
+}
+
 MouseEventAPI(x, y) {
   DllCall("mouse_event", "UInt", 0x01, "UInt", x, "UInt", y) ; move
   ; MouseMove, %x%, %y%, 1, R
@@ -450,7 +502,11 @@ MouseMover() {
   bHWrap := (A_ThisHotkey ~= "i)(padLeft|padHome|padPgUp|padRight|padEnd|padPgDn)") ? 1 : 0
 
   If (PrefOpen!=1)
+  {
+   ;  SetMods(1)
      SetTimer, MouseMoverTimer, -25
+    ;  SetTimer, SetMods, -925
+  }
 }
 
 MouseMoverTimer() {

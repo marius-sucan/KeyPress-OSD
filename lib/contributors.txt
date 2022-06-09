@@ -91,7 +91,7 @@ by Paegus (paegus@gmail.com) from MouseWrapper v1.2
 - ScreenInfos()     ; (modified)
 - ScreenWrap()      ; (modified)
 
-by jNizM
+by jNizM -- MIT License - Copyright (c) 2017 ; https://raw.githubusercontent.com/jNizM/AHK_Network_Management/master/LICENSE
 - GetPhysicalCursorPos()   ; (modified) from: https://github.com/jNizM/AHK_DllCall_WinAPI/blob/master/src/Cursor%20Functions/GetPhysicalCursorPos.ahk
 - CalcAddrHash()
   and CalcStringHash()     ; from https://github.com/jNizM/HashCalc

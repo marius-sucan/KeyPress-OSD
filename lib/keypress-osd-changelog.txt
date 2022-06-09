@@ -8,16 +8,44 @@ http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd.ahk
 
 [b]ZIP Package compiled [x64 / x32], includes AHK_H and sources:[/b]
 http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip
+http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-trial.zip
 
 by Marius Șucan (robodesign.ro)
+Current version: v4.67.0 (2022-02-28) - commercial release
+available on https://keypressosd.com/
+
+  v4.36.7 (2018-08-14) - commercial release
+  v4.36.7 (2022-06-09) - freeware release
+  - [new] a new shortcut that once pressed, displays the entire OSD text line wrapped on multiple lines, just as a quick preview
+  - [improvement] the clipboard manager will now, always, override the oldest stored entry, every time the user copies texts to clipboard; additionally, once the user selects any clipboard entry, it will be moved to the top of the list
+
+  v4.36.3 (2018-08-03) - commercial release
+  - [improvement] friendly keyboard shortcut names everywhere in the UI
+  - various [minor] bug fixes regarding keyboard shortcuts
+
+  v4.36.2 (2018-07-31) - commercial release
+  - various [minor] bug fixes; better handling of Safe Mode;
+
+  v4.36.1 (2018-07-28) - commercial release
+  - [improvement] reversed the logic at OSD preferences, such that higher values for the width and height yield larger dimensions; previously, lower values increased the OSD dimensions
+  - other minor fixes and improvements
+
+  v4.35.7 (2018-07-22) - commercial release
+  - [improvement] at Preferences, a «ghost» highlights the maximum width of the OSD
+  - [improvement] when Home/End keys are mediated, by pressing these, if the text is very long, the caret will jump at four intermediate points in the line, not straight at the very beginning or end of the line; other fixes related to it
+
+  v4.35.5 (2018-07-19) - commercial release
+  - [new] option to mask the expanded string in the OSD, for privacy
+  - [improvement] added more possible symbols for the caret in the OSD
+  - minor bug fixes and improvements
 
   v4.35 (2018-07-12) - commercial release
   v4.35 (2020-05-27) - freeware release
-  - [new] quick auto-replace entries manager; a new way to easily add/remove entries
+  - [new] quick auto-replace entries manager; a new way to easily add/remove entries accessible by Ctrl+Shift+\
   - [new] horizontal bar to visually indicate how much of the text in the OSD is visible, useful when the text is longer than the maximum width of the OSD
   - [new] option to show the language code in the OSD [at keyboard preferences]
+  - [new] the ability to individually delete stored clipboards, at keyboard preferences
   - [improvement] the shortcuts panel is now split into tabs such that it is easier to use
-  - [improvement] the ability to individually delete stored clipboards, at keyboard preferences
   - more bug fixes
 
   v4.34 (2018-07-04) - commercial release
@@ -49,7 +77,7 @@ by Marius Șucan (robodesign.ro)
   - [bug fix] fixed a bug that caused crashes on some systems when Mouse Ripples were activated
 
   v4.31.7 (2018-05-09)
-  - removed option to ignore specific keys; it was limited only to typing keys; therefore, users were not able to ignore keys such as Esc or F1; this feature created confusion
+  - removed option to ignore specific keys; it was limited only to typing keys; therefore, users were not able to ignore keys such as Esc or F1; this feature created confusion; it was introduced in v3.27
   - fixed a glitch; xbutton 1 and 2 were not considered as mouse buttons; they were displayied in the OSD even if "Show mouse buttons" was deactivated
   
   v4.31.6 (2018-05-04)
@@ -76,8 +104,8 @@ by Marius Șucan (robodesign.ro)
   - bug fixes related to Windows XP and the mouse features;
 
   v4.31 (2018-04-24)
-  - removed integration of the ACC viewer and UIA Interface libraries [the feature was introduced in v4.18.1]
-  - removed integration with Capture2Text, because it was unreliably functioning; this feature was introduced in v3.01;
+  - removed integration of the ACC viewer and UIA Interface libraries; feature introduced in v4.18.1
+  - removed integration with Capture2Text, because it was unreliably functioning; feature introduced in v3.01
   - changes to the main menu [the tray menu]
   - underlying changes to dead keys related thread; it no longer uses SendMessage to communicate with the main thread, but ahkAssign variable [from AHK_H]
   - various bug fixes
@@ -214,7 +242,7 @@ by Marius Șucan (robodesign.ro)
   - [new] added more customization options in the UI for mouse ripples based on the work of Drugwash; colors can now be changed
   - various bug fixes
 
-by Drugwash
+by Drugwash [from the AHK forums]
 
   v4.25 (2018-03-11)
   - added the ability to customize text caret halo and mouse ripples
@@ -257,7 +285,7 @@ by Marius Sucan (robodesign.ro)
   v4.22 (2018-03-01)
   - [new] the user can now set the sound volume for beeps on key presses - MANY thanks to drugwash for his help!
   - [new] added a few more distinctive sounds for page up/down, home/end, arrow keys, clicks and so on
-  - [new] option to generate visual sound event for Windows Accessibility - to flicker the title bar, window or screen [as the user desires]
+  - [new] option to generate visual sound event for Windows Accessibility - to flicker the title bar, window or screen [depending on the user settings]
 
   v4.21 (2018-02-27)
   - [new] quick start settings presets; the user can choose between several configuration presets: screen casts, typing mode and so on
@@ -762,8 +790,8 @@ by Marius Sucan (robodesign.ro)
   - added the ability to define caps exclusion list per keyboard layout; when I will go through the whole list of layouts I have to consider this too;.... it will no longer capitalize letters it should not to, after I go through all the kbd layouts to define them....
 
   v3.27 (2017-10-31) - major release
-  - dead keys support per layout; I defined the dead keys for several languages. I have to go through all the 50 layouts I added support for, to define the dead keys for each... I might not do it soon...
   - [new] option to ignore specific key [that is, in addition to the dead keys]
+  - dead keys support per layout; I defined the dead keys for several languages. I have to go through all the 50 layouts I added support for, to define the dead keys for each... I might not do it soon...
   - removed the deadkeys option from preferences; it is always on for the layouts that have such keys
   
   v3.26 (2017-10-30)
