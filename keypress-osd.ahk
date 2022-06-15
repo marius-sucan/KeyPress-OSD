@@ -17,7 +17,7 @@
 ;
 ; Disclaimer: this script is provided "as is", without any kind of warranty.
 ; The author(s) shall not be liable for any damage caused by using
-; this script or its derivatives,  et cetera.
+; this script or its derivatives, et cetera.
 ;
 ; =====================
 ; GENERAL OVERVIEW
@@ -147,7 +147,7 @@
 ;@Ahk2Exe-SetMainIcon Lib\keypress.ico
 ;@Ahk2Exe-SetName KeyPress OSD v4
 ;@Ahk2Exe-SetDescription KeyPress OSD v4 [mirror keyboard and mouse usage]
-;@Ahk2Exe-SetVersion 4.36.7
+;@Ahk2Exe-SetVersion 4.36.7.1
 ;@Ahk2Exe-SetCopyright Marius Şucan (2017-2018)
 ;@Ahk2Exe-SetCompanyName keypressosd.com
 ;@Ahk2Exe-SetOrigFilename keypress-osd.ahk
@@ -359,8 +359,8 @@
  , DownloadExternalFiles  := 1
 
 ; Release info
- , Version                := "4.36.7"
- , ReleaseDate            := "2018 / 08 / 14"
+ , Version                := "4.36.7.1"
+ , ReleaseDate            := "2018 / 08 / 15"
 
 ; Unicode symbols and characters
  , CSthin      := "░"   ; light gray 
@@ -3263,6 +3263,7 @@ InitExpandableWords(ForceIT:=0) {
   {
     If !line
        Continue
+
     lineArr := StrSplit(line, " // ")
     If InStr(loadedKeys, "|" lineArr[1] "|")
     {
@@ -3805,8 +3806,8 @@ saveGuiPositions() {
 
   If (PrefOpen=0)
   {
-     Sleep, 700
-     SetTimer, HideGUI, 1500
+     Sleep, 500
+     SetTimer, HideGUI, -1500
   }
 
   If (GUIposition=1)
@@ -5602,34 +5603,54 @@ InitClipboardManager() {
     Sleep, 25
     INIaction(0, "ClipDataMD5s", "ClipboardManager")
     INIaction(0, "CurrentClippyCount", "ClipboardManager")
-    If !FileExist(A_ScriptDir "\" %ClippyFolder%)
+
+    If (InStr(ClipDataMD5s, "err") || InStr(CurrentClippyCount, "err"))
+    {
+       ClipDataMD5s := ""
+       CurrentClippyCount := 0
+    }
+
+    If !FileExist(ClippyFolder)
     {
        FileCreateDir, %ClippyFolder%
        ClipDataMD5s := ""
        CurrentClippyCount := 0
     } Else If (SafeModeExec!=1)
-    {
        identifyOldestClippy()
-    }
 }
 
-identifyOldestClippy() {
-   Loop, Files, %ClippyFolder%\clip*.c*
+identifyOldestClippy(doLoop:=1, theList:=0, clipsCount:=0) {
+   TheClippyList := ""
+   CountClippies := 0
+   If (doLoop=1)
    {
-       If (A_Index>MaximumTextClips)
-          Break
-       StringReplace, FileIndex, A_LoopFileName, clip
-       StringReplace, FileIndex, FileIndex, .clp
-       StringReplace, FileIndex, FileIndex, .ctx
-       TheClippyList .= A_LoopFileTimeModified "|-[-|" FileIndex ". `n"
-       CountClippies++
+      Loop, Files, %ClippyFolder%\clip*.c*
+      {
+          If (A_Index>MaximumTextClips || A_LoopFileName="")
+             Break
+          StringReplace, FileIndex, A_LoopFileName, clip
+          StringReplace, FileIndex, FileIndex, .clp
+          StringReplace, FileIndex, FileIndex, .ctx
+          TheClippyList .= A_LoopFileTimeModified "|-[-|" FileIndex ". `n"
+          CountClippies++
+      }
+   } Else If (StrLen(theList)>2)
+   {
+      CountClippies := clipsCount
+      TheClippyList := theList
    }
+
    Sort, TheClippyList
    StringLeft, oldestItem, TheClippyList, 21
    StringRight, oldestItem, oldestItem, 2
    If (oldestItem ~= "i)^(0.)$")
       StringReplace, oldestItem, oldestItem, 0
-   If (CountClippies>0)
+   If oldestItem is not Number
+      oldestItem := 1
+   If (oldestItem<0)
+      oldestItem := 0
+
+   If (CountClippies>=MaximumTextClips)
       CurrentClippyCount := oldestItem - 1
 }
 
@@ -5643,7 +5664,7 @@ ClipboardManager(PrivateMode, ClipData) {
        Return
 
     MD5check := CalcStringHash(ClipData, 0x8003)
-    If InStr(ClipDataMD5s, MD5check) || InStr(PrivateClipsMD5s, MD5check)
+    If (InStr(ClipDataMD5s, MD5check) || InStr(PrivateClipsMD5s, MD5check))
        Return
 
     If (PrivateMode=1)
@@ -5753,14 +5774,7 @@ GenerateClippyMenu() {
        Menu, ClippyMenu, Disable, No saved clipboards
     }
 
-    Sort, TheClippyList
-    StringLeft, oldestItem, TheClippyList, 21
-    StringRight, oldestItem, oldestItem, 2
-    If (oldestItem ~= "i)^(0.)$")
-       StringReplace, oldestItem, oldestItem, 0
-    If (CountClippies>0)
-       CurrentClippyCount := oldestItem - 1
-
+    identifyOldestClippy(0, TheClippyList, CountClippies)
     If (PrefOpen=0)
     {
        If (EnableTypingHistory=1)
