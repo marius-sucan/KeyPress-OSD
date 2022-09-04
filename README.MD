@@ -2,11 +2,9 @@
 
 <h2><a href="https://www.youtube.com/watch?v=LKvhqTeb9sg">Presentation video</a></h2>
 
-<h2>To keep the development going, <a href="https://www.paypal.me/MariusSucan/15">please donate</a> using PayPal.</h2>
+<h3>To keep the development going of KPO, <a href="https://www.paypal.me/MariusSucan/15">please donate</a> using PayPal. Or you can check the commercial edition on the <a href="https://keypressosd.com/">official site</a> and <a href="https://gumroad.com/l/keypressosd/discount">buy it from Gumroad</a>.</h3>
 
-<h3>Please <a href="https://keypressosd.com/">check the commercial edition</a> as well.</h3>
-
-<p>The commercial edition has changed a lot since the freeware edition available here. It is much faster and optimized. It also sports better support for typing in foreign scripts. </p>
+<p>The commercial edition is a much newer version and it has changed a lot compared to the freeware edition available here. It is much faster and optimized. It also sports better support for typing in foreign scripts and many more features.</p>
 
 <h3><a href="http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip">Download KeyPress OSD compiled for x32/x64 freeware edition</a> (.ZIP file, portable, includes source files).</h3>
 
