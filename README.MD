@@ -4,9 +4,9 @@
 
 <h3>To keep the development going of KPO, <a href="https://www.paypal.me/MariusSucan/15">please donate</a> using PayPal. Or you can check the commercial edition on the <a href="https://keypressosd.com/"">official site</a> and <a href="https://gumroad.com/l/keypressosd/discount">buy it from Gumroad</a>.</h3>
 
-<p>The commercial edition is a much newer version and it has changed a lot compared to the freeware edition available here. It is much faster and optimized. It also sports better support for typing in foreign scripts and many more features.</p>
+<p>The commercial edition is a much newer version and it has changed considerably compared to the freeware edition available here. The quality of the freeware edition is <em>very poor</em> compared to the commercial one. It is much faster and optimized. It also has many bug fixes, better support for typing in foreign scripts and more features. </p>
 
-<h3><a href="https://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip">Download KeyPress OSD compiled for x32/x64 freeware edition</a> (.ZIP file, portable, includes source files).</h3>
+<h3><a href="https://files.sucan.ro/marius/blog/ahk-scripts/keypress-osd-compiled.zip">Download KeyPress OSD compiled for x32/x64 freeware edition</a> (.ZIP file, portable, includes source files).</h3>
 
 <h2>Project description</h2>
 
@@ -27,7 +27,6 @@
 <p>I coded the application as an <a href="https://autohotkey.com/">AHK script</a> for AutoHotkey_H v1.1.27. To execute/compile the source code one needs <a href="https://hotkeyit.github.io/v2/">AutoHotkey_H v1.1+</a>.</p>
 <p>Through the development of this project, Drugwash (from the <a href="https://autohotkey.com/boards/">AHK forums</a>) substantially contributed with code and feedback. Many thanks to you!</p>
 <p>In addition, many thanks for the great support and help to the people on #ahk (irc.freenode.net) and from the AHK forum.</p>
-
 
 <h1>KeyPress OSD: Features</h1>
 
