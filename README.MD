@@ -11,7 +11,7 @@
 <h2>Commercial edition extras</h2>
 <ul>
 <li>much improved typing modes, with selections rendering</li>
-<li>alternate typind mode reimagined and much improved</li>
+<li>alternate typing mode reimagined and much improved</li>
 <li>display advanced key combinations, eg., Ctrl+W+2</li>
 <li>customizable keyboard shortcuts actions</li>
 <li>advanced quick-auto replace options: variables, parameters, conditional texts and more</li>
@@ -21,7 +21,7 @@
 <li>option to show characters affected by Shift even in screen-cast mode [typing mode disabled], eg., 'Shift + 2' will show as '@'</li>
 <li>rename keyboard keys and shortcuts displayed by the OSD</li>
 <li>prevent specific keyboard keys and shortcuts to display in the OSD</li>
-<li>multi-language keystrokes names: French, German, Spanish or Russian language</li>
+<li>multi-language keystrokes names: French, German, Spanish or Russian</li>
 <li>more OSD customization options</li>
 <li>option to attach the OSD to the current window</li>
 <li>dark mode user interface</li>
