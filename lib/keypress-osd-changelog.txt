@@ -1,46 +1,394 @@
 // KeyPress OSD - CHANGELOG
 // keypress-osd-changelog.txt
+// Development began in September, 2017
+// by Marius Șucan ( https://marius.sucan.ro )
 
-[b]On GitHub:[/b] https://github.com/marius-sucan/KeyPress-OSD
+FUTURE FEATURES PENDING:
+  | Contact me and let me know what you want to see implemented
+- quick search panel; users can search in clipboard history, previously typed lines and snippets; and through KeyPress OSD settings
+- profiles/presets activated based on the currently focused application; specific key names, shorthands and other options per app
+- highlight focused controls and / or dim inactive windows
+- customizable side panel/toolbar always visible with buttons to send keyboard keys / shortcuts, mouse clicks or texts... very useful for touch screens. Customizable per application. 
 
-[b]Main AHK file:[/b]
-http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd.ahk
+For Quick-Auto-Replace, more markers:
+- math functions? From text selection, clipboard or OSD line.
+- string split for selections and clipboard?
+- send backspace before snippet, send delete after 
 
-[b]ZIP Package compiled [x64 / x32], includes AHK_H and sources:[/b]
-http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-compiled.zip
-http://marius.sucan.ro/media/files/blog/ahk-scripts/keypress-osd-trial.zip
 
-by Marius Șucan (robodesign.ro)
-Current version: v4.67.0 (2022-02-28) - commercial release
-available on https://keypressosd.com/
+v4.70.2 (2025-02-08) - commercial release
+ - added a help menu with explanations for each marker in the Quick Auto-Replace shorthands manager panel
+ - bug fixes related to the KeyPress OSD toolbar
 
-  v4.36.7 (2018-08-14) - commercial release
-  v4.36.7 (2022-06-09) - freeware release
+v4.70.1 (2024-05-24) - commercial release
+ - bug fixes
+
+v4.70.0 (2024-02-24) - commercial release
+ - [new] option to set how many lines to display in the keys history
+ - [new] options to customize the keys history display: size, opacity and its colors
+ - [new] option to not count modifier keys
+ - fixed option to count key press fires 
+ - improvements to the detect complex key combinations feature
+
+v4.69.2 (2023-12-20) - commercial release
+ - [new] option to show characters affected by Shift even in screen-cast mode [typing mode disabled], eg., 'Shift + 2' will show as '@'
+ - [new] option to limit typing mode to a user specified number of characters
+ - [new] option to hide the text caret in the OSD when typing mode is activated
+ - other minor improvements
+
+v4.69.1 (2023-06-30) - commercial release
+ - [new] option to enable/disable pasting texts in the OSD when typing mode is activated at Preferences > Keyboard > Clipboard
+
+v4.69.0 (2023-04-26) - commercial release
+ - bug fixes and improvements related to the OBS support
+
+v4.68.9 (2023-04-06) - commercial release
+ - bug fixes and improvements related to rename keys
+
+v4.68.8 (2023-03-13) - commercial release
+ - KeyPress OSD now forces itself as always on top more aggressively
+ - small fixes
+
+v4.68.7 (2023-03-10) - commercial release
+  - more work on how the OSD width is calculated and how text is displayed in typing mode
+
+v4.68.6 (2023-03-09) - commercial release
+  - improved how the OSD width is calculated and how text is displayed in typing mode
+  - made prettier the LEDs in the OSD
+
+v4.68.5 (2023-03-05) - commercial release
+  - fixed attach to window, it should work now
+  - overhauled how KeyPress OSD draws the OSD when it is set to align to the right or center
+  - now it is no longer flickering or jump around
+  - OSD draw optimizations
+  - various bug fixes
+
+v4.68.2 (2023-03-03) - commercial release
+  - bug fixes and improvements 
+
+v4.68.1 (2023-03-02) - commercial release
+  - [new] option to reset OSD position to the defaults
+  - the OSD and the toolbar are no longer constrained to the screen boundaries
+  - bug fixes
+
+v4.68.0 (2023-03-02) - commercial release
+  - [new] option to replace common key names with symbols: eg, arrow keys displayed as arrows
+  - [new] ability to rename keyboard keys and shortcuts displayed by the OSD
+  - [new] ability to prevent specific keyboard keys and shortcuts to display in the OSD
+  - improved the ability to relocate the toolbar; users can just drag it by its handle
+  - fixes related to OBS, Xsplit, Xbox game bar. The OSD [and keyboard history - if enabled] should be visible and selectable within these applications
+  - alternate typing mode allows exiting the mode with Escape
+  - other fixes and improvements
+
+ v4.67.0 (2022-02-28) - commercial release
+  - [new] dark mode user interface
+  - defining keyboard shortcuts is now much easier
+  - bug fixes
+
+v4.66.1 (2021-01-20) - commercial release
+  - [new] option to have the OSD click-through
+  - [new] option to attach the OSD to the bottom of the current window; previously it was only possible at the top
+  - improvements related to automatic text retrieval from edit fields
+  - bug fix: keyboard history was not working
+  - bug fix: text caret position highlighting did not work in modern uwp applications 
+  - other bug fixes
+
+v4.66.0 (2020-06-28) - commercial release
+  - [new] added more quick auto-replace snippets variables
+  - [new] option to automatically retrieve text line when typing from standardized Edit controls
+  - improved how text lines are retrieved from host applications that use standardized Edit controls
+
+v4.65.0 (2020-05-27) - commercial release
+  - [new] input box marker for quick auto-replace snippets; the user can now be prompted for a string to fill-in a given snippet
+  - [new] button to reload the pairs file in the quick auto replace panel, no longer requiring the restart of KeyPress OSD for this
+  - [new] one can now see the quick auto-replace snippets in a list-view
+  - [new] option to have the OSD reposition automatically to currently active window [top, left corner]
+  - [new] option to choose as a preset for quick auto-replace, ASCII to Emojis; this is meant to facilitate Emojis insertion when writing, for example :-) becomes 🙂
+  - facilitated usage of alternate typing mode by having it respond to Escape and Enter keys, in addition to the already designated keys: F12 and Ctrl+Enter
+  - bug fixes related to «mediate keys» options
+
+v4.64.1 (2019-06-05) - commercial release
+  - minor bug fixes
+
+v4.64.0 (2019-05-17) - commercial release
+  - [new] option to have sound beeps play through five audio channels when needed, to avoid interruptions in playback
+  - bug fixes related to typing mode and keys detection
+  - other improvements
+
+v4.63.7 (2019-05-11) - commercial release
+  - bug fixes related to advanced settings panel, and OSD as a tooltip 
+
+v4.63.6 (2019-05-09) - commercial release
+  - better error handling when unable to write files; the user is now informed things are going bad ;-)
+
+v4.63.5 (2019-05-07) - commercial release
+  - removed option to not have KeyPress OSD detect the current keyboard layout at start
+  - when the user types, automatic keyboard layout detection will occur even if the option to constantly monitor keyboard layouts is deactivated; exception to this is when KeyPress OSD runs in safe mode
+  - [bug fixes] dead keys support; to this end I implemented a system to cache keyboard key names [one can deactivate it at the «Advanced settings» panel, not recommended] 
+  - updated all the toolbar icons to look better
+  - updated FAQs help page
+  - other fixes and improvements
+
+v4.63.0 (2019-04-19) - commercial release
+  - [new] option to have the keystrokes name displayied in French, German, Spanish or Russian language
+  - [new] welcome screen, on first-time start of KeyPress OSD, to facilitate the usage for new users
+  - improved behavior when the trial period expired and limited settings options once it has expired
+  - small fixes
+
+v4.62.5 (2019-04-14) - commercial release
+  - [new] option to have the window behind the OSD blurred with Windows 10 acryllic glass effect; option available in the Advanced settings panel
+  - various bug fixes and improvements to usability
+  - the toolbar icons are now readable by screen readers
+
+v4.62.2 (2019-04-11) - commercial release
+  - improvements to how the application initializes; the modules are initialized selectively based on the user's preferences; the toolbar icons are also cached once loaded; all these improvements help load KeyPress OSD faster on old computers...
+  - various important bug fixes
+
+v4.62.1 (2019-04-03) - commercial release
+  - minor bug fixes
+  
+v4.62.0 (2019-04-02) - commercial release
+  - [new] in the «Keyboard shortcuts» panel, users can customize actions; they can choose from a list of almost 20 actions, what the configured keyboard shortcut should perform
+  - [new] option to add a custom/personalized «Plus One» button on the KeyPress OSD toolbar; the users can choose from about 10 different actions to perform on left or right click
+  - various bug fixes
+
+v4.61.0 (2019-03-30) - commercial release
+  - [new] option to display the history of pressed keys
+  - [new] quick auto-replace: added a new argument-based marker, with conditioned text; you can have, for example, «bbl» expand into «be back later», and if you type «bbl=[10]» to «be back later in 10 minutes»
+  - [new] toolbar button to toggle Mouse Halo
+  - [new] option in alternate typing mode, to have the caret location enhanced
+  - [improvement] updated the quick settings menu to include various options that were previously found only in different context menus or on the toolbar
+  - improvements on the timing of displaying modifiers [Ctrl, Alt, Shift, Win]; now it is more responsive
+  - moved «Display OSD a tooltip» option to the «Advanced settings» panel;
+  - in alternate typing mode, if no text is in the OSD, the OSD will collapse to a small width
+  - «officially» dropped support for AHK_L
+  - various fixes and improvements to detection of complex keyboard keys combinations, alternate typing mode, and others
+
+v4.60.1 (2019-03-19) - commercial release
+  - [new] option to disable entirely the OSD and associated tooltips - at Advanced settings panel
+  - bug fixes, most importantly, the presets work now
+
+v4.60.0 (2019-03-18) - commercial release
+  - [new] KeyPress OSD can now detect multiple key presses, and complex key combinations; e.g., Shift + W + Space + Right Click [only if typing mode is disabled]; the support for this depends on the keyboard you own and its drivers, if it can handle three or more keys pressed at once; [option at Keyboard preferences panel to disable the detection of such key combinations]
+  - [major overhaul] Alternate/Secondary typing mode rebuilt entirely.
+    - reimagined to accomodate support for Chinese, Japanese [and other Input Method Editors] and Arabic [Right to Left scripts]
+    - it is much more user friendly and now allows the user to switch between typing in KeyPress OSD or in the host application at any moment. This was previously not possible.
+  - [major new features] quick auto-replace snippets are now much more powerful and... dynamic:
+    - snippets can now receive up to six arguments/parameters, for example: ibt=[27th||6]. I will be there on 27th at 6 PM, sharp. Snippet code: I will be there on ++,,arg1,,++ at ++,,arg2,,++ PM, sharp.
+    - reference other entries using this syntax: [[,,SHORTHAND,,]] ; you can also pass arguments to referenced snippets;
+    - reference the current clipboard or OSD line: \\,,clipbText,,\\ or \\,,thisOSDline,,\\  or  \\,,OSDprevLine,,\\ . By adding -t, -l or -u, text case can be changed...
+    - snippets can also reference any AHK built-in variable listed here: https://autohotkey.com/docs/Variables.htm#BuiltIn ; this allows users to have, for example, snippets with the current date or time, in the format they choose
+    - caret repositioning in expanded text; you can have the text cursor repositioned in the text line after, at any position;
+    - additional markers that can control behavior of snippets: private, or reserved snippet, erase OSD, replace the entire text in the host application and others
+    - improved quick auto-replace panel, options to add markers, and to load a stored shorthand
+    - quick auto-replace works now even if the main typing mode is disabled
+  - [new] support for multiple lines when capturing/sending texts, and in Quick Auto-Replace snippets; option to deactivate this as well
+  - [new] in alternate typing mode, indicator when the current keyboard layout has an IME associated with it; the indicator can be clicked to toggle the IME
+  - [new] option to choose what happens when the user sent the text from the OSD to the host application [in alternate typing mode]: erase line, exit alternate typing mode or do nothing
+  - [new] OSD context menu, when OSD is draggable;
+  - [new] option to invert OSD colors
+  - [new] option to capture selected text in the host application [accessible through the Typing Mode menu]
+  - [new] option to insert date or time [accessible via Typing Mode menu]
+  - [new] option to change the method to send texts from the OSD to the host application ; the user can opt to send texts through the clipboard; in some scenarios this is more suited than simulating keystrokes [the default]
+  - [new] option to set Italic mode for the OSD
+  - [MAJOR bug fixes] customizing keyboard shortcuts was broken and caused many conflicts with the main typing mode; now, you can set any hotkey/shortcut you want and it will function in typing mode and with any keyboard layout
+  - [improvement] reimplemented the feature of Show language indicator, to work better; it works in alternate typing mode as well, and in any OSD alignment
+  - [improvement] more precise calculations for the small progress bar that indicates how much of the whole text line is visible
+  - [improvement] dissociated the clipboard history menu from this feature; now, this menu is now the Typing Mode menu, and it can be invoked even if the feature to store clipboards is deaxtivated; the menu is useful to easily access previously typed lines in the OSD, to interact with the OSD from the host application , and others
+  - improvements to OSD center alignment mode
+  - small improvements to the dead keys support
+  - the option to have the keyboard layouts list in user's language... was moved to Advanced settings panel
+  - removed option to paste on click, in alternate typing mode; it no longer makes sense now
+  - all Help pages updated
+
+v4.50.6 (2019-02-23) - commercial release
+  - [new] users can right-click at Settings on any element and a large, easy-to-read tooltip will appear
+  - improvements to how tooltips are displayied
+  - more minor fixes
+
+v4.50.5 (2019-02-22) - commercial release
+  - [new] option to set toolbar opacity
+  - [new] a new GUI element, a sort of info-line
+  - removed option to set OSD width factor; it made no sense anymore
+  - removed option to have the OSD at fixed size
+  - various bug fixes
+
+v4.50.1 (2019-02-21) - commercial release
+  - various important bug fixes; mostly regressions with caret jumps, in typing mode
+
+v4.50.0 (2019-02-20) - commercial release
+  - [new] option to automatically disable typing mode when the mouse cursor is hidden or has an uncommon shape
+  - [new] option to have text selections in the OSD highlighted with a personal background color; text carets are hidden in this mode
+  - [new] option to toggle Bold for the OSD font
+  - [new] option to set OSD opacity
+  - [new] "hidden" options [available only in the INI file]: exotic scripts support, hide text carets, font quality, cache OSD updates [for long texts lines]...
+  - [improvement] when KeyPress OSD sends texts to host applications , it can be interrupted with any keyboard press
+  - [improvements] further enhanced the compatibility with Windows 10 applications 
+  - [major improvement] full support for all abugida scripts: Devanagari, Bengali, Tamil, Telugu, Tibetan and many other similar scripts
+  - [major improvement] the UI is much more flexible and the elements are better placed and sized exclusively based on the font size the user sets; fonts are now smoothed with ClearType; right and center alignment for the OSD are now much more fluid, with a lot less flickering; the UI relies more on functions from Font Library 3
+  - [improvement] major code reorganization related to the main OSD text display, and caret movement between words and characters; this lead to a reduction of about 20 kilobytes in the main code; the OSD is now computationally much less intense [expecially, in typing mode]
+  - [bug fixes and improvements] various bug fixes related to how the caret jumps between words
+  - [improvement] emojis support no longer relies on a hard-coded limited list of emojis; it should now support any emoji or pictogram
+  - [improvement] multiline preview is now adaptive; if you have a very long text, KeyPress OSD will display the section of the text where the caret is
+  - removed option for Customized/Personalized Tooltips; it was too buggy
+  - various changes, fixes and improvements; hopefully no regressions, given the amount of changes...
+
+v4.43.0 (2019-01-24) - commercial release
+  - [new] option to not show click enhancements when mouse cursor is hidden or if it has a non-standard shape [Preferences > Mouse]
+  - [major improvements] the sound beeps module was overhauled; it should no longer be «confused» as to what sounds to play on different key presses
+    - the beeps are skipped less often now when the option to «beep when keys are constantly held down» is enabled
+    - when «Generic beep when keys are constantly held down» is enabled, it will work as expected, even if all the other options are disabled
+  - [improvement] KeyPress OSD can now determine when the active process is elevated; this helps avoid unwanted behaviours and bugs related to typing mode and mouse keys; this applies only when KeyPress OSD is not running in «admin mode» [that is, as an application with elevated priviledges]
+  - you can now right-click on toolbar icons that have secondary actions associated [e.g., send OSD content, capture text, and settings]
+  - many bug fixes related to:
+    - context menus
+    - send text from the OSD
+    - usability on touch screens; the option to drag the OSD works now
+    - and other fixes or improvements
+
+v4.42.5 (2019-01-15) - commercial release
+  - [new] option to not play the actual audio cues when the "Generate Visual Sound Events" option is enabled [at Preferences > Sounds]
+  - [new] option to play beeps at reduced volume or to keep silent when other applications play audios [e.g., music, movies or so]
+  - improvements to the layout of Sounds panel
+  - bug fixes
+
+v4.42.0 (2019-01-08) - commercial release
+  - [new] option to pin/lock stored clipboard entries, such that they never get erased
+  - [new] on Ctrl + Enter [or click] the user is prompted to erase selected clipboard entry; by pressing Shift + Enter [or click], the clipboard is changed, but the content is not pasted
+  - [improvements] the menus respond to Escape key now and to right-click
+  - [improvements] the content type of the clipboard is now detected; this ensures a smoother functionality of the already present clipboard related features
+
+v4.41.0 (2018-12-09) - commercial release
+  - [new] added the ability to distinctively set the color and diameter for the Mouse Halo and Spotlight
+  - [new] keyboard shortcut for toggling the mouse spotlight
+  - [new] context menu at every settings window, and for the toolbar; the context menu is invoked with Right Click or Menu/Apps key; this is meant to facilitate the usage of KeyPress OSD
+  - improvements to how the option to automatically hide mouse halos works, and computational optimisations
+
+v4.40.7 (2018-12-05) - commercial release
+  - [improvement] changed from using SetWindowRegion to GDI+ [ thanks to the Gdip library by Tariq Porter ], for drawing the mouse spotlight; it is now much faster, it no longer causes redrawing flickers [this feature is now no longer available on Windows XP]
+  - removed option to have Fluid motion for spotlight; now it is always fluid ;-)
+  - other fixes
+
+v4.40.5 (2018-12-02) - commercial release
+  - [new] the OSD is now resizable by its window edges during customization [at Preferences]
+  - [new] added a new caret enhancement style
+  - [new] option to have the ripple or blocks show after the mouse button is released [better compatibility with some applications]
+  - [major improvement] recoded entirely the mouse ripples feature; the animations are now more fluid and consistent amongst them
+  - [improvement] mouse click blocks now use the same colors as the mouse ripples; this makes the configuration panel less crowded
+  - [improvement] the toolbar should no longer flicker when clicking on its icons; other small improvements to its usability
+  - other bugs fixes
+
+v4.40.0 (2018-11-26) - commercial release
+  - [new] mouse spotlight; it darkens the entire screen except for a circle around the mouse cursor; user can control its diameter and the tint of the shade
+  - [new] added more icons on the toolbar for toggling sounds, mouse spotlight, typing mode and private mode [/hide OSD]
+  - [new] option to have the toolbar oriented vertically, when it is detached from the OSD
+  - various improvements to the usability of the toolbar; it should now be much more usable
+  - fixed crasher caused by mouse keys
+  - other minor fixes or improvements
+
+v4.39.5 (2018-11-22) - commercial release
+  - [new] rounded corners for the toolbar and main OSD; option to enable/disable this
+  - [new] after dragging the OSD, a button to activate the toolbar is displayied shortly
+  - [new] when the option "Only Typing" is not activated, yet typing mode itself is activated, one can toggle typing mode by clicking on the horizontal bar or by pressing T and then Escape
+  - [improvement] when using Mouse Keys, when the mouse cursor wraps at the edges of the screen, or moves to a different monitor, its speed is reset; this is meant to help people select elements on screen edges with more ease
+  - improved how the toolbar is activated/deactivated when suspending the script
+  - improved behavior for the CapsLock LED; it is now visible in any OSD alignment; recoded the feature
+  - removed option to set vertical offset for the toolbar; its position is now calculated properly
+  - removed option for OSD borders; feature introduced in v3.20
+  - removed option to show previous typed text with page up/down; feature introduced in v3.45
+  - overhauled how KeyPress OSD maintains the history of typed text lines in the OSD; one can go through previously typed lines with the shortcut / button for Multiline Preview
+  - other small improvements and bug fixes
+  - more code clean-up and corrections
+
+v4.39.0 (2018-11-14) - commercial release
+  - [new] option to detach the touch toolbar from the OSD, and have a personalized location on screen for it
+  - [new] when users click on toolbar icons, the location of the click is highlighted
+  - improvements to the touch toolbar; by double-clicking on the handle, one can reposition it, if it is detached from the OSD
+  - improved behavior for dragging OSD when alignment is not Left; now in every alignment mode, dragging operation behaves in the same way
+  - improved the behavior for how the Locate button [for OSD positions] works; clicks into other applications are prevented
+  - much improved support for multi-monitors; the OSD is always kept on-screen
+  - [fixed] text-expand / auto-replace manager was broken; adding/removing entries should always work now; this was a regression since v4.38...
+  - specific bug fixes for the Windows Store release
+  - code clean-up and corrections
+
+v4.38.8 (2018-10-21) - commercial release
+v4.38.8 (to-be-decided) - freeware release
+  - much improved the multiline preview; I overhauled the code behind this option
+  
+v4.38.7 (2018-10-15) - commercial release
+  - minor fixes
+
+v4.38.5 (2018-10-11) - commercial release
+  - [major bug fix] fixed regressions related to the clipboard manager, introduced in v4.36.7... Since that version, the clipboard manager was no longer working, in its entirety
+  - other minor fixes
+  - prepared KeyPress OSD for a potential Windows Store release; it can now save its settings in a distinct folder, other than where it is executed from
+
+v4.38.3 (2018-10-05) - commercial release
+  - [new] option to have KeyPress OSD prevent the host application receive Escape key when pressed and text is present in the OSD; this allows the user to only erase the text from the OSD and do nothing else; this was already present since many versions ago, but with no option to disable it
+  - as always, more minor fixes... ;-)
+
+v4.38.1 (2018-09-18) - commercial release
+  - [new] option to deactivate dynamic volume for KeyPress OSD sounds; the dynamic volume was already present from v4.22, but with no option to disable it
+  - minor fixes
+
+v4.38 (2018-09-06) - commercial release
+  - [new] now you can enable shortcuts for the first 12 entries of the auto-replace list; Ctrl+Shift+F1 ... F12; it is a way to quickly access snippets of text; feature requested by Justice Frangipane
+
+v4.37.6 (2018-09-03) - commercial release
+  - fixed issues related to toggling Large UI fonts
+  - bug fixes related to enabling/disabling of the Apply button at Settings.
+  - overhauled the About window.
+  - it now shows some statistics at About: how many keys were pressed, how many clicks...
+
+v4.37.5 (2018-09-02) - commercial release
+  - if Ctrl is held down while clicking Exit, KeyPress OSD will not save settings. The same applies when any preferences window is opened.
+  - [improvement] About window and Installed keyboards window, automatically close if no longer active as windows
+  - now you can click on the currently identified keyboard layout to trigger its re-detection. [at Installed keyboards window]
+  - minor bug fixes
+
+v4.37.4 (2018-08-22) - commercial release
+  - [new] option to apply personalized colors and font style to the tooltip when the OSD is shown as a mouse tooltip [ thanks to ToolTipOpt v1.004 by Lexikos ]
+  - [improvement] reduced the flickering of the tooltip when the option to «Display the OSD as a mouse tooltip» is enabled, and the mouse cursor is not moved
+
+v4.37.3 (2018-08-21) - commercial release
+  - [new] option to turn off automatic updates check
+  - fixes regarding the update process
+
+v4.37.2 (2018-08-20) - commercial release
+  - minor fixes and also improved the look of the icons
+
+v4.37.1 (2018-08-18) - commercial release
+  - [new] KeyPress OSD toolbar to facilitate the usage of this application on touch screens; made other improvements related to this as well, e.g., now, you can use Numpad Home / End / Left / Right to navigate text lines - needed for the on-screen keyboard in Windows
+  - [bug fixes] fixed regressions introduced in v4.35 when implementing the horizontal text map preview, related to Alternate Typing Mode; I also made other related fixes
+  - [fixed] issues related to updating when KeyPress OSD is compiled
+
+v4.36.7 (2018-08-14) - commercial release
+v4.36.7 (2022-06-09) - freeware release
   - [new] a new shortcut that once pressed, displays the entire OSD text line wrapped on multiple lines, just as a quick preview
   - [improvement] the clipboard manager will now, always, override the oldest stored entry, every time the user copies texts to clipboard; additionally, once the user selects any clipboard entry, it will be moved to the top of the list
 
-  v4.36.3 (2018-08-03) - commercial release
+v4.36.3 (2018-08-03) - commercial release
   - [improvement] friendly keyboard shortcut names everywhere in the UI
   - various [minor] bug fixes regarding keyboard shortcuts
 
-  v4.36.2 (2018-07-31) - commercial release
+v4.36.2 (2018-07-31) - commercial release
   - various [minor] bug fixes; better handling of Safe Mode;
 
-  v4.36.1 (2018-07-28) - commercial release
+v4.36.1 (2018-07-28) - commercial release
   - [improvement] reversed the logic at OSD preferences, such that higher values for the width and height yield larger dimensions; previously, lower values increased the OSD dimensions
   - other minor fixes and improvements
 
-  v4.35.7 (2018-07-22) - commercial release
+v4.35.7 (2018-07-22) - commercial release
   - [improvement] at Preferences, a «ghost» highlights the maximum width of the OSD
   - [improvement] when Home/End keys are mediated, by pressing these, if the text is very long, the caret will jump at four intermediate points in the line, not straight at the very beginning or end of the line; other fixes related to it
 
-  v4.35.5 (2018-07-19) - commercial release
+v4.35.5 (2018-07-19) - commercial release
   - [new] option to mask the expanded string in the OSD, for privacy
   - [improvement] added more possible symbols for the caret in the OSD
   - minor bug fixes and improvements
 
-  v4.35 (2018-07-12) - commercial release
-  v4.35 (2020-05-27) - freeware release
+v4.35 (2018-07-12) - commercial release
+v4.35 (2020-05-27) - freeware release
   - [new] quick auto-replace entries manager; a new way to easily add/remove entries accessible by Ctrl+Shift+\
   - [new] horizontal bar to visually indicate how much of the text in the OSD is visible, useful when the text is longer than the maximum width of the OSD
   - [new] option to show the language code in the OSD [at keyboard preferences]
@@ -48,92 +396,92 @@ available on https://keypressosd.com/
   - [improvement] the shortcuts panel is now split into tabs such that it is easier to use
   - more bug fixes
 
-  v4.34 (2018-07-04) - commercial release
+v4.34 (2018-07-04) - commercial release
   - [new] option to automatically shrink text to fit the OSD width; the user has the option to set the minimum font size as well
   - [new] one can also change the scaling factor for the height of the OSD
   - various UI improvements and fixes in the backend and at the preferences windows
 
-  v4.33 (2018-06-23)
+v4.33 (2018-06-23)
   - added the ability to run the script in trial mode and to register it with name and code [this mode is going to be activated in the future, for commercial releases]
   - new KeyPress OSD icon
 
-  v4.32.3 (2018-06-08)
+v4.32.3 (2018-06-08)
   - fixed a bug that prevented Ctrl + Backspace / Delete to remove the typed word from the host application when it was the last word in the OSD [this applies only when Mediate jump keys is activated]
   - other minor improvements
 
-  v4.32.2 (2018-06-01)
+v4.32.2 (2018-06-01)
   - bug fixes regarding mouse ripples; they should not be clickable anymore
   - other minor fixes
 
-  v4.32.1 (2018-05-23)
+v4.32.1 (2018-05-23)
   - bug fixes regarding Emojis and the auto-replace feature
   - now it should no longer stall if the host application stalls
 
-  v4.32 (2018-05-15)
+v4.32 (2018-05-15)
   - fixed issues related to Caret Halo, Mouse Visual Clicks [the blocks and ripples]... Now, right-clicks should work in MS Word.... Previously, these features, when activated, were interfering and it was impossible to invoke the context menu in MS Word by right-clicking ... Hopefully, the changes made do not cause any regressions.
   - other fixes;
 
-  v4.31.8 (2018-05-12)
+v4.31.8 (2018-05-12)
   - [bug fix] fixed a bug that caused crashes on some systems when Mouse Ripples were activated
 
-  v4.31.7 (2018-05-09)
+v4.31.7 (2018-05-09)
   - removed option to ignore specific keys; it was limited only to typing keys; therefore, users were not able to ignore keys such as Esc or F1; this feature created confusion; it was introduced in v3.27
   - fixed a glitch; xbutton 1 and 2 were not considered as mouse buttons; they were displayied in the OSD even if "Show mouse buttons" was deactivated
   
-  v4.31.6 (2018-05-04)
+v4.31.6 (2018-05-04)
   - when typing mode is activated, but not "only typing mode", it will show a green LED to indicate when text was written [and is still accessible by typing], once the user pressed typing related [/ navigation] keys, but return to typing delay expired;
   - bug fixes regarding keyboard shortcuts; since I introduced the option to not restart on keyboard layout changes, the global shortcuts ceased to function properly
   - bug fixes regarding the clipboard manager
   - other bug fixes;
 
-  v4.31.5 (2018-04-30)
+v4.31.5 (2018-04-30)
   - [improvement] if you type the word to be auto-replaced with the first letter capitalized, [e.g., Btw].... it will be expanded to By the way [the first letter is capitalized when expanded]
     - if you have capslock activated, the entire expanded text becomes capitalized, e.g., BTW = BY THE WAY.
   - more bug fixes; it includes a fix for a regression that caused loss of saved settings;
   - it also attempts to detect if the settings windows are too large, when Large UI fonts is activated; the user is given the option to turn it off;
 
-  v4.31.3 (2018-04-29)
+v4.31.3 (2018-04-29)
   - [major bug fix] fixed a bug that made the script unusable on AHK_L when any mediated key was pressed
   - more bug fixes.... ;-)
 
-  v4.31.2 (2018-04-26)
+v4.31.2 (2018-04-26)
   - more bug fixes
   
-  v4.31.1 (2018-04-25)
+v4.31.1 (2018-04-25)
   - [new] on newer versions of Windows [7, 8 or 10], KeyPress OSD sets itself at start-up in admin mode, using the Task Scheduler; the user should not get any prompts from UAC at every system boot;
   - bug fixes related to Windows XP and the mouse features;
 
-  v4.31 (2018-04-24)
+v4.31 (2018-04-24)
   - removed integration of the ACC viewer and UIA Interface libraries; feature introduced in v4.18.1
   - removed integration with Capture2Text, because it was unreliably functioning; feature introduced in v3.01
   - changes to the main menu [the tray menu]
   - underlying changes to dead keys related thread; it no longer uses SendMessage to communicate with the main thread, but ahkAssign variable [from AHK_H]
   - various bug fixes
 
-  v4.30.8 (2018-04-22)
+v4.30.8 (2018-04-22)
   - more bug fixes; important bug fixes as well
   - removed option to offer audio-visual feedback on mouse cursor changes [it was introduced in v4.28.3], because it was not reliably working
 
-  v4.30.7 (2018-04-19)
+v4.30.7 (2018-04-19)
   - more bug fixes
   - more changes to the mouse keys script; drag 'n drop is now possible with 'locked' click... and hopefully, now, mouse movements do not get stuck anymore
 
-  v4.30.6 (2018-04-18)
+v4.30.6 (2018-04-18)
   - various (minor) bug fixes
 
-  v4.30.5 (2018-04-17)
+v4.30.5 (2018-04-17)
   - [new] eliminated the need for restarts on keyboard layout changes; at Keyboard preferences you can enable/disable this; enabled by default
   - bug fixes regarding mouse keys, and others
 
-  v4.30.2 (2018-04-16)
+v4.30.2 (2018-04-16)
   - bug fixes regarding mouse keys
   - other minor bug fixes
 
-  v4.30.1 (2018-04-14)
+v4.30.1 (2018-04-14)
   - [new] option at Keyboard > Clipboard Manager, to keep store clipboards even when the OSD is hidden [private mode]. This enable users to still be able to use the clipboard manager when they do not want the OSD.
   - minor bug fixes
 
-  v4.30.0 (2018-04-13) - major release
+v4.30.0 (2018-04-13) - major release
   - [new] Mouse Keys. Control the mouse cursor with the numpad keys.
     - ability to move in 16 directions
     - toggle Capslock to move at an alternate speed
@@ -142,88 +490,88 @@ available on https://keypressosd.com/
   - [new] option to allow other apps to use the same keyboard shortcuts as KeyPress OSD. [feature requested on GitHub]
   - minor bug fixes
 
-  v4.28.6 (2018-04-07)
+v4.28.6 (2018-04-07)
   - bug fixes
 
-  v4.28.5 (2018-04-04)
+v4.28.5 (2018-04-04)
   - dead keys related fixes
   - made the dead keys specific code for hotkey bindings more simple and straigth-forward
   - improvements related to the dynamic add/remove entries for auto-replace
   - and other fixes
 
-  v4.28.4 (2018-04-03)
+v4.28.4 (2018-04-03)
   - [new] ability to dynamically learn / unlearn expandable/auto-replace words on Enter by writing: +//+ word2match // words to replace with;
     - to remove an entry use: -//- word2match // [anything];
   - code readjustments; thanks to Drugwash, very long lines are now split into multiple lines;
   - bug fixes
 
-  v4.28.3 (2018-04-02)
+v4.28.3 (2018-04-02)
   - [new] option to have the mouse halos hide whenever the mouse cursor hides
   - [new] option to offer audio-visual feedback on mouse cursor changes
   - [improvement] text caret halo is now adjusting to the real caret height
   - various bug fixes and code improvements related to different parts of the script thanks to Drugwash
 
-  v4.28.1 (2018-03-31)
+v4.28.1 (2018-03-31)
   - improvements regarding edit fields at any settings window
   - code improvements
   - improvements and changes regarding beepers
 
-  v4.28.0 (2018-03-30)
+v4.28.0 (2018-03-30)
   - improvements regarding beeps on modifiers presses
 
-  v4.27.9 (2018-03-29)
+v4.27.9 (2018-03-29)
   - bug fixes regarding typing mode, affecting foreign languages and caret jumps, dead keys
 
-  v4.27.8 (2018-03-28)
+v4.27.8 (2018-03-28)
   - minor bug fixes; more code optimisations
   - updated help
   
-  v4.27.7 (2018-03-26)
+v4.27.7 (2018-03-26)
   - bug fixes regarding keys detection and others
 
-  v4.27.6 (2018-03-25)
+v4.27.6 (2018-03-25)
   - new option in the ini file to deactivate automatic download of external files
   - fixes regarding text auto-replace
 
-  v4.27.5 (2018-03-24)
+v4.27.5 (2018-03-24)
   - minor fixes
   
-  v4.27.4 (2018-03-23)
+v4.27.4 (2018-03-23)
   - improved Safe Mode
   - it now remembers last opened window and tab
   - more work on the code
   - minor fixes and changes
 
-  v4.27.3 (2018-03-21)
+v4.27.3 (2018-03-21)
   - [improvement] proper duplicate hotkeys detection at the Global Shortcuts panel...
   - the alternative hook no longer runs in background if no dead keys detected
   - the auto-replace text area now updates itself on save
   - partially fixed sound issues through team viewer; sounds were never stopping
   - other minor fixes
 
-  v4.27.2 (2018-03-20)
+v4.27.2 (2018-03-20)
   - reduced the code by 7-8 kb, by making the CheckSettings() function more compact
   - further reduced IniWrites during start/restart procedures
   - eliminated iniReads from the auxiliary threads [mouse, beepers and ripples]
   - reorganized more the main script code
   - fixed bugs... and hopefully introduced none
 
-  v4.27.1 (2018-03-19)
+v4.27.1 (2018-03-19)
   - [new] quick settings menu at Installed Keyboard Layouts panel. I added this here because, on double-click on tray icon, this is the panel that opens; therefore, to improve usability I added this 'gateway' to various settings and to the other preferences panels.
   - the coding of the global shortcuts panel is much lighter now; the code was reduced by 21 kb; however, the changes do not make it faster when it opens
   - minor bug fixes
 
-  v4.27 (2018-03-18)
+v4.27 (2018-03-18)
   - [new] option to automatically erase text on window change
   - various bug fixes and minor improvements in varying contexts
 
-  v4.26.7 (2018-03-17)
+v4.26.7 (2018-03-17)
   - [new] options to change shape, width and size of the caret halo [possible thanks to Drugwash]
   - small improvements to caret jumps
   - more work on comments through the code
   - minor bug fixes
 
-  v4.26.5 (2018-03-16) - major release
+v4.26.5 (2018-03-16) - major release
   - [new] option to set interval for text expansion
   - [new] option to deactivate automatic pasting of clipboard content when selecting a previous clipboard
   - [new] for clipboard history, an option to set a limit for formatted texts; what exceeds this limit, will be stored as raw text.
@@ -231,20 +579,20 @@ available on https://keypressosd.com/
   - removed option to send key strokes to host app when using alternate typing mode; it was poorly working
   - reorganized the entire code [+9500 lines]; I grouped functions in a logical manner and added comments
 
-  v4.26 (2018-03-15)
+v4.26 (2018-03-15)
   - [new] added customization options in the UI for caret halo [at Keyboard preferences window] based on the work of Drugwash
   - [new] run in safe mode; deactivates auxiliary AHK_H threads. Features deactivated: mouse features, sounds / beepers, and others.
   - if it crashes during INIT, safe mode option is presented to the user
   - the OSD can now be dragged by key states LEDs [OSD indicators], even if KeyPress is set to hide the OSD on mouse hover
   - [major bug fix] alternate typing mode was not working in the previous versions; now it works again
 
-  v4.25.5 (2018-03-14)
+v4.25.5 (2018-03-14)
   - [new] added more customization options in the UI for mouse ripples based on the work of Drugwash; colors can now be changed
   - various bug fixes
 
 by Drugwash [from the AHK forums]
 
-  v4.25 (2018-03-11)
+v4.25 (2018-03-11)
   - added the ability to customize text caret halo and mouse ripples
   - many improvements to mouse ripples and other mouse functions
   - now, with mouse ripples enabled, the direction is indicated when using wheel up/down or left/right.
@@ -256,279 +604,279 @@ by Drugwash [from the AHK forums]
 
 by Marius Sucan (robodesign.ro)
 
-  v4.23.5 (2018-03-11)
+v4.23.5 (2018-03-11)
   - more fixes for Clipboard history
 
-  v4.23.4 (2018-03-10)
+v4.23.4 (2018-03-10)
   - fixed a bug with [very] large clipboards when Clipboard history is enabled
 
-  v4.23.3 (2018-03-08)
+v4.23.3 (2018-03-08)
   - when the script is suspended or the OSD is set to not show, the clipboard manager will no longer save what the user copies in the clipboard
   - fixed bug that caused the expandable words list to get duplicated over and over...
   - other minor fixes
 
-  v4.23.1 (2018-03-07)
+v4.23.1 (2018-03-07)
   - fixed bug that caused crashes on x32
 
-  v4.23 (2018-03-06) - major release
+v4.23 (2018-03-06) - major release
   - [new] multi-clipboard support; with WinKey + V, previous clipboard contents can be restored; it preserves html and text formatting; from this menu, you can also restore previously written lines in the OSD
   - [improvement] the global shortcuts panel is now able to detect identic keyboard shortcuts
   - bug fixes related to text expand feature
 
-  v4.22.5 (2018-03-04)
+v4.22.5 (2018-03-04)
   - [new] the ability to automatically expand words, acronyms, abbreviations, such as, but not limited to by the way [btw], do not disturb [dnd], and others. The user can add/remove/edit the list of automatically expanded words at Main Menu > Typing mode > Text expand. 
 
-  v4.22.1 (2018-03-02)
+v4.22.1 (2018-03-02)
   - dropped the support for beeps on key presses without WAV files present
   - various bug fixes and improvements under the hood
 
-  v4.22 (2018-03-01)
+v4.22 (2018-03-01)
   - [new] the user can now set the sound volume for beeps on key presses - MANY thanks to drugwash for his help!
   - [new] added a few more distinctive sounds for page up/down, home/end, arrow keys, clicks and so on
   - [new] option to generate visual sound event for Windows Accessibility - to flicker the title bar, window or screen [depending on the user settings]
 
-  v4.21 (2018-02-27)
+v4.21 (2018-02-27)
   - [new] quick start settings presets; the user can choose between several configuration presets: screen casts, typing mode and so on
   - various bug fixes
   
-  v4.20.7 (2018-02-26)
+v4.20.7 (2018-02-26)
   - [new] at Installed KBD layouts, when you double click on a layout, the system layout will change to the selected one
   - [new] it indicates language code according to ISO-639
 
-  v4.20.6.5 (2018-02-24)
+v4.20.6.5 (2018-02-24)
   - again, much improved IMEs detection [these are unsupported layouts]
   - and other bug fixes
 
-  v4.20.6.3 (2018-02-22)
+v4.20.6.3 (2018-02-22)
   - [new] run in admin mode option.... useful when the user wants KeyPress to work with other elevated processes
   - better compiled edition [by drugwash - THANKS]
   - minor bug fixes. 
 
-  v4.20.6 (2018-02-21)
+v4.20.6 (2018-02-21)
   - bug fixes
 
-  v4.20.5 (2018-02-19)
+v4.20.5 (2018-02-19)
   - various bug fixes
   - improvements for mouse ripples, it now distinguishes between single clicks and double clicks
   - KeyPress will hold the OSD visible as long as a modifier or a click is pressed down
   - KeyPress will inform the user when it found no text [after attempting to synch with the host app] and... when attempting to paste the OSD, if there's is nothing in the OSD, it will show a message informing the user that there is nothing to paste...
   - the Installed keyboard layouts window is more compact, thanks to Drugwash
 
-  v4.20.4 (2018-02-17)
+v4.20.4 (2018-02-17)
   - [new] output OSD content as a tooltip that follows the mouse cursor
   - various DLL calls and other under the hood improvements by Drugwash; many thanks!!!
   - various other fixes
 
-  v4.20.3 (2018-02-16)
+v4.20.3 (2018-02-16)
   - [new] option at keyboard preferences to choose what names to display for identified keyboard layouts: in English or system default language
   - [new] a button to see the list of layouts [at keyboard preferences]
   - minor bug fixes
 
-  v4.20.2 (2018-02-15)
+v4.20.2 (2018-02-15)
   - [overhaul] the entire Keyboard shortcut customization panel redone from scratch, it should work this time and, should also be user friendly
 
-  v4.20.1 (2018-02-14) - major release
+v4.20.1 (2018-02-14) - major release
   - [new] option to save and update in real time changes you make at Mouse preferences, this is meant to facilitate configuration
 
   - [new] Shortcuts configuration/customization is now user-friendly; each shortcut is redefined on what you press. With Esc, the shortcut returns to its default, with Delete, you disable it.
   - [new] PayPal button for donations at About window: https://www.paypal.me/MariusSucan/15 .
 
-  v4.20 (2018-02-13)
+v4.20 (2018-02-13)
   - [new] Shortcuts configuration/customization is now user-friendly; each shortcut is redefined on what you press. With Esc, the shortcut returns to its default, with Delete, you disable it.
   - [new] PayPal button for donations at About window: https://www.paypal.me/MariusSucan/15 .
 
-  v4.19.9 (2018-02-12)
+v4.19.9 (2018-02-12)
   - [new] string generator for hotkeys in Global shortcuts; to make it easier to change shortcuts, for beginners
   - minor bug fixes
 
-  v4.19.8 (2018-02-11)
+v4.19.8 (2018-02-11)
   - fixed keyboard layout detection... now it properly detects IMEs, layouts with IMEs are not supported; [again, many thanks to Drugwash for the help offered with this]
 
-  v4.19.7 (2018-02-09)
+v4.19.7 (2018-02-09)
   - improved keyboard detection, further more; now it can detect keyboard layouts with IME and mark them as unsupported :-).
 
-  v4.19.5 (2018-02-08)
+v4.19.5 (2018-02-08)
   - [new] partial support for Right-to-Left writing, for Arabic languages [thanks to drugwash for the RTL detection]
   - [new] a window to list the currently installed keyboard layouts, instead of the Tray menu list
   - further improved support for Indic writing systems
   - removed the option to force a specific keyboard layout; there's nothing hard-coded, so this option/feature made no sense anymore; this feature was introduced in v3.10;
 
-  v4.19.2 (2018-02-07)
+v4.19.2 (2018-02-07)
   - improved support for Bengali, Assamese, Devanagari, Hindi and other related writing scripts
   - it now detects what kinds of keyboard layouts it supports or not [again, MANY THANKS @ drugwash]
 
-  v4.19.1 (2018-02-06)
+v4.19.1 (2018-02-06)
   - [new] it now checks if a new version is available before updating. Suggested by ozzii and others ;-)
   - made small changes to how the language definitions INI file is generated
   - the script now initializes considerably faster
 
-  v4.19 (2018-02-05)
+v4.19 (2018-02-05)
   - [improvement] language file no longer needed; it is automatically generated when KeyPress is executed; it discovers automatically the dead keys of the current layout; MANY thanks to Drugwash for his magic coding!!!!
   
-  v4.18.3 (2018-02-04)
+v4.18.3 (2018-02-04)
   - [improvement] the main file can be executed with AHK_L, if the line with "ahkThread_Free(deleteME)" is commented or deleted; [this line is at the end of the file :-) ]
   - [fixed] a minor bug with caret navigation
   - [new] added global keyboard shortcut for Silent mode
   - the shortcut for Capture2Text was changed to Capture text [with MSAA, Acc Viewer]... By default, disabled.
 
-  v4.18.2 (2018-02-03)
+v4.18.2 (2018-02-03)
   - fixed bugs related to missing files; it now works even if ALL external files are missing
   - re-added option to mediate Left/Right and Delete keys for slow computers
   - improved behavior when the language definitions file is missing; it no longer disables stuff it shouldn't
 
-  v4.18.1 (2018-02-02) - major release
+v4.18.1 (2018-02-02) - major release
   - [new] mouse text collector [experimental new feature]; with this feature enabled, KeyPress will continously capture text underneath the mouse cursor from applications that implement the Microsoft's Accessibility APIs [MSAA] and allow screen readers. The implementation of this feature makes use of scripts written by nepter(?), Sean and jethrow...
   - [new] option to enable/disable "LEDs" to indicate key states in the OSD. This applies for Alt, Ctrl, Shift, Winkey and Caps / Num / Scroll lock. [inspired by some of the work from Drugwash]
   - [improvement] if the cursor is at the end or beginning of the line, the caret changes into different shapes, corresponding to the following keys: left/right, home/end, up/down, page up/down, bksp/del... this is meant to offer visual feedback to the user when the caret remains still and these keys are pressed [inspired by some of the work from Drugwash]
   - [improvement] if Large UI fonts is enabled and the preferences window is larger than the available screen resolution, user is given the option to deactivate Large UI fonts.
 
-  v4.17.7 (2018-01-31)
+v4.17.7 (2018-01-31)
   - various UI related bug fixes
 
-  v4.17.5 (2018-01-29)
+v4.17.5 (2018-01-29)
   - [new] option to set large UI fonts for preferences
   - redesigned OSD appearance settings window as well
   - other UI related bug fixes
 
-  v4.17.0 (2018-01-28)
+v4.17.0 (2018-01-28)
   - much improved support for extended unicode chars and Emojis in the OSD
   - redesigned Keyboard and Mouse settings windows
   - added options to change flashing idle mouse color and visual mouse clicks color
 
-  v4.16.5 (2018-01-27)
+v4.16.5 (2018-01-27)
   - [improvement] now you can switch between Settings windows and change all the settings and Apply only once, without reloads inbetween. [suggestion from drugwash]
   - fixed defaults for OSD positions [thx Burque505]
   - it now removes temporary files in system folders [code from Drugwash]
   - now you can press Escape to close About or any other Settings window
   - updated About window
 
-  v4.16.0 (2018-01-26)
+v4.16.0 (2018-01-26)
   - [new] option to set centered alignment for the OSD
   - [new] distinct alignment per position A and B
   - [improvement] Updater works with compiled x64/x32 binaries of this script
   - updated Troubleshooting and Help
   - fixes regarding Ctrl+Del/Bksp with selections
 
-  v4.13.0 (2018-01-25)
+v4.13.0 (2018-01-25)
   - fixed a bug related to text selections
   - mediate navigation keys limited now to Home / End only
   - various bug fixes related to Mediated key strokes for caret jumps
 
-  v4.10.0 (2018-01-24) - major release
+v4.10.0 (2018-01-24) - major release
   - [new] the script will not reload when you go to check different settings windows; it will reload only when settings are changed
   - [new] now you can disable each global keyboard shortcut individually
   - many bug fixes, important ones
   - made changes to the Only Typing mode, to be even more exclusivistic
   - made the code prettier thanks to Drugwash
 
-  v4.05.0 (2018-01-23)
+v4.05.0 (2018-01-23)
   - [new] customize keyboard shortcuts, from Tray menu > Preferences > Global shortcuts. It's not stellar, but it's something at least.
   - [new] option to show/hide contextual help at Typing mode window; it was too cluttered
   - various bug fixes regarding mediate nav keys
 
-  v4.03.1 (2018-01-22)
+v4.03.1 (2018-01-22)
   - [new] option to mediate navigation keys for slow computers: left / right, backspace / delete, home / end
   - further improvements for keyboard layout name detection, thanks to Drugwash
   - improved the compatibility of the features that enable synchronization with the host app, for foreign layouts
   - various bug fixes regarding enable/disable the displaying of single keys, never show OSD, and the typing modes; it was a mess
   - as a consequence, show single keys shortcut toggles now never display the OSD;
 
-  v4.02.0 (2018-01-21)
+v4.02.0 (2018-01-21)
   - added support for (w/o Shift+) Home/End when the new option is activated [Send keystrokes to host app to reproduce OSD content]
   - simplified keyboard detection mechanism even more; it reads from the registry the Keyboard Layout names, for unsupported ones; many thanks to Drugwash for the idea
 
-  v4.01.0 (2018-01-21)
+v4.01.0 (2018-01-21)
   - bug fixes and improvements for the new feature implemented yesterday
   - improvements [hopefully] to the handling of Ctrl+A/Z/X/C/V... again
 
-  v4.00.0 (2018-01-20)
+v4.00.0 (2018-01-20)
   - [new] option to send keystrokes that reproduce text changes operated in the typed OSD content, when making caret jumps with Ctrl + Bksp / Del / Left / Right. This helps to ensure a consistent experience across apps and to remain in synch [not enabled by default, for now... I might change this]
   - reduced further flickering when using Align to right for the OSD
   - improvements for how it behaves when Only Typing mode is not activated
   - now it always indicates when a modifier is pressed, even in typing mode
 
-  v3.99.6 (2018-01-19)
+v3.99.6 (2018-01-19)
   - fixed regression: never display OSD was not working
   - fixed a bug that caused crashes when typing
   - some improvements to Align to right feature
   - and various other glitches
 
-  v3.99.5 (2018-01-18)
+v3.99.5 (2018-01-18)
   - [major bug fix] it now sets the same keyboard layout to the AHK script window as the host app when initiating Alternative Typing Mode [with Ctrl + Insert]; MANY THANKS to drugwash!!! u da best! ;-)
   - [bug fix] now it detects keyboard layout changes even when a Metro/Win 10 app is active; again, thanks to drugwash
   - reduced file size [by another 6 kilobytes] and simplified keyboard detection system
 
-  v3.99.1 (2018-01-17)
+v3.99.1 (2018-01-17)
   - {fixed} regressions related to usage with sticky keys enabled in Windows
   - {fixed} changing colors at preferences
   - {fixed} unwanted shortcuts getting triggered when not needed on foreign kbd layouts [reffering to Ctrl+A/C/V/X/Z]
 
-  v3.99.0 (2018-01-16)
+v3.99.0 (2018-01-16)
   - reduced [by about 7 kilobytes] and optimized code for handling modifiers [Ctrl, Shift, AltGr and so on]
   - as a consequence, I removed the option for Sticky Keys
   - [bug fixed] the bug with Shift + VKdc reported by burque505
   - bug fixes from drugwash regarding setColors()
   - and other, various fixe
 
-  v3.98.7 (2018-01-15)
+v3.98.7 (2018-01-15)
   - [bug fixed] the "too many fonts" error is fixed now. AHK is limited to 200 fonts, but using Font Library, I managed to circumvent this problem. This error apeared at Preferences when changing/previewing many fonts.
 
-  v3.98.5 (2018-01-13) - major release
+v3.98.5 (2018-01-13) - major release
   - [new] reorganized Typing mode settings window. Made it more informative and better organized and clean.
   - [new] option to change typing delays required internally to allow host apps to receive dead keys properly.... by changing this multiplier, you can make dead keys work well, even if "Do not bind dead keys" is activated.
   - minor bug fixes
   - 
-  v3.98.0.8 (2018-01-12) - release candidate 2
+v3.98.0.8 (2018-01-12) - release candidate 2
   - minor bug fixes
 
-  v3.98.0.7 (2018-01-11) - release candidate
+v3.98.0.7 (2018-01-11) - release candidate
   - many bug fixes; as always, too many too list here; i would waste time keeping track of them
   - removed useless options from typing settings: 
     -- immediately change to alternate typing mode, when typing [because it's too unreliable]; this was introduced in v3.95.
     -- do not treat dead keys as a different char [the recent changes made it useless]
 
-  v3.98.0.5 (2018-01-10) - beta
+v3.98.0.5 (2018-01-10) - beta
   - lots of bug fixes and improvements to yesterday's release; now it's working much better; still got some bugs left related to AltGr and Alternate hooks.
 
-  v3.98.0 (2018-01-09) - alpha
+v3.98.0 (2018-01-09) - alpha
   - [NEW] option for alternative mode to hook to keys. This enables full support for dead keys. The dead key symbol is displayied and inserted into the OSD [when needed] only if the option "Do not bind to dead keys" ïs not enabled. This new option is now enabled by default. @rommmcek: MANY THANKS for pointing me to TypingAid.
   - [new] option to send keystrokes in realtime to host app when using alternative typing mode; it does not work in all apps
   - improved the way text is sent from the OSD to the host app when using Alternative typing method, much faster and does not rely on the clipboard anymore.
   - removed two silly options from OSD appearances settings window and replaced them with one: Align OSD to the right side.
   - other bug fixes and improvements, thanks to drugwash! ;-)
 
-  v3.97.5 (2018-01-08)
+v3.97.5 (2018-01-08)
   - many bug fixes... and notably... fixed a crash on win32
   - [improvements] made Ctrl+C/X/V/A work with the alternate typing mode
 
-  v3.97.0 (2018-01-07)
+v3.97.0 (2018-01-07)
   - [new] option to highlight text cursor/caret when its position is detectable [Keyboard settings]
   - [bug fixes] for alternate typing mode 
   - various other fixes
   - fonts list is now filtered
   - now OSD always draggable in preview mode
 
-  v3.96.5 (2018-01-06)
+v3.96.5 (2018-01-06)
   - [new] option to change color for the alternate typing mode highlight
   - MANY bug fixes; the alternative mode for typing was not functioning in many, many scenarios; it was very screwed ;-) .... still got some bugs left to fix
   - considerably improved dead keys support
 
 by Drugwash [from the AHK forums]
-  v3.96.0 (2018-01-06)
+v3.96.0 (2018-01-06)
   - [new] option to enable the possibility to drag the OSD
   - improved UI: removed the buttons to pick colors, you can now click the colors to change them 
   - mouse halo is now round, when idling, the flashing halo is round as well
   - improved the positioning of visual mouse clicks elements
 
 by Marius Sucan (robodesign.ro)
-  v3.95 (2018-01-05) - major release
+v3.95 (2018-01-05) - major release
   - [new] option to paste on click the written text when using the alternate typing mode
   - [new] option to immediately change to alternate typing mode, when typing
   - [new] option to deactivate/activate the keyboard shortcut for alternate typing mode
   - changed shortcut from WinKey + Insert to Ctrl + Insert.
   - bug fixes
 
-  v3.94 (2018-01-04)
+v3.94 (2018-01-04)
   - [new] Secondary/alternative typing mode. Access it with Winkey + Enter. A new approach to the typing mode. Full support for dead keys for any layout.
     - The dead key symbol is shown when such a key is presssed and the resulted combination.
     - it works even if typing mode is disabled
@@ -537,13 +885,13 @@ by Marius Sucan (robodesign.ro)
   - reduced delays when automatic layout change occurs;
   - re-added on request [from drugwash] the option to choose another script when the main file is missing when the script attempts to reload itself
 
-  v3.93 (2018-01-03) - major release
+v3.93 (2018-01-03) - major release
   - substantially changed how Shift and AltGr are detected when typing; it should be much more reliable; it buffers the events more orderly;
   - simplified the error handling of script file missing; I do not want the user to pick the new file :-)
   - published on GitHub: https://github.com/marius-sucan/KeyPress-OSD
 
 by drugwash [from the AHK forums]
-  v3.92 (2018-01-02)
+v3.92 (2018-01-02)
   - various bug fixes, in particular for DLL calls
   - improved OSD size calculations
   - fixed regression with AltGr and Shift when typing mode only is enabled
@@ -551,174 +899,174 @@ by drugwash [from the AHK forums]
   - error handling when file is missing when attempting to reload; it asks the user to pick the script again...
 
 by Marius Sucan (robodesign.ro)
-  v3.91 (2017-12-31)
+v3.91 (2017-12-31)
   - AHK_H v1.1.27 fixes. All dead keys are now defined only by VK. No hard-coded names/symbols anymore. They are all identified at start.
   - [new] OSD preview. Facilitated customization by implementing a preview window when user customizes the appearances at "OSD appearances" settings window.
 
-  v3.90.5 (2017-12-29)
+v3.90.5 (2017-12-29)
   - [new] distinct option to ignore/not bind dead keys with AltGr, at Typing mode settings window.
   - [new] menu item: Troubleshooting. :-)
 
-  v3.90 (2017-12-28)
+v3.90 (2017-12-28)
   - [new] option to show a ripple effect on mouse click
   - the script is by MrRight, from 2015; from https://autohotkey.com/boards/viewtopic.php?t=8963
 
-  v3.89 (2017-12-27)
+v3.89 (2017-12-27)
   - [new] option to have it play DTMF signals for numpad keys
 
-  v3.88 (2017-12-26)
+v3.88 (2017-12-26)
   - [new] option to set KeyPress to start at boot
   - [new] new option: Distinct beeps for different key groups
   - improvements for key beepers
   - various bug fixes
-  
-  v3.87 (2017-12-24)
+
+v3.87 (2017-12-24)
   - various bug fixes
   - new keyboard shortcuts; see help;
   - changes to the files structure and organization; now it's per folders
   - implemented Help: Presentation, Keyboard Shortcuts and Features
 
-  v3.85 (2017-12-21) - major release
+v3.85 (2017-12-21) - major release
   - Autohotkey_H v1.1 migration complete.
   - 3 threads are running: besides the main one of the OSD, one is for the mouse features [if activated] and the third is one for the beepers. These features were noticeably stalling the main thread when activated. This is why I migrated to AHK_H. Now, everything is running smoother, even on slower PCs.
   - [new] option in tray menu "Silent mode" - deactivates all sounds
   - [new] option to have a distinctive beep for toggle keys: caps, num and scroll lock
   - removed option "beep keys even if hidden"
 
-  v3.82 (2017-12-20) - the last AHK_L based release
+v3.82 (2017-12-20) - the last AHK_L based release
   - bug fixes related to typing, the caret and OSD; better optimized calculations... now it's faster, with a more fluid behaviour on old PCs.
 
   [side work - 2017-12-19)
   - [ahk_h v1.1 migration] mouse functions are now separated and executed into a different thread
 
-  v3.81 (2017-12-18)
+v3.81 (2017-12-18)
   - [improved] the exact dead key symbols for Shift and AltGr are now automatically detected; hopefully, it works for everybody :)
   - bug fixes related to caret navigation.
 
-  v3.80 (2017-12-17)
+v3.80 (2017-12-17)
   - bug fixes and overhauled the layout of Typing mode windows settings.
 
-  v3.79 (2017-12-16)
+v3.79 (2017-12-16)
   - [new] paste OSD content into active window / text field with Ctrl + Shift + Insert
   - [new] synchronize OSD content with the current active window / text field with two modes of operation; shortcut: Winkey + Insert
   - [new] alternate mode for caret/text cursor jumps
   - bug fixes and improvements
 
-  v3.78 (2017-12-15)
+v3.78 (2017-12-15)
   - Implemented support for Ctrl + Shift + Left / Right
 
-  v3.77 (2017-12-14)
+v3.77 (2017-12-14)
   - [fixed bug] the features implemented yesterday were not working with Default settings. Ctrl + C/V/A/X worked only if Sticky keys were enabled. Now these should work for anyone.
   - [new] implemented support for text cursor/caret navigation jumps with Ctrl + Left/Right and Backspace/Delete
   - bug fixes and improvements for OSD caret navigation
 
-  v3.75 (2017-12-12)
+v3.75 (2017-12-12)
   - [new] option to make Up/Down behave like Home/End or Left/Right, at Typing mode window
   - [new] option to make Page Up / Down behave like Home / End, at Typing mode window
   - [new] support for Ctrl + A / C / X / Z
 
-  v3.74 (2017-12-11)
+v3.74 (2017-12-11)
   - [new] support for selections with Shift + Left / Right / Home / End.
-  
-  v3.72 (2017-12-10)
+
+v3.72 (2017-12-10)
   - bug fixes related to mouse halo, idling mouse and visual mouse clicks; they should be properly positioned on different Windows versions.
   - improvements regarding the detection of dead keys for unsupported layouts
 
-  v3.71 (2017-12-09)
+v3.71 (2017-12-09)
   - bug fixes and improvements in many ways; cursor navigation should feel more fluid
   - simplistic dead keys detection for unknown layouts
 
-  v3.70 (2017-12-08) - major release
+v3.70 (2017-12-08) - major release
   - many thanks to Helgef and Drugwash for support and help
   - shift and AltGr hard-coded symbol pairs are now obsolete
   - the new version uses toUnicodEx() DLLcall to get the proper key name based on Shift, AltGr and Capslock.
   - added support for 3 additional Cyrillic based keyboard layouts.
-  
-  v3.69 (2017-12-07)
+
+v3.69 (2017-12-07)
   - more bug fixes related to dead keys support and AltGr
   - [new] option to not bind dead keys at all @ typing mode preferences window.
   - added complete support for Setswana and Sesotho sa Leboa and made small fixes for other layouts
 
-  v3.68 (2017-12-06)
+v3.68 (2017-12-06)
   - more bug fixes related to dead keys support
   - added complete support for 3 Greek alphabet based keyboard layouts and 19 Cyrillic based keyboard layouts: Russian, Azerbaijani, Uzbek, Serbian, Ukrainian, Bulgarian, Belarusian, Kirghiz, Mongolian, Macedonian, Bashkir, Kazakh.
   - removed exit jingle, as requested by drugwash
-  
-  v3.67 (2017-12-05)
+
+v3.67 (2017-12-05)
   - bug fixes related to dead keys support
   - added complete support (Shift, AltGr and dead keys) for Vietnamese, Albanian and Wolof keyboard layouts
   - now it recognizes additionally 24 keyboard layouts; the total is 224 keyboard layouts.
 
-  v3.66 (2017-12-04)
+v3.66 (2017-12-04)
   - improved detection of the available keys to bind; it no longer depends on lists
   - finished defining dead keys as SC/VKs for all the supported keyboard layouts
   - removed option to bind additional keys, from Keyboard preferences.
 
-  v3.65 (2017-12-03)
+v3.65 (2017-12-03)
   - [new] option to change the color for caps lock highlight
   - much improved support for Igbo (Nigerian) keyboard layout
   - again... important bug fixes related to typing
  
-  v3.64 (2017-12-02)
+v3.64 (2017-12-02)
   - many important bug fixes related to typing; better detection for foreign keys
   - reduced redraw issues
 
-  v3.63 (2017-11-30)
+v3.63 (2017-11-30)
   - [new] it generates a list of installed keyboard layouts, in the tray menu; on click, KeyPress switches to the selected layout [forced mode].
   - much improved behavior for shift + numpad keys
   - changed code regarding num/scroll/caps lock keys
   - fixes/improvements for layout detection
 
-  v3.61 (2017-11-29)
+v3.61 (2017-11-29)
   - more fixes of silly regressions related to typing with AltGr and dead keys
 
-  v3.60 (2017-11-28) - major release
+v3.60 (2017-11-28) - major release
   - new keyboard detection system; works on Win 7/10
   - various bug fixes and silly regressions since v3.57 related to typing
 
-  v3.58 (2017-11-26) - major release
+v3.58 (2017-11-26) - major release
   - changed how dead keys are displayed in the OSD
   - fixed a major bug related to dead keys
   - fixed typos in the UI reported by Drugwash
   - better support for multi-monitors
   - added complete support (Shift, AltGr and dead keys) for Turkish, Yoruba, Maori, Igbo, Hausa and Guarani keyboard layouts.
-  
-  v3.57 (2017-11-25)
+
+v3.57 (2017-11-25)
   - important bug fixes related to layouts ;)
   - fixed the Latin Greek keyboard layouts
   - the dead key symbol is not anymore generic; symbols such as ^,~,` ... are displayed in the OSD
   - added complete support (Shift, AltGr and dead keys) for several Dutch, Hungarian and Lithuanian keyboard layouts.
 
-  v3.56 (2017-11-24)
+v3.56 (2017-11-24)
   - [new] visual indicator for capslock turned on
   - [new] support for Ctrl+V [paste]
   - much improved Page Up/Down behaviour when typed history is enabled
   - added complete support (Shift, AltGr and dead keys) for several Swedish / Finland (Sami Extended), Norwegian (Sami Extended), Estonian, Icelandic, Italian, Polish and Slovak keyboard layouts.
 
-  v3.55 (2017-11-23)
+v3.55 (2017-11-23)
   - minor bug fixes and improvements
   - added complete support (Shift, AltGr and dead keys) for several Croatian, Serbian, Slovenian, Danish, Finnish, Norwegian, Swedish and Greenland keyboards
 
-  v3.54 (2017-11-22)
+v3.54 (2017-11-22)
   - now both Enter and Escape keys erase [or not] typed text in the OSD
   - minor bug fixes, including one related to dead keys
   - added complete support (Shift, AltGr and dead keys) for several Azerbaijani and Latvian keyboards
 
-  v3.53 (2017-11-21) - major release
+v3.53 (2017-11-21) - major release
   - [new] option to play beeps at low volume [by default it is on]
   - [new] option to make a generic beep at every key fire
   - [new] settings window for Sounds; as a consequence, I removed the options from Keyboard settings related to beeps
   - now it uses sound files to make the beeps; if they are missing, it will behave as previously; at start it verifies if audio files are present and, if not, it attempts to download them, without prompting the user; all in background
   - fixed two bugs reported by burque505 related to typing mode only and other bugs related to typing ;)
 
-  v3.51 (2017-11-20)
+v3.51 (2017-11-20)
   - prepared the script for being compiled as a binary
   - [new] option: only typing mode
   - [new] when only typing mode is activated, the behaviour of Enter key can be changed from adding a space only, to erase the typed text from the OSD.
   - [bug fixed] the numpad keys /, *, -, + with Shift were acting exactly like regular characters/symbols :).
   - typing window more informative; it indicates if dead keys, AltGr or keys with Shift are defined.
 
-  v3.50 (2017-11-19) - major release
+v3.50 (2017-11-19) - major release
   - added some workarounds for XP related to text drawing
   - improved the Shift behaviour
   - [new] settings window for the typing mode; I moved a few options from the Keyboard settings window into a new one, it was too big...
@@ -728,88 +1076,88 @@ by Marius Sucan (robodesign.ro)
   - improved the behavior for page up/down with typed history option turned on
   - improved edit fields in preferences windows; now up/down keys can be used to change the values
 
-  v3.48 (2017-11-18) - major release
+v3.48 (2017-11-18) - major release
   - [much improved] cursor navigation related issues; now it will always display the caret and never run outside the visibility area; it also no longer jumps on screen - it moves as expected
   - [new] option to never display the OSD, such that those who want it only to beep or show mouse clicks can use it without the OSD
   - [new] option to prioritize key press beeps; if activated it will attempt not to skip generating beeps, however this will interfere with the accuracy of the OSD when typing
 
-  v3.47 (2017-11-17)
+v3.47 (2017-11-17)
   - various bug fixes and improvements
   - [fixed bug] AltGr does not cause anymore unnecessary text cursor movement in the OSD
   - [fixed bug] changing OSD colours works again :-)
   - considerably reduced flickering of text in the OSD
 
-  v3.45 (2017-11-16) - major release
+v3.45 (2017-11-16) - major release
   - [new] distinct beep for recognized dead keys; option to enable/disable this in Settings
   - [new] typed text history with page up and down. It records typed text on (Shift+) Enter key. After user copies text to clipboard, s/he can switch with Page down to that text. Option in Settings to enable/disable this feature.
   - bug fixes and improvements related to AltGr, Shift and Numpad keys, and missing language definitions file.
 
-  v3.43 (2017-11-14)
+v3.43 (2017-11-14)
   - bug fixes and improvements related to fixed width OSD, typing with dead keys and recognizing Shift + keys
 
-  v3.42 (2017-11-13) - major release
+v3.42 (2017-11-13) - major release
   - [new] the OSD holds in memory more text than it displays, such that you can navigate through it
   - [new] option in the tray menu to toggle constant keyboard layout monitoring
   - bug fixes and improvements
-  
-  v3.40 (2017-11-12) - major release
+
+v3.40 (2017-11-12) - major release
   - [new] virtual caret navigation: support for left, right, delete and backspace; navigate synchronously through text, as in the host app
-  
-  v3.37 (2017-11-10)
+
+v3.37 (2017-11-10)
   - [new] tray menu indicates current kbd layout
   - [new] full support for 30 keyboard layouts; AltGr, Shift and dead Keys
   - bug fixes and improvements related to AltGr and dead keys, constant kbd detector
-  
-  v3.35 (2017-11-07)
+
+v3.35 (2017-11-07)
   - extended AltGr support and I began working on language definitions; 10 out of 50 finished....
-  
-  v3.34 (2017-11-06) - major release
+
+v3.34 (2017-11-06) - major release
   - [new] display a generic dead key symbol when pressed, in typing mode;
   - [new] option to turn off dead keys being displayed in the OSD
   - [new] option to enable/disable automatic removal of dead keys from the OSD on backspace
   - [new] option to enable/disable AltGr support. It can be disruptive :-).
   - shows a caret as you type; by default, Spacebar is now displayed as space
-  
-  v3.32 (2017-11-05)
+
+v3.32 (2017-11-05)
   - improved support for dead keys... now they are defined per modifier: Shift, AltGr or no modifier.
-  
-  v3.31 (2017-11-05)
+
+v3.31 (2017-11-05)
   - better detection for keys to bind, for different layouts; it does not rely anymore on hard-coded lists of keys for each layout
-  
-  v3.30 (2017-11-04)
+
+v3.30 (2017-11-04)
   - AltGr support implemented
-  
-  v3.29 (2017-11-03)
+
+v3.29 (2017-11-03)
   - many fixes; the major thing I did is to rework the code for counting of key presses and key fires
-  
-  v3.28 (2017-11-01) - major release
+
+v3.28 (2017-11-01) - major release
   - various fixes; modifiers and counting; previous key glitches; improved switching between forced kbd layouts and so on...
   - [improved] number of letters calculated dynamically based on OSD size
   - [new] option to set maximum width for dynamic OSD size
   - as a consequence, removed the values for max. typed letters from settings
   - added the ability to define caps exclusion list per keyboard layout; when I will go through the whole list of layouts I have to consider this too;.... it will no longer capitalize letters it should not to, after I go through all the kbd layouts to define them....
 
-  v3.27 (2017-10-31) - major release
+v3.27 (2017-10-31) - major release
   - [new] option to ignore specific key [that is, in addition to the dead keys]
   - dead keys support per layout; I defined the dead keys for several languages. I have to go through all the 50 layouts I added support for, to define the dead keys for each... I might not do it soon...
   - removed the deadkeys option from preferences; it is always on for the layouts that have such keys
-  
-  v3.26 (2017-10-30)
+
+v3.26 (2017-10-30)
   - [improved] OSD resizing is much more precise thanks to GetTextExtentPoint [from Sean, https://autohotkey.com/board/topic/16414-hexview-31-for-stdlib/#entry107363 ]
   - on first start, the resize factor is calculated based on your screen DPI
   - [bug fix] updater now takes in consideration the file name of the script
 
-  v3.25 (2017-10-30)
+v3.25 (2017-10-30)
   - [new] option to disable right alignment; useful for those that want to place the OSD on a secondary screen
   - [new] option to make navigation keys never erase typed text from the OSD
-  
-  v3.24 (2017-10-29)
+
+v3.24 (2017-10-29)
   - [new] Update option. Once you click on it, it automatically downloads external files and itself. You can now always have the latest version :) ... while your settings remain intact
-  
-  v3.23 (2017-10-29)
+
+v3.23 (2017-10-29)
   - [new] OSD automatically aligns to the right; if the defined position is too far to the right edge, it will expand to the left
-  
-  v3.22 (2017-10-28) - major release
+
+v3.22 (2017-10-28) - major release
   - [new] option: shift turns off capslock
   - [new] in "OSD appearances", an option to toggle between OSD positions
   - [new] in "OSD appearances", buttons to facilitate defining OSD positions
@@ -817,26 +1165,26 @@ by Marius Sucan (robodesign.ro)
   - and minor bug fixes
   - and significant improvements to Capture2Text feature; once activated, it (de)activates KeyPress features to ensure its proper functioning
 
-  v3.21 (2017-10-27)
+v3.21 (2017-10-27)
   - bug fixes ;-)
 
-  v3.20 (2017-10-26) - major release
+v3.20 (2017-10-26) - major release
   - [new] settings windows: keyboard, mouse, appeareances
   - [new] toggle position on mouse hover
   - [new] show border around OSD
   - [new] option to change the space bar char from underscore to what you desire
   - various improvements and fixes
 
-  v3.16 (2017-10-25)
+v3.16 (2017-10-25)
   - work on the preferences windows
   - various improvements and fixes
 
-  v3.15 (2017-10-24)
+v3.15 (2017-10-24)
   - typing in OSD is now more responsive when key or caps beeps are enabled
   - fixes related to typing with capslock on and using shift
   - created settings windows for Keyboard, Mouse and OSD
-  
-  v3.10 (2017-10-23) - major release
+
+v3.10 (2017-10-23) - major release
   - [new] highlight the mouse cursor with a halo
   - [new] options to configure colors and sizes for OSD and mouse highlighters
   - [new] force keyboard layout and a shortcut to change between two kbd layouts: Ctrl+Alt+Shift+F7
@@ -845,65 +1193,65 @@ by Marius Sucan (robodesign.ro)
   - tray menu indicates detected keyboard layout.
   - [minor bug fix] .ini file naming
 
-  v3.04 (2017-10-22)
+v3.04 (2017-10-22)
   - [new] an option to disable typing mode
   - [new] volume buttons show master volume level
   - [new] tray menu with options [settings window, coming soon™]
   - minor bug fixes
-  
-  v3.01 (2017-10-21)
+
+v3.01 (2017-10-21)
   - bug fixes related to visual mouse clicks
   - added support for Capture2Text. Shortcut for this: Alt+Pause/Break
     - requires Capture2Text with shortcut set to Pause/Break
-  
-  v3.00 (2017-10-20)
+
+v3.00 (2017-10-20)
   - [new] visual mouse clicks and idle mouse highlighter/locator
   
-  v2.99 (2017-10-17)
+v2.99 (2017-10-17)
   - automatic download of the language definitions file, if the file is missing
   - added support for another 10 keyboard layouts when pressing Shift + [numbers/symbols].
   
-  v2.98 (2017-10-15)
+v2.98 (2017-10-15)
   - added support for another 12 keyboard layouts when pressing Shift + [numbers/symbols]. About 20 still to go.
   
-  v2.97 (2017-10-14)
+v2.97 (2017-10-14)
   - new shortcut: Pause/Break, to suspend/resume the script
   - added support for 12 keyboard layouts when pressing Shift + [numbers/symbols]
   - added support for a new keyboard layout: Croatian
   - after pressing Shift + [letter/symbols], you will get into typing mode
   - Shift + [numpad keys] works now somehow, somehow, still glitchy/quirky, but better than nothing...
 
-  v2.95 (2017-10-13)
+v2.95 (2017-10-13)
   - fixed counting related issues
   - it now shows Shift+[numbers/symbols]many thanks to phaleth and the great folks on #ahk
   - error handling for missing non-English keyboards definitions file
 
-  v2.93 (2017-10-12)
+v2.93 (2017-10-12)
   - new option: StickyKeys
   - back again, modifiers behave as I want
     - if StickyKeys is off, modifiers (Ctrl, Shift, Alt, WinKey) do not clear typed texts from the OSD, when pressed once, without a combo
     - if StickyKeys is on, they erase what is written in the OSD, except for Shift, of course
 
-  v2.92 (2017-10-11)
+v2.92 (2017-10-11)
   - rolled back the changes for modifier keys; it resulted in many regressions noticeable for those using StickyKeys; I will insist on this :)
   - clipboard monitoring; it displays briefly what text user copied to clipboard
   - fixed bugs related to showing previous keys
 
-  v2.90 (2017-10-10)
+v2.90 (2017-10-10)
   - from now, numpad keys always initiate typing mode
   - modifiers (Ctrl, Shift, Alt, WinKey) and Tab, Insert no longer clear tets from the OSD, if pressed once, without a combo
   - unified the behaviour of modifiers
   - fixed some counting bugs :)
   - added option to disable PermanentSettings
 
-  v2.87 (2017-10-09)
+v2.87 (2017-10-09)
   - improvements for assigning keys;
     - errors are now managed, it will beep when key bindings fail
   - [new] option to disable audio alerts :)
   - languages are now in an external file
   - new keyboard layouts for Polish, Azerbaijian, Turkmen
 
-  v2.85 (2017-10-08) - major release
+v2.85 (2017-10-08) - major release
   - minor improvements for the dead keys work-around
   - [new] support for 40 foreign keyboard layouts
   - [new] automatic detection of keyboard layouts, at start or continously
@@ -913,134 +1261,140 @@ by Marius Sucan (robodesign.ro)
   - settings toggled by shortcuts are stored permanently in an INI file
     - except for the option of regional keys support
 
-  v2.73 (2017-10-05)
+v2.73 (2017-10-05)
   - improvements for automatic resize calculation
 
-  v2.72 (2017-10-04)
+v2.72 (2017-10-04)
   - [new] make beeps on mouse clicks
   - [new] distinct beeper for modifier keys: Shift, Ctrl, Alt, WinKey.
   - new option: beep hidden keys; if you want it to beep even if the keys are not displayed
   - [fix] now it always counts mouse clicks
 
-  v2.70 (2017-10-03)
+v2.70 (2017-10-03)
   - [new] option to toggle dead keys support / work-around.
   - added option to hide annoying keys that usually get in the way: Left Click and Print Screen.
   - redraw improvements, reduced flickering
   - disabled OSD transparency to reduce flickering
 
-  v2.69 (2017-09-30)
+v2.69 (2017-09-30)
   - [new] OSD / GUI hides when mouse is over it. Many thanks to phaleth!
 
-  v2.68 (2017-09-29)
+v2.68 (2017-09-29)
   - numpad keys now work in typing mode as expected; they appear as symbols or numbers
 
 by phaleth from irc.freenode.net #ahk
-  v2.67 (2017-09-28)
+v2.67 (2017-09-28)
   - dead keys improvements
 
 by Marius Sucan (robodesign.ro)
-  v2.66 (2017-09-28)
+v2.66 (2017-09-28)
   - key combinations with Shift work better.
 
-  v2.65 (2017-09-27) - major release
+v2.65 (2017-09-27) - major release
+  - [new] option to differentiate between left and right modifiers
+  - improvements to the typing mode
   - fixed a bug with counting modifier keys;
   - improved the dead keys work-around
   - friendly names for mouse clicks
   - when pressed, volume keys always generate beeps
-  - [new] option to differentiate between left and right modifiers
   - now it detects AltGr key
   - the key beeper now also makes a beep for modifiers.
   - capslock no longer erases text you are typing displayed by the OSD
   - now you can toggle between two different OSD positions with Ctrl + Alt + Shift + F9
 
-  v2.60 (2017-09-26) - major release
-  - Fixed many bugs with counting keys;
+v2.60 (2017-09-26) - major release
+  - Fixed bugs related to counting keys;
   - reimplemented the feature to see the previous key combination, if quickly a new one is pressed;
   - added options/settings to toggle previous keys, counting keys and delay;
   - added shortcuts to toggle ShowSingleKey option and to reinitialize the OSD;
   - [new] automatic resizing of the OSD; it can be turned off in the settings section; it is a fishy implementation, but if one adjusts it, can make it to suit personal needs;
   - [new] beep when key is released or when writing with capslock
 
-  v2.58 (2017-09-23)
+v2.58 (2017-09-23)
   - Numpad keys have friendly naming, based on the numlock state.
   - Combinations with space and backspace work again.
 
-  v2.56 (2017-09-22)
+v2.56 (2017-09-22)
   - more fixes for space usage and key combinations;
   - now it indicates when ScrollLock, NumLock and Capslock are activated.
 
-  v2.55 (2017-09-21)
+v2.55 (2017-09-21)
   - minor fixes for space usage and key combinations.
 
-by Saiapatsu from irc.freenode.net #ahk
-  v2.54 (2017-09-21)
-  - Scrolls through n recently typed characters instead of just the latest word
+by Saiapatsu from irc.freenode.net, #ahk [he helped with developing typing mode]
+v2.54 (2017-09-21)
+  - Scrolls through N recently typed characters instead of just the latest word
 
-  v2.53 (2017-09-21)
+v2.53 (2017-09-21)
   - Case change effect limited to the loop 95 letters only.
 
-  v2.52 (2017-09-21)
+v2.52 (2017-09-21)
   - Now supports backspace. Commented out CapsLock beeper.
 
-  v2.51 (2017-09-21)
-  - Changed labels to functions, added ToolWindow style to window, changed DisplayTime calculation, made it show last word typed, hid spacebar presses
-  todo: make Shift look less ugly
+v2.51 (2017-09-21)
+  - Changed labels to functions
+  - added ToolWindow style to window
+  - changed DisplayTime calculation, made it show last word typed, hid spacebar presses
+  - todo: make Shift look less ugly
 
 by Marius Sucan (robodesign.ro)
-  v2.50 (2017-09-20) - major release
-  - Changed the OSD positioning and sizing. It was based on the current window. Now it is always fixed in a specific place. Added a Capslock beeper.
+v2.50 (2017-09-20) - major release
+  - Changed the OSD positioning and sizing. It was based on the current window. Now it is always fixed in a specific place
+  = Added a Capslock beeper.
+
+
 
 by tmplinshi from https://autohotkey.com/boards/viewtopic.php?f=6&t=225
-  v2.22 (2017-02-25)
+v2.22 (2017-02-25)
   - Now pressing same combination keys continuously more than 2 times,
   for example press Ctrl+V 3 times, will displayed as "Ctrl + v (3)"
 
-  v2.21 (2017-02-24)
+v2.21 (2017-02-24)
   - Fixed LWin/RWin not poping up start menu
 
-  v2.20 (2017-02-24)
+v2.20 (2017-02-24)
   - Added displaying continuous-pressed combination keys.
   e.g.: With CTRL key held down, pressing K and U continuously will shown as "Ctrl + k, u"
 
-  v2.10 (2017-01-22)
+v2.10 (2017-01-22)
   - Added ShowStickyModKeyCount option
 
-  v2.09 (2017-01-22)
+v2.09 (2017-01-22)
   - Added ShowModifierKeyCount option
 
-  v2.08 (2017-01-19)
+v2.08 (2017-01-19)
   - Fixed a bug
 
-  v2.07 (2017-01-19)
+v2.07 (2017-01-19)
   - Added ShowSingleModifierKey option (default is True)
 
-  v2.06 (2016-11-23)
+v2.06 (2016-11-23)
   - Added more keys. Thanks to SashaChernykh.
 
-  v2.05 (2016-10-01)
+v2.05 (2016-10-01)
   - Fixed not detecting "Ctrl + ScrollLock/NumLock/Pause". Thanks to lexikos.
 
-  v2.04 (2016-10-01)
+v2.04 (2016-10-01)
   - Added NumpadDot and AppsKey
 
-  v2.03 (2016-09-17)
+v2.03 (2016-09-17)
   - Added displaying "Double-Click" of the left mouse button.
 
-  v2.02 (2016-09-16)
+v2.02 (2016-09-16)
   - Added displaying mouse button, and 3 settings (ShowMouseButton, FontSize, GuiHeight)
 
-  v2.01 (2016-09-11)
+v2.01 (2016-09-11)
   - Display non English keyboard layout characters when combine with modifier keys.
 
-  v2.00 (2016-09-01) - major release
+v2.00 (2016-09-01) - major release
   - Removed the "Fade out" effect because of its buggy.
   - Added support for non english keyboard layout.
   - Added GuiPosition setting.
 
-  v1.00 (2013-10-11) - major release
+v1.00 (2013-10-11) - major release
   - First release by tmplinshi based on RaptorX. Function keys, numpad keys and mouse clicks support. Popups at mouse position.
 
-  v0.50 (2010-03-18)
+v0.50 (2010-03-18)
   - Released by RaptorX.
 ---------------------------------------------------------------
 

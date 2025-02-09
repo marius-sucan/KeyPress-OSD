@@ -8,6 +8,26 @@
 
 <h3><a href="https://files.sucan.ro/marius/blog/ahk-scripts/keypress-osd-compiled.zip">Download KeyPress OSD compiled for x32/x64 freeware edition</a> (.ZIP file, portable, includes source files).</h3>
 
+<h2>Commercial edition extras</h2>
+<ul>
+<li>much improved typing modes, with selections rendering</li>
+<li>alternate typind mode reimagined and much improved</li>
+<li>display advanced key combinations, eg., Ctrl+W+2</li>
+<li>customizable keyboard shortcuts actions</li>
+<li>advanced quick-auto replace options: variables, parameters, conditional texts and more</li>
+<li>customizable KeyPress OSD toolbar which facilitates usage in many contexts</li>
+<li>display history of key presses</li>
+<li>mouse spot-light</li>
+<li>option to show characters affected by Shift even in screen-cast mode [typing mode disabled], eg., 'Shift + 2' will show as '@'</li>
+<li>rename keyboard keys and shortcuts displayed by the OSD</li>
+<li>prevent specific keyboard keys and shortcuts to display in the OSD</li>
+<li>multi-language keystrokes names: French, German, Spanish or Russian language</li>
+<li>more OSD customization options</li>
+<li>option to attach the OSD to the current window</li>
+<li>dark mode user interface</li>
+<li>MANY bug fixes and improvements</li>
+</ul>
+
 <h2>Project description</h2>
 
 <p>This program is an On-Screen Display or a Heads-Up Display for keys. It displays every key or mouse button press at a clearly visible text size. I developed it for people like me, with poor eye sight or low vision. It is meant to aid desktop computer usage. It is especially useful while chatting or for occasional typing. The user no longer has to squint at the screen or zoom in the entire screen to see what s/he wrote for every text field.</p>
